@@ -1,0 +1,39 @@
+Desejo que gere o diagrama Container da história de usuário abaixo:
+
+Como cliente pessoa física do banco,
+Quero realizar transferências via PIX de forma segura e instantânea,
+Para enviar dinheiro para minha família e pagar fornecedores rapidamente.
+
+Critérios de Aceite:
+- O cliente deve estar autenticado no aplicativo mobile ou internet banking
+- Sistema deve validar se o cliente possui saldo suficiente na conta
+- Deve permitir transferências PIX usando chave (CPF, email, telefone ou aleatória)
+- Limite diário de R$ 50.000 para pessoa física
+- Confirmação via token mobile ou biometria para valores acima de R$ 1.000
+- Notificação push instantânea após conclusão da transferência
+- Comprovante digital deve ser gerado e disponibilizado
+
+Requisitos Técnicos:
+- Integração com DICT (Diretório de Identificadores de Contas Transacionais) do BACEN
+- Integração com SPI (Sistema de Pagamentos Instantâneos)
+- Validação em tempo real com motor antifraude
+- Criptografia end-to-end para dados sensíveis
+- Autenticação multifator (MFA) obrigatória
+- Armazenamento seguro de chaves PIX no HSM
+- Auditoria completa de todas as transações
+
+Tecnologias Envolvidas:
+- Backend: Microserviços em Java Spring Boot
+- Mensageria: Apache Kafka para eventos assíncronos
+- Database: PostgreSQL para dados transacionais + Redis para cache
+- Segurança: OAuth 2.0 + JWT para autenticação
+- Infraestrutura: Kubernetes em cloud híbrida
+- Monitoramento: ELK Stack + Prometheus
+
+Integrações Necessárias:
+- Sistema PIX/DICT do Banco Central
+- Core Banking System (mainframe COBOL)
+- Sistema de Prevenção à Fraude
+- Gateway de Notificações Push
+- Sistema de Auditoria e Compliance
+- Bureau de consulta (SPC/Serasa) para validações adicionais

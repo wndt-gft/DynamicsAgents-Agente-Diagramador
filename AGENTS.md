@@ -1,0 +1,5 @@
+- A pasta solution-only-sample-references é apenas para exemplo e referências de organização e implenataçãod e agentes usando o Google ADK.
+- A pasta tools\archimate_exchange\samples\pix_solution_case contem os inputs user_history.txt, o datamodel que deve ser gerado pelo agente pix_container_datamodel.json e a saída do diagrama em XML: tools\archimate_exchange\samples\pix_solution_case\outputs\pix_container_diagram.xml, a conversão do datamodel em json para o diagrama xml pode ser testado em CLI: python3 .\xml_exchange.py --template ../../templates/BV-C4-Model-SDLC/layout_template.xml --model-json ./samples/pix_solution_case/pix_container_datamodel.json --out ./samples/pix_solution_case/outputs/pix_container_diagram.xml --validate-xsd-dir ../../templates/BV-C4-Model-SDLC/schemas
+- A tool xml_exchange em tools\archimate_exchange\xml_exchange.py consegue realizar todos os processos necessários que o agente precisa.
+
+*** Necessário desenvolver um agente chamado Diagramador em agent.py e as instruções necessárias para entender a história do usuário enviada, e gerar o datamodel completo e gerar o diagrama em XML na pasta /outputs

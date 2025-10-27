@@ -1,0 +1,1413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd" identifier="id-65a4951d-6114-409d-9562-9a80710d5866">
+  <name xml:lang="pt">25.3T.JT-XXXX.TE-XXXX-{MainSolutionName}</name>
+  <elements>
+    <element identifier="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-e493478723ba461f8f0731340cdff41f" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-da18b5f4b21a4bdab0c63fa99d95ba91" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Data Application Component</name>
+      <documentation xml:lang="pt">Exemplo: Dados de cartão</documentation>
+    </element>
+    <element identifier="id-a5185a2f58394a6891167652bb0b8021" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Gateway Outbound Component Element</name>
+      <documentation xml:lang="pt">Component referente as funcionalidades do gateway de saída, exemplo: "API Gateway Fatura out"</documentation>
+    </element>
+    <element identifier="id-42f016f285604cbca15dbafb7438ac18" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-3db4884e4ef2449292c1953d4bda30c7" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Chanel Application Component</name>
+      <documentation xml:lang="pt">Componentes diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-35719f23fe184d95ad5d2190c6f202be" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Gateway Inbound Component Element</name>
+      <documentation xml:lang="pt">Component referente as funcionalidades do gateway de entrada, exemplo: "API Gateway Conta in"</documentation>
+    </element>
+    <element identifier="id-06d59e4560d847a8861b915405296e0a" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-1662934bb0ff40f5b4c10e88f49dd8c0" xsi:type="ApplicationProcess">
+      <name xml:lang="pt">Chanel Process Component</name>
+      <documentation xml:lang="pt">Componentes especificos de processos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-ea78a465f32843da94bd2f5e8fdb1099" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Chanel Event Component</name>
+      <documentation xml:lang="pt">Componentes de eventos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-5816f0efb1ad40b0b1f6e67dc1fa86bb" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Chanel Application Component</name>
+      <documentation xml:lang="pt">Componentes de aplicação utilizados do canal</documentation>
+    </element>
+    <element identifier="id-c2dc90e4f7d74f3c919e2ea0c71dc054" xsi:type="ApplicationProcess">
+      <name xml:lang="pt">Chanel Process Component</name>
+      <documentation xml:lang="pt">Componentes especificos de processos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-a4e5d61e2fad4c96b8775d3fba9061ba" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Chanel Event Component</name>
+      <documentation xml:lang="pt">Componentes de eventos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-ff4420a980a4408ca3f37e186600eba5" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Sigla Event Component</name>
+      <documentation xml:lang="pt">Componente de evento da execução lógica relativo com a sigla, exemplo: &#xD;
+&#xD;
+- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo</documentation>
+    </element>
+    <element identifier="id-248825a7f0514d0883e8e72f271c6cdf" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Sigla Application Component</name>
+      <documentation xml:lang="pt">Componente de aplicação da execução lógica relativo com a sigla, exemplos: &#xD;
+&#xD;
+- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. "alteração de data de vencimento", "alteração de limite", "segunda via de cartão", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço.</documentation>
+    </element>
+    <element identifier="id-37401d37c1034a718ab785406022fc9c" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Data Event Component (copy)</name>
+      <documentation xml:lang="pt">Exemplo: Dados de eventos de cartão</documentation>
+    </element>
+    <element identifier="id-dafb5e39b03847c5beb7155f873d14de" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Sigla Application Component</name>
+      <documentation xml:lang="pt">Componente de aplicação da execução lógica relativo com a sigla, exemplos: &#xD;
+&#xD;
+- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. "alteração de data de vencimento", "alteração de limite", "segunda via de cartão", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço.</documentation>
+    </element>
+    <element identifier="id-d32ab69807e245f0bc44735baba04623" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-054a6684fc7c404f8c9d3d8718379a6d" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Sigla Event Component</name>
+      <documentation xml:lang="pt">Componente de evento da execução lógica relativo com a sigla, exemplo: &#xD;
+&#xD;
+- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo</documentation>
+    </element>
+    <element identifier="id-a4021f10be6c4c1096c75ea6cdc03f83" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Application Event</name>
+    </element>
+    <element identifier="id-7b0c03d4f05a410da57057c7e0b1ad25" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-89aef989c04f448294e301fac2bb9f67" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Application Event</name>
+    </element>
+    <element identifier="id-9959e599181b4524bf9d082892d127da" xsi:type="Artifact">
+      <name xml:lang="pt">Artifact</name>
+    </element>
+    <element identifier="id-469670" xsi:type="Deliverable">
+      <name xml:lang="pt">ARQCOR-9897</name>
+    </element>
+    <element identifier="id-415459" xsi:type="WorkPackage">
+      <name xml:lang="pt">JT-XXXX</name>
+    </element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-5208d4b53f39489c875385ae1d18b89a" source="id-dafb5e39b03847c5beb7155f873d14de" target="id-054a6684fc7c404f8c9d3d8718379a6d" xsi:type="Triggering" />
+    <relationship identifier="id-44d0815f798249459770e25aa3e959d6" source="id-d32ab69807e245f0bc44735baba04623" target="id-a4021f10be6c4c1096c75ea6cdc03f83" xsi:type="Triggering" />
+    <relationship identifier="id-340253e03b0247bcb4fa80eae1b4367d" source="id-054a6684fc7c404f8c9d3d8718379a6d" target="id-d32ab69807e245f0bc44735baba04623" xsi:type="Triggering" />
+    <relationship identifier="id-9f4a255d7c7044ca950a4831328cf9f8" source="id-d32ab69807e245f0bc44735baba04623" target="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="Serving" />
+    <relationship identifier="id-b43ea55d2f554a7a8808c5f2226a1bea" source="id-9a9b5d551e904bfcbfce12a6197943a2" target="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="Serving" />
+    <relationship identifier="id-de5b98d2e4ad4e4c91be68c4d3f342c5" source="id-9a9b5d551e904bfcbfce12a6197943a2" target="id-e493478723ba461f8f0731340cdff41f" xsi:type="Triggering" />
+    <relationship identifier="id-71f6aa63a84848d8aec1570865dd7ac4" source="id-d32ab69807e245f0bc44735baba04623" target="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="Triggering" />
+    <relationship identifier="id-966a757c907e4dbf91bff9a20826aab9" source="id-d32ab69807e245f0bc44735baba04623" target="id-a5185a2f58394a6891167652bb0b8021" xsi:type="Triggering" />
+    <relationship identifier="id-d43696f3b326435d9389cacc19e73197" source="id-a5185a2f58394a6891167652bb0b8021" target="id-42f016f285604cbca15dbafb7438ac18" xsi:type="Triggering" />
+    <relationship identifier="id-e71170cc00c4413cb7c298469733418b" source="id-054a6684fc7c404f8c9d3d8718379a6d" target="id-da18b5f4b21a4bdab0c63fa99d95ba91" xsi:type="Triggering" />
+    <relationship identifier="id-a84d2dca787046568bcfdd292669cf2b" source="id-35719f23fe184d95ad5d2190c6f202be" target="id-3db4884e4ef2449292c1953d4bda30c7" xsi:type="Triggering" />
+    <relationship identifier="id-f751e171b27b4a7d9fef48c1c98be4c7" source="id-35719f23fe184d95ad5d2190c6f202be" target="id-dafb5e39b03847c5beb7155f873d14de" xsi:type="Triggering" />
+    <relationship identifier="id-eb8e066c2e25497abf12ed0d9be60aea" source="id-3db4884e4ef2449292c1953d4bda30c7" target="id-35719f23fe184d95ad5d2190c6f202be" xsi:type="Triggering" />
+    <relationship identifier="id-21b2d80dcea847cd92f828666d5f3a49" source="id-a5185a2f58394a6891167652bb0b8021" target="id-06d59e4560d847a8861b915405296e0a" xsi:type="Triggering" />
+    <relationship identifier="id-2eba8673d6ac473ab9436dc6db8a0d6d" source="id-a5185a2f58394a6891167652bb0b8021" target="id-5816f0efb1ad40b0b1f6e67dc1fa86bb" xsi:type="Triggering" />
+    <relationship identifier="id-9477c6ff875f4173a25aad33ad44f6ce" source="id-248825a7f0514d0883e8e72f271c6cdf" target="id-ff4420a980a4408ca3f37e186600eba5" xsi:type="Triggering" />
+    <relationship identifier="id-f87a6ce51213455d936c5cf5f09fa565" source="id-dafb5e39b03847c5beb7155f873d14de" target="id-248825a7f0514d0883e8e72f271c6cdf" xsi:type="Triggering" />
+    <relationship identifier="id-2225e175d1354879b7ec60544b87f732" source="id-248825a7f0514d0883e8e72f271c6cdf" target="id-a5185a2f58394a6891167652bb0b8021" xsi:type="Triggering" />
+    <relationship identifier="id-da865efeab8746989fe4b4fe9ffa2a90" source="id-37401d37c1034a718ab785406022fc9c" target="id-ff4420a980a4408ca3f37e186600eba5" xsi:type="Triggering" />
+    <relationship identifier="id-3d4a5b0c678e4befa1746f3172082d37" source="id-ff4420a980a4408ca3f37e186600eba5" target="id-37401d37c1034a718ab785406022fc9c" xsi:type="Triggering" />
+    <relationship identifier="id-469668" source="id-415459" target="id-469670" xsi:type="Realization" />
+  </relationships>
+  <organizations>
+    <item>
+      <label xml:lang="pt">Application</label>
+      <item>
+        <label xml:lang="pt">Application Layer</label>
+        <item identifierRef="id-dafb5e39b03847c5beb7155f873d14de" />
+        <item identifierRef="id-d32ab69807e245f0bc44735baba04623" />
+        <item identifierRef="id-054a6684fc7c404f8c9d3d8718379a6d" />
+        <item identifierRef="id-a4021f10be6c4c1096c75ea6cdc03f83" />
+      </item>
+      <item>
+        <label xml:lang="pt">Components</label>
+        <item>
+          <label xml:lang="pt">Container</label>
+          <item>
+            <label xml:lang="pt">Application Component</label>
+            <item identifierRef="id-7b0c03d4f05a410da57057c7e0b1ad25" />
+            <item identifierRef="id-89aef989c04f448294e301fac2bb9f67" />
+          </item>
+        </item>
+      </item>
+      <item identifierRef="id-9a9b5d551e904bfcbfce12a6197943a2" />
+      <item identifierRef="id-e493478723ba461f8f0731340cdff41f" />
+      <item identifierRef="id-da18b5f4b21a4bdab0c63fa99d95ba91" />
+      <item identifierRef="id-a5185a2f58394a6891167652bb0b8021" />
+      <item identifierRef="id-42f016f285604cbca15dbafb7438ac18" />
+      <item identifierRef="id-3db4884e4ef2449292c1953d4bda30c7" />
+      <item identifierRef="id-35719f23fe184d95ad5d2190c6f202be" />
+      <item identifierRef="id-06d59e4560d847a8861b915405296e0a" />
+      <item identifierRef="id-1662934bb0ff40f5b4c10e88f49dd8c0" />
+      <item identifierRef="id-ea78a465f32843da94bd2f5e8fdb1099" />
+      <item identifierRef="id-5816f0efb1ad40b0b1f6e67dc1fa86bb" />
+      <item identifierRef="id-c2dc90e4f7d74f3c919e2ea0c71dc054" />
+      <item identifierRef="id-a4e5d61e2fad4c96b8775d3fba9061ba" />
+      <item identifierRef="id-ff4420a980a4408ca3f37e186600eba5" />
+      <item identifierRef="id-248825a7f0514d0883e8e72f271c6cdf" />
+      <item identifierRef="id-37401d37c1034a718ab785406022fc9c" />
+    </item>
+    <item>
+      <label xml:lang="pt">Technology &amp; Physical</label>
+      <item>
+        <label xml:lang="pt">Components</label>
+        <item>
+          <label xml:lang="pt">Container</label>
+          <item>
+            <label xml:lang="pt">Application Component</label>
+            <item identifierRef="id-9959e599181b4524bf9d082892d127da" />
+          </item>
+        </item>
+      </item>
+    </item>
+    <item>
+      <label xml:lang="pt">Implementation &amp; Migration</label>
+      <item>
+        <label xml:lang="pt">Implementation and migration elements</label>
+        <item identifierRef="id-469670" />
+        <item identifierRef="id-415459" />
+      </item>
+    </item>
+    <item>
+      <label xml:lang="pt">Relations</label>
+      <item>
+        <label xml:lang="pt">Implementation and migration elements</label>
+        <item identifierRef="id-469668" />
+      </item>
+      <item identifierRef="id-5208d4b53f39489c875385ae1d18b89a" />
+      <item identifierRef="id-44d0815f798249459770e25aa3e959d6" />
+      <item identifierRef="id-340253e03b0247bcb4fa80eae1b4367d" />
+      <item identifierRef="id-9f4a255d7c7044ca950a4831328cf9f8" />
+      <item identifierRef="id-b43ea55d2f554a7a8808c5f2226a1bea" />
+      <item identifierRef="id-de5b98d2e4ad4e4c91be68c4d3f342c5" />
+      <item identifierRef="id-71f6aa63a84848d8aec1570865dd7ac4" />
+      <item identifierRef="id-966a757c907e4dbf91bff9a20826aab9" />
+      <item identifierRef="id-d43696f3b326435d9389cacc19e73197" />
+      <item identifierRef="id-e71170cc00c4413cb7c298469733418b" />
+      <item identifierRef="id-a84d2dca787046568bcfdd292669cf2b" />
+      <item identifierRef="id-f751e171b27b4a7d9fef48c1c98be4c7" />
+      <item identifierRef="id-eb8e066c2e25497abf12ed0d9be60aea" />
+      <item identifierRef="id-21b2d80dcea847cd92f828666d5f3a49" />
+      <item identifierRef="id-2eba8673d6ac473ab9436dc6db8a0d6d" />
+      <item identifierRef="id-9477c6ff875f4173a25aad33ad44f6ce" />
+      <item identifierRef="id-f87a6ce51213455d936c5cf5f09fa565" />
+      <item identifierRef="id-2225e175d1354879b7ec60544b87f732" />
+      <item identifierRef="id-da865efeab8746989fe4b4fe9ffa2a90" />
+      <item identifierRef="id-3d4a5b0c678e4befa1746f3172082d37" />
+    </item>
+    <item>
+      <label xml:lang="pt">Views</label>
+      <item>
+        <item>
+          <item>
+            <item identifierRef="id-171323" />
+          </item>
+          <item identifierRef="id-219315" />
+          <item identifierRef="id-154903" />
+          <item identifierRef="id-194586" />
+        </item>
+      </item>
+      <item identifierRef="id-209915" />
+      <item identifierRef="id-207637" />
+      <item identifierRef="id-222409" />
+      <item identifierRef="id-196480" />
+    </item>
+  </organizations>
+  <views>
+    <diagrams>
+      <view identifier="id-171323" xsi:type="Diagram">
+        <name xml:lang="pt">Visão de Container - {SolutionName}</name>
+        <node identifier="id-1328065" xsi:type="Label" x="0" y="47" w="620" h="80">
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1328062" xsi:type="Label" x="127" y="87" w="1540" h="33">
+          <label xml:lang="pt">Sub titulo do diagrama exemplo: Visão de container - Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1328082" xsi:type="Label" x="127" y="47" w="1540" h="40">
+          <label xml:lang="pt">Titulo da solução, exemplo: Plataforma e Produtos de Dados</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1328081" x="480" y="700" w="533" h="120" xsi:type="Container">
+          <label xml:lang="pt">Layer DATA MANAGEMENT</label>
+          <documentation xml:lang="pt">Conatiner de elementos de gerenciamento de dados</documentation>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-6d6c7c9cc5d849128a73781698f56bfd" elementRef="id-da18b5f4b21a4bdab0c63fa99d95ba91" xsi:type="Element" x="528" y="748" w="120" h="55">
+            <style>
+              <fillColor r="181" g="255" b="255" a="100" />
+              <lineColor r="92" g="92" b="92" a="100" />
+              <font name="Segoe UI" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-6e3ca600781546f892a18495d735a525" elementRef="id-37401d37c1034a718ab785406022fc9c" xsi:type="Element" x="768" y="748" w="120" h="55">
+            <style>
+              <fillColor r="181" g="255" b="255" a="100" />
+              <lineColor r="92" g="92" b="92" a="100" />
+              <font name="Segoe UI" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1328074" x="1200" y="193" w="200" h="627" xsi:type="Container">
+          <label xml:lang="pt">Layer EXTERNAL INTEGRATION</label>
+          <documentation xml:lang="pt">Layer contendo os canais externos de integração, como por exemplo: BLANKY e seus componentes.</documentation>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-cd39d1ae05e84602b9909ab5ef51c763" x="1212" y="241" w="169" h="253" xsi:type="Container">
+            <label xml:lang="pt">Group</label>
+            <documentation xml:lang="pt">Container por tipo de canais agrupando os elementos relativos, exemplo BANKLY.&#xD;
+- Relacionamento: qualquer elemnto dentro da Layer de canais se comunica exclusivamente apenas com os elementos da layer "GATEWAY OUTBOUND"</documentation>
+            <style>
+              <fillColor r="160" g="223" b="241" a="100" />
+              <lineColor r="92" g="92" b="92" a="100" />
+              <font name="Segoe UI" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+            <node identifier="id-4b5442cf99744cdcaabc0a40319345e6" elementRef="id-5816f0efb1ad40b0b1f6e67dc1fa86bb" xsi:type="Element" x="1236" y="277" w="120" h="55">
+              <style>
+                <fillColor r="181" g="255" b="255" a="100" />
+                <lineColor r="92" g="92" b="92" a="100" />
+                <font name="Segoe UI" size="9">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+            <node identifier="id-2a675b26e0fc460ebc161013f339f404" elementRef="id-c2dc90e4f7d74f3c919e2ea0c71dc054" xsi:type="Element" x="1236" y="349" w="120" h="55">
+              <style>
+                <fillColor r="181" g="255" b="255" a="100" />
+                <lineColor r="92" g="92" b="92" a="100" />
+                <font name="Segoe UI" size="9">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+            <node identifier="id-bb910d792af24683872fbd8e44aa3786" elementRef="id-a4e5d61e2fad4c96b8775d3fba9061ba" xsi:type="Element" x="1236" y="421" w="120" h="55">
+              <style>
+                <fillColor r="181" g="255" b="255" a="100" />
+                <lineColor r="92" g="92" b="92" a="100" />
+                <font name="Segoe UI" size="9">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+          </node>
+        </node>
+        <node identifier="id-1328078" x="1020" y="193" w="173" h="627" xsi:type="Container">
+          <label xml:lang="pt">Layer GATEWAY OUTBOUND</label>
+          <documentation xml:lang="pt">Container de Gateways de Entrada</documentation>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-37712ad4563449c6a7d771388b253e00" elementRef="id-a5185a2f58394a6891167652bb0b8021" xsi:type="Element" x="1044" y="277" w="120" h="55">
+            <style>
+              <fillColor r="181" g="255" b="255" a="100" />
+              <lineColor r="92" g="92" b="92" a="100" />
+              <font name="Segoe UI" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1328066" x="273" y="193" w="200" h="627" xsi:type="Container">
+          <label xml:lang="pt">Layer GATEWAY INBOUND</label>
+          <documentation xml:lang="pt">Container de Gateways de Entrada</documentation>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-8249df6b00904220bbd97049f96d13e8" elementRef="id-35719f23fe184d95ad5d2190c6f202be" xsi:type="Element" x="309" y="277" w="133" h="55">
+            <style>
+              <fillColor r="181" g="255" b="255" a="100" />
+              <lineColor r="92" g="92" b="92" a="100" />
+              <font name="Segoe UI" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1328077" x="1407" y="193" w="260" h="627" xsi:type="Container">
+          <label xml:lang="pt">Layer Etapas</label>
+          <documentation xml:lang="pt">Layer de todas as etapas realizadas e observações.</documentation>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-1328083" xsi:type="Label" x="1420" y="227" w="233" h="75">
+            <label xml:lang="pt">Elemento de nota para as Regras Aplicadas e Observações.&#xD;
+&#xD;
+Exemplo:&#xD;
+1 - Orch GCOC subscreve o tópico do GLIT que informa o novo limite garantido por CDB. 2 - Consulta os parâmetros do Cartão no atom PPRC. 3 - Recupera dados de Quina no CART. 4 - orch do GCOC requisita o orch do IPRC para realizar criação do contrato de crédito. 5 - Recupera token de identificação. 6 - O atom pessiste a requisição na base para atulização posterior após recebimento de evento de confirmação. 7- Envia a requisição de criaçãod e contrato de crédito para a Bankly. 8 - Por meio do webhook a Bankly envia os eventos de criação de contrato e liberação de limite.</label>
+            <style>
+              <fillColor r="255" g="255" b="255" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1328072" x="67" y="193" w="200" h="627" xsi:type="Container">
+          <label xml:lang="pt">Layer de Canais</label>
+          <documentation xml:lang="pt">Container de canais</documentation>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-1aaac1fc0c8e4c8288bcb62d40b4798d" x="79" y="229" w="169" h="277" xsi:type="Container">
+            <label xml:lang="pt">Container de canais</label>
+            <documentation xml:lang="pt">Container por tipo de canais agrupando os elementos relativos, exemplo BANKLY.&#xD;
+- Relacionamento: qualquer elemnto dentro da Layer de canais se comunica exclusivamente apenas com os elementos da layer "GATEWAY OUTBOUND"</documentation>
+            <style>
+              <fillColor r="160" g="223" b="241" a="100" />
+              <lineColor r="92" g="92" b="92" a="100" />
+              <font name="Segoe UI" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+            <node identifier="id-a653ed9b742343bf92dc9a1c2599fdcd" elementRef="id-3db4884e4ef2449292c1953d4bda30c7" xsi:type="Element" x="103" y="277" w="120" h="55">
+              <style>
+                <fillColor r="181" g="255" b="255" a="100" />
+                <lineColor r="92" g="92" b="92" a="100" />
+                <font name="Segoe UI" size="9">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+            <node identifier="id-6d6e258d7ca2407f92804f64b4d7ff46" elementRef="id-1662934bb0ff40f5b4c10e88f49dd8c0" xsi:type="Element" x="103" y="349" w="120" h="55">
+              <style>
+                <fillColor r="181" g="255" b="255" a="100" />
+                <lineColor r="92" g="92" b="92" a="100" />
+                <font name="Segoe UI" size="9">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+            <node identifier="id-a9832addd82c446ea7959f0e44ee89f3" elementRef="id-ea78a465f32843da94bd2f5e8fdb1099" xsi:type="Element" x="103" y="421" w="120" h="55">
+              <style>
+                <fillColor r="181" g="255" b="255" a="100" />
+                <lineColor r="92" g="92" b="92" a="100" />
+                <font name="Segoe UI" size="9">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+          </node>
+        </node>
+        <node identifier="id-1328068" x="480" y="193" w="533" h="500" xsi:type="Container">
+          <label xml:lang="pt">Layer EXECUTION LOGIC</label>
+          <documentation xml:lang="pt">Container de elementos relacionados ao fluxo da execução lógica contendo elementos do tpo container de siglas</documentation>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-c29855f0bd6e478884815011462500ab" xsi:type="Label" x="671" y="409" w="27" h="27">
+            <label xml:lang="pt">1</label>
+            <style>
+              <fillColor r="255" g="255" b="255" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-8f8ca5f03e824170afa997ebca68dbcf" x="504" y="229" w="167" h="227" xsi:type="Container">
+            <label xml:lang="pt">SIGLA</label>
+            <style>
+              <fillColor r="192" g="192" b="192" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-4ad8986cdb314353b56229190c133b25" xsi:type="Label" x="670" y="409" w="27" h="27">
+            <label xml:lang="pt">Sequencial de operação por siglas, 1,2,3,4,5...</label>
+            <style>
+              <fillColor r="255" g="255" b="255" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-3111c6571de948789b6448c8bf505dd5" x="504" y="229" w="167" h="227" xsi:type="Container">
+            <label xml:lang="pt">Container de Siglas</label>
+            <documentation xml:lang="pt">Container da sigla CMDB dos elementos exemplo ASDI: Sistema de notificações do feedback para squid, AADA-ANLT: Sigla para ambientes Analíticos em áreas referente a área de negócio do PLD, AADA-RISK: Autenticação Avançada risk usando CA Risk&#xD;
+&#xD;
+Exemplo do datamodel de siglas:&#xD;
+[&#xD;
+        {&#xD;
+            'u_acronym': 'AADA',&#xD;
+            'comments': 'Produto de autenticação avançada e avaliação risco',&#xD;
+            'u_install_status': 'Em Uso',&#xD;
+            'environment': 'Produção',&#xD;
+            'u_service_classification': 'Serviço de gestão de tecnologia',&#xD;
+            'u_tower': 'Prevenção Autenticação e Autorização - CORE',&#xD;
+            'u_squad_name': 'Prevenção Crimes Financeiros',&#xD;
+            'u_tribe_name': 'Serviço de Não Avalia Infraestrutura',&#xD;
+            'sys_cla': 'u_syste'&#xD;
+        },&#xD;
+       ...</documentation>
+            <style>
+              <fillColor r="192" g="192" b="192" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+            <node identifier="id-2931c65da2db441da5b1998641c6aa5d" elementRef="id-054a6684fc7c404f8c9d3d8718379a6d" xsi:type="Element" x="520" y="376" w="133" h="53">
+              <style>
+                <fillColor r="255" g="255" b="255" a="100" />
+                <lineColor r="0" g="0" b="0" a="100" />
+                <font name="Arial" size="10">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+            <node identifier="id-0f7ba3b0297f41499e1b4709cfead71e" elementRef="id-dafb5e39b03847c5beb7155f873d14de" xsi:type="Element" x="520" y="276" w="133" h="53">
+              <style>
+                <fillColor r="255" g="255" b="255" a="100" />
+                <lineColor r="0" g="0" b="0" a="100" />
+                <font name="Arial" size="10">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+          </node>
+          <node identifier="id-7a9ca719a6d34ed8bd32ce45bbb6ecdc" xsi:type="Label" x="911" y="409" w="27" h="27">
+            <label xml:lang="pt">1</label>
+            <style>
+              <fillColor r="255" g="255" b="255" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-2fad2ab0cc2045fd84f36c2be410ef16" xsi:type="Label" x="910" y="409" w="27" h="27">
+            <label xml:lang="pt">Sequencial de operação por siglas, 1,2,3,4,5...</label>
+            <style>
+              <fillColor r="255" g="255" b="255" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-30fbc75f93ce42708d6ead87abfeed3a" x="745" y="229" w="167" h="227" xsi:type="Container">
+            <label xml:lang="pt">Container de Siglas</label>
+            <documentation xml:lang="pt">Container da sigla CMDB dos elementos exemplo ASDI: Sistema de notificações do feedback para squid, AADA-ANLT: Sigla para ambientes Analíticos em áreas referente a área de negócio do PLD, AADA-RISK: Autenticação Avançada risk usando CA Risk&#xD;
+&#xD;
+Exemplo do datamodel de siglas:&#xD;
+[&#xD;
+        {&#xD;
+            'u_acronym': 'AADA',&#xD;
+            'comments': 'Produto de autenticação avançada e avaliação risco',&#xD;
+            'u_install_status': 'Em Uso',&#xD;
+            'environment': 'Produção',&#xD;
+            'u_service_classification': 'Serviço de gestão de tecnologia',&#xD;
+            'u_tower': 'Prevenção Autenticação e Autorização - CORE',&#xD;
+            'u_squad_name': 'Prevenção Crimes Financeiros',&#xD;
+            'u_tribe_name': 'Serviço de Não Avalia Infraestrutura',&#xD;
+            'sys_cla': 'u_syste'&#xD;
+        },&#xD;
+       ...&#xD;
+]</documentation>
+            <style>
+              <fillColor r="192" g="192" b="192" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+            <node identifier="id-1a6bd4fd6bd74261b3c540956158deb5" elementRef="id-ff4420a980a4408ca3f37e186600eba5" xsi:type="Element" x="761" y="376" w="133" h="53">
+              <style>
+                <fillColor r="255" g="255" b="255" a="100" />
+                <lineColor r="0" g="0" b="0" a="100" />
+                <font name="Arial" size="10">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+            <node identifier="id-54e453a7f6b24796b66c40fe48bc819e" elementRef="id-248825a7f0514d0883e8e72f271c6cdf" xsi:type="Element" x="761" y="276" w="133" h="53">
+              <style>
+                <fillColor r="255" g="255" b="255" a="100" />
+                <lineColor r="0" g="0" b="0" a="100" />
+                <font name="Arial" size="10">
+                  <color r="0" g="0" b="0" />
+                </font>
+              </style>
+            </node>
+          </node>
+        </node>
+        <node identifier="id-482165" xsi:type="Label" x="300" y="132" w="193" h="34">
+          <label xml:lang="pt">Visão de contexto - {SolutionName}</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-154903" />
+        </node>
+        <node identifier="id-482164" xsi:type="Label" x="133" y="132" w="160" h="34">
+          <label xml:lang="pt">Visão de negócio - {SolutionName}</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-219315" />
+        </node>
+        <node identifier="id-482166" elementRef="id-415459" xsi:type="Element" x="880" y="193" w="133" h="20">
+          <style>
+            <fillColor r="255" g="189" b="220" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-8f9e260702bb40278eae9461343d17bd" relationshipRef="id-2eba8673d6ac473ab9436dc6db8a0d6d" xsi:type="Relationship" source="id-37712ad4563449c6a7d771388b253e00" target="id-4b5442cf99744cdcaabc0a40319345e6">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-005a476687b44c678c73af259df5aea0" relationshipRef="id-f751e171b27b4a7d9fef48c1c98be4c7" xsi:type="Relationship" source="id-8249df6b00904220bbd97049f96d13e8" target="id-0f7ba3b0297f41499e1b4709cfead71e">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-e37fea33a07c4beb9c0b345b497e1c72" relationshipRef="id-eb8e066c2e25497abf12ed0d9be60aea" xsi:type="Relationship" source="id-a653ed9b742343bf92dc9a1c2599fdcd" target="id-8249df6b00904220bbd97049f96d13e8">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-2f15bad28f7943f3a77316b1e500eda8" relationshipRef="id-e71170cc00c4413cb7c298469733418b" xsi:type="Relationship" source="id-2931c65da2db441da5b1998641c6aa5d" target="id-6d6c7c9cc5d849128a73781698f56bfd">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-9b72a95b796647a194ee4098dd5faf9b" relationshipRef="id-5208d4b53f39489c875385ae1d18b89a" xsi:type="Relationship" source="id-0f7ba3b0297f41499e1b4709cfead71e" target="id-2931c65da2db441da5b1998641c6aa5d">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-8d66e5f9dd3546fbbe20a201b5ee6295" relationshipRef="id-f87a6ce51213455d936c5cf5f09fa565" xsi:type="Relationship" source="id-0f7ba3b0297f41499e1b4709cfead71e" target="id-54e453a7f6b24796b66c40fe48bc819e">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-e3d4a96c4dd74425bcb2c1e871f6adb0" relationshipRef="id-3d4a5b0c678e4befa1746f3172082d37" xsi:type="Relationship" source="id-1a6bd4fd6bd74261b3c540956158deb5" target="id-6e3ca600781546f892a18495d735a525">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-d5723ac9a8734eba8f24861213a90e8a" relationshipRef="id-9477c6ff875f4173a25aad33ad44f6ce" xsi:type="Relationship" source="id-54e453a7f6b24796b66c40fe48bc819e" target="id-1a6bd4fd6bd74261b3c540956158deb5">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-cfd8cfd456864685b2ce8e4567b2ee66" relationshipRef="id-2225e175d1354879b7ec60544b87f732" xsi:type="Relationship" source="id-54e453a7f6b24796b66c40fe48bc819e" target="id-37712ad4563449c6a7d771388b253e00">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+      </view>
+      <view identifier="id-219315" xsi:type="Diagram">
+        <name xml:lang="pt">Visão de negócio - {SolutionName}</name>
+        <documentation xml:lang="pt">Botão "1. Visão de negócio" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/1. Visão de negócio</documentation>
+        <node identifier="id-1327722" x="333" y="60" w="1027" h="347" xsi:type="Container">
+          <label xml:lang="pt">Motivação</label>
+          <style>
+            <fillColor r="234" g="234" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="Arial" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327736" x="333" y="413" w="1027" h="287" xsi:type="Container">
+          <label xml:lang="pt">Estratégia</label>
+          <style>
+            <fillColor r="255" g="245" b="234" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="Arial" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-1327744" xsi:type="Label" x="347" y="580" w="980" h="107">
+            <label xml:lang="pt">Capacidades</label>
+            <style>
+              <fillColor r="255" g="245" b="234" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-1327741" xsi:type="Label" x="347" y="447" w="980" h="120">
+            <label xml:lang="pt">Fluxo de valor</label>
+            <style>
+              <fillColor r="255" g="245" b="234" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1327727" x="333" y="707" w="1033" h="340" xsi:type="Container">
+          <label xml:lang="pt">Camada de Negócio</label>
+          <style>
+            <fillColor r="255" g="255" b="191" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-1327740" xsi:type="Label" x="347" y="740" w="980" h="147">
+            <label xml:lang="pt">Funções</label>
+            <style>
+              <fillColor r="255" g="255" b="191" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-1327737" xsi:type="Label" x="347" y="900" w="980" h="133">
+            <label xml:lang="pt">Processos</label>
+            <style>
+              <fillColor r="255" g="255" b="191" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1327733" x="335" y="1053" w="1033" h="347" xsi:type="Container">
+          <label xml:lang="pt">Camadas de Aplicação</label>
+          <style>
+            <fillColor r="215" g="245" b="255" a="20" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="Arial" size="9">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-1327725" xsi:type="Label" x="347" y="1087" w="980" h="147">
+            <label xml:lang="pt">Siglas</label>
+            <style>
+              <fillColor r="215" g="245" b="255" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-1327730" xsi:type="Label" x="343" y="1247" w="980" h="133">
+            <label xml:lang="pt">Building Blocks</label>
+            <style>
+              <fillColor r="215" g="245" b="255" a="100" />
+              <lineColor r="0" g="0" b="0" a="100" />
+              <font name="Arial" size="9">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1327747" x="13" y="60" w="313" h="1340" xsi:type="Container">
+          <label xml:lang="pt">Atores &amp; Interfaces</label>
+          <style>
+            <fillColor r="255" g="255" b="191" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+      </view>
+      <view identifier="id-154903" xsi:type="Diagram">
+        <name xml:lang="pt">Visão de contexto - {SolutionName}</name>
+        <documentation xml:lang="pt">Botão "2. Visão de contexto" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/2. Visão de contexto</documentation>
+        <node identifier="id-1327767" xsi:type="Label" x="0" y="40" w="620" h="80">
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327770" xsi:type="Label" x="120" y="80" w="620" h="33">
+          <label xml:lang="pt">Visão de contexto - Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327760" xsi:type="Label" x="120" y="40" w="607" h="40">
+          <label xml:lang="pt">Plataforma e Produtos de Dados</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327763" xsi:type="Label" x="80" y="673" w="340" h="107">
+          <label xml:lang="pt">Jornada Tech / Issue Fórum Arquitetura</label>
+          <style>
+            <fillColor r="251" g="251" b="251" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469669" elementRef="id-469670" xsi:type="Element" x="275" y="707" w="133" h="53">
+          <style>
+            <fillColor r="255" g="189" b="220" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469672" elementRef="id-415459" xsi:type="Element" x="106" y="707" w="133" h="53">
+          <style>
+            <fillColor r="255" g="189" b="220" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327766" xsi:type="Label" x="427" y="180" w="753" h="600">
+          <label xml:lang="pt">Contexto aplicacional interno</label>
+          <style>
+            <fillColor r="251" g="251" b="251" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327754" xsi:type="Label" x="680" y="200" w="487" h="567">
+          <label xml:lang="pt">Produtos e Serviços</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="8">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469656" xsi:type="Label" x="813" y="500" w="133" h="53">
+          <label xml:lang="pt">SDLC</label>
+          <style>
+            <fillColor r="184" g="231" b="252" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469657" xsi:type="Label" x="813" y="380" w="133" h="53">
+          <label xml:lang="pt">ARQD</label>
+          <style>
+            <fillColor r="184" g="231" b="252" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469658" xsi:type="Label" x="813" y="260" w="133" h="53">
+          <label xml:lang="pt">PDBD</label>
+          <style>
+            <fillColor r="184" g="231" b="252" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327750" xsi:type="Label" x="807" y="453" w="147" h="33">
+          <label xml:lang="pt">Seleção e busca dos dados que serão ingeridos</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327768" xsi:type="Label" x="793" y="340" w="173" h="20">
+          <label xml:lang="pt">Ingestão dos dados no data lake</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327753" xsi:type="Label" x="440" y="200" w="233" h="567">
+          <label xml:lang="pt">Canais</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="8">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469674" xsi:type="Label" x="247" y="133" w="160" h="20">
+          <label xml:lang="pt">Visões de container</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-222409" />
+        </node>
+        <node identifier="id-1327756" xsi:type="Label" x="80" y="180" w="340" h="487">
+          <label xml:lang="pt">Contexto atores</label>
+          <style>
+            <fillColor r="251" g="251" b="251" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327765" xsi:type="Label" x="97" y="200" w="313" h="460">
+          <label xml:lang="pt">Ambiente externo</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="8">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469671" xsi:type="Label" x="87" y="133" w="153" h="20">
+          <label xml:lang="pt">Visão de negócio - {SolutionName}</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-219315" />
+        </node>
+        <connection identifier="id-469667" relationshipRef="id-469668" xsi:type="Relationship" source="id-469672" target="id-469669">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469662" xsi:type="Line" source="id-469656" target="id-469657">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469660" xsi:type="Line" source="id-469656" target="id-469672">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469659" xsi:type="Line" source="id-469657" target="id-469658">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469676" xsi:type="Line" source="id-469657" target="id-469672">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469664" xsi:type="Line" source="id-469658" target="id-469672">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+      </view>
+      <view identifier="id-194586" xsi:type="Diagram">
+        <name xml:lang="pt">Visão Técnica - {SolutionName}</name>
+        <node identifier="id-1327805" x="27" y="160" w="120" h="320" xsi:type="Container">
+          <label xml:lang="pt">Channels</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327800" x="287" y="160" w="633" h="493" xsi:type="Container">
+          <label xml:lang="pt">Execution Logic</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <node identifier="id-1327802" x="300" y="187" w="607" h="233" xsi:type="Container">
+            <label xml:lang="pt">Google Cloud Platform</label>
+            <style>
+              <fillColor r="215" g="245" b="255" a="20" />
+              <lineColor r="128" g="128" b="128" a="100" />
+              <font name="arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+          <node identifier="id-1327810" x="300" y="433" w="600" h="200" xsi:type="Container">
+            <label xml:lang="pt">BV OnPremisses</label>
+            <style>
+              <fillColor r="192" g="192" b="192" a="20" />
+              <lineColor r="128" g="128" b="128" a="100" />
+              <font name="arial" size="10">
+                <color r="0" g="0" b="0" />
+              </font>
+            </style>
+          </node>
+        </node>
+        <node identifier="id-1327791" x="1053" y="160" w="160" h="320" xsi:type="Container">
+          <label xml:lang="pt">External Integration Layer</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327809" x="927" y="487" w="287" h="167" xsi:type="Container">
+          <label xml:lang="pt">Etapas</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327806" x="160" y="166" w="120" h="320" xsi:type="Container">
+          <label xml:lang="pt">Gateway Inbound</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327793" x="927" y="159" w="107" h="320" xsi:type="Container">
+          <label xml:lang="pt">Gateway Outbound</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327808" x="287" y="660" w="640" h="120" xsi:type="Container">
+          <label xml:lang="pt">Data Management</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="128" g="128" b="128" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327795" xsi:type="Label" x="0" y="53" w="620" h="80">
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327799" xsi:type="Label" x="133" y="93" w="787" h="27">
+          <label xml:lang="pt">Visão técnica - Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327796" xsi:type="Label" x="127" y="53" w="793" h="40">
+          <label xml:lang="pt">Plataforma e Produtos de Dados</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-415458" elementRef="id-415459" xsi:type="Element" x="760" y="160" w="133" h="20">
+          <style>
+            <fillColor r="255" g="189" b="220" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+      </view>
+      <view identifier="id-209915" xsi:type="Diagram">
+        <name xml:lang="pt">JT-XXXX.TE-XXXX-{MainSolutionName}</name>
+        <node identifier="id-384486" xsi:type="Label" x="70" y="207" w="380" h="60">
+          <label xml:lang="pt">Visão de negócios e solução</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-207637" />
+        </node>
+        <node identifier="id-384490" xsi:type="Label" x="70" y="280" w="380" h="60">
+          <label xml:lang="pt">Visões técnicas</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-196480" />
+        </node>
+        <node identifier="id-1327642" xsi:type="Label" x="20" y="60" w="620" h="80">
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327643" xsi:type="Label" x="153" y="100" w="387" h="33">
+          <label xml:lang="pt">Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327644" xsi:type="Label" x="153" y="60" w="473" h="40">
+          <label xml:lang="pt">Plataforma e Produtos de Dados</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+      </view>
+      <view identifier="id-207637" xsi:type="Diagram">
+        <name xml:lang="pt">Visão de negócios e solução</name>
+        <node identifier="id-1327647" xsi:type="Label" x="160" y="247" w="333" h="53">
+          <label xml:lang="pt">Visão de contexto - {SolutionName}</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-154903" />
+        </node>
+        <node identifier="id-1327666" xsi:type="Label" x="17" y="40" w="620" h="80">
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327671" xsi:type="Label" x="153" y="80" w="640" h="33">
+          <label xml:lang="pt">Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327670" xsi:type="Label" x="153" y="40" w="667" h="40">
+          <label xml:lang="pt">Plataforma e Produtos de Dados</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327649" xsi:type="Label" x="160" y="300" w="333" h="60">
+          <label xml:lang="pt">Visões de container</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-222409" />
+        </node>
+        <node identifier="id-1327645" xsi:type="Label" x="160" y="187" w="333" h="60">
+          <label xml:lang="pt">Visão de negócio - {SolutionName}</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-219315" />
+        </node>
+      </view>
+      <view identifier="id-222409" xsi:type="Diagram">
+        <name xml:lang="pt">Visões de container</name>
+        <node identifier="id-1327720" xsi:type="Label" x="17" y="40" w="620" h="80">
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327716" xsi:type="Label" x="153" y="80" w="593" h="33">
+          <label xml:lang="pt">Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327719" xsi:type="Label" x="153" y="40" w="593" h="40">
+          <label xml:lang="pt">Plataforma e Produtos de Dados</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327715" xsi:type="Label" x="160" y="140" w="387" h="33">
+          <label xml:lang="pt">Visões de container</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327718" xsi:type="Label" x="180" y="213" w="327" h="60">
+          <label xml:lang="pt">Visão de Container - {SolutionName}</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-171323" />
+        </node>
+      </view>
+      <view identifier="id-196480" xsi:type="Diagram">
+        <name xml:lang="pt">Visões técnicas</name>
+        <node identifier="id-414782" xsi:type="Label" x="160" y="227" w="333" h="53">
+          <label xml:lang="pt">Visão Técnica - {SolutionName}</label>
+          <style>
+            <fillColor r="225" g="225" b="225" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+          <viewRef ref="id-194586" />
+        </node>
+        <node identifier="id-1327654" xsi:type="Label" x="17" y="40" w="620" h="80">
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327652" xsi:type="Label" x="153" y="80" w="620" h="60">
+          <label xml:lang="pt">Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327655" xsi:type="Label" x="153" y="40" w="627" h="40">
+          <label xml:lang="pt">Plataforma e Produtos de Dados</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327651" xsi:type="Label" x="160" y="180" w="387" h="33">
+          <label xml:lang="pt">Visões técnicas</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+      </view>
+    </diagrams>
+  </views>
+</model>
