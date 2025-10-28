@@ -1586,9 +1586,7 @@ def finalize_datamodel(
         logger.error("Datamodel de entrada inválido para finalização", exc_info=exc)
         raise ValueError("O conteúdo recebido não é um JSON válido.") from exc
 
-    template = Path(template_path)
-    if not template.is_absolute():
-        template = Path.cwd() / template
+    template = _resolve_package_path(Path(template_path))
     if not template.exists():
         raise FileNotFoundError(f"Template não encontrado: {template}")
 
@@ -1678,9 +1676,7 @@ def generate_mermaid_preview(
     template: Dict[str, Any] = {}
     template_metadata: Dict[str, Any] = {}
     if template_path:
-        template_file = Path(template_path)
-        if not template_file.is_absolute():
-            template_file = Path.cwd() / template_file
+        template_file = _resolve_package_path(Path(template_path))
         if not template_file.exists():
             raise FileNotFoundError(f"Template não encontrado: {template_file}")
         template = get_cached_blueprint(session_state, template_file) or _parse_template_blueprint(

@@ -20,10 +20,11 @@ from tools.diagramador import (
 )
 from tools.diagramador import operations
 
-SAMPLE_TEMPLATE = DEFAULT_TEMPLATE
-SAMPLE_DATAMODEL = Path(
-    "tools/archimate_exchange/samples/pix_solution_case/pix_container_datamodel.json"
+SAMPLE_TEMPLATE = operations._resolve_package_path(DEFAULT_TEMPLATE)
+SAMPLE_DATAMODEL = operations._resolve_package_path(
+    Path("tools/archimate_exchange/samples/pix_solution_case/pix_container_datamodel.json")
 )
+ALTERNATIVE_TEMPLATE_PATH = "agents/BV-C4-Model-SDLC/layout_template.xml"
 
 
 @pytest.fixture()
@@ -83,6 +84,15 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
     assert all(block.startswith("flowchart TD") for block in mermaid_blocks)
 
 
+def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
+    preview = generate_mermaid_preview(
+        sample_payload,
+        ALTERNATIVE_TEMPLATE_PATH,
+        session_state=None,
+    )
+    assert preview["view_count"] >= 1
+
+
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload):
     # Redireciona os artefatos para um diretório temporário.
     operations.OUTPUT_DIR = tmp_path  # type: ignore[attr-defined]
@@ -102,7 +112,18 @@ def test_save_and_generate_archimate_diagram(tmp_path, sample_payload):
     assert xml_result["validation_report"]["valid"] is True
 
 
-def test_agent_instantiation():
-    from agent import diagramador_agent
+def test_finalize_datamodel_resolves_agent_relative_path(sample_payload):
+    result = finalize_datamodel(
+        sample_payload,
+        ALTERNATIVE_TEMPLATE_PATH,
+        session_state=None,
+    )
+    assert result["element_count"] > 0
+    assert result["relationship_count"] > 0
 
-    assert diagramador_agent.name == "diagramador"
+
+def test_agent_instantiation():
+    import importlib
+
+    module = importlib.import_module("agents.diagramador.agent")
+    assert module.diagramador_agent.name == "diagramador"
