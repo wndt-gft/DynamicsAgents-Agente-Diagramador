@@ -139,6 +139,8 @@ def _build_mermaid_image_payload(
         "diagram_type": "mermaid",
         "output_format": resolved_format,
     }
+    headers = {"Accept": mime_type}
+
     payload: Dict[str, Any] = {
         "format": resolved_format,
         "mime_type": mime_type,
@@ -148,13 +150,14 @@ def _build_mermaid_image_payload(
         "status": "url",
         "method": "POST",
         "body": request_payload,
+        "headers": headers,
     }
 
     if not FETCH_MERMAID_IMAGES:
         return payload
 
     try:
-        response = requests.post(url, json=request_payload, timeout=30)
+        response = requests.post(url, json=request_payload, headers=headers, timeout=30)
         response.raise_for_status()
     except requests.RequestException as exc:
         logger.warning("Falha ao baixar imagem Mermaid", exc_info=exc)

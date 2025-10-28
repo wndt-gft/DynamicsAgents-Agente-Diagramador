@@ -311,15 +311,17 @@ def test_generate_mermaid_preview_fetches_image_with_post(monkeypatch, tmp_path)
     assert post.called
     called_url = post.call_args[0][0]
     assert called_url == f"{operations._kroki_base_url()}/render"
-    body = post.call_args.kwargs["json"]
+    image_payload = view["image"]
+    call_kwargs = post.call_args.kwargs
+    body = call_kwargs["json"]
     assert body["diagram_type"] == "mermaid"
     assert body["output_format"] == operations.DEFAULT_MERMAID_IMAGE_FORMAT
     assert body["diagram_source"] == view["mermaid"]
-
-    image_payload = view["image"]
+    assert call_kwargs["headers"] == {"Accept": image_payload["mime_type"]}
     assert image_payload["status"] == "cached"
     assert image_payload["method"] == "POST"
     assert image_payload["body"]["diagram_source"] == view["mermaid"]
+    assert image_payload["headers"] == {"Accept": image_payload["mime_type"]}
     assert image_payload["data_uri"].startswith(
         f"data:{image_payload['mime_type']};base64,"
     )

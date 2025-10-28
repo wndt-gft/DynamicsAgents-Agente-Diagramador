@@ -35,7 +35,7 @@ DEFAULT_KROKI_URL = os.getenv("DIAGRAMADOR_KROKI_URL", "https://kroki.io")
 DEFAULT_MERMAID_VALIDATION_URL = os.getenv(
     "DIAGRAMADOR_MERMAID_VALIDATION_URL", "https://mermaid.ink"
 )
-FETCH_MERMAID_IMAGES = os.getenv("DIAGRAMADOR_FETCH_MERMAID_IMAGES", "0").lower() in (
+FETCH_MERMAID_IMAGES = os.getenv("DIAGRAMADOR_FETCH_MERMAID_IMAGES", "1").lower() in (
     "1",
     "true",
     "yes",
