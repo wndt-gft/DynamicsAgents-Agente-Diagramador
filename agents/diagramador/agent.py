@@ -50,4 +50,10 @@ diagramador_agent = Agent(
 )
 
 
-__all__ = ["diagramador_agent"]
+def root_agent() -> Agent:
+    """Return the Diagramador agent as the package entry point."""
+
+    return diagramador_agent
+
+
+__all__ = ["diagramador_agent", "root_agent"]
