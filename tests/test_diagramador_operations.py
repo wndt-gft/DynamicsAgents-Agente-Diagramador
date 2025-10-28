@@ -108,6 +108,11 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
         payload.get("body", {}).get("diagram_type") == "mermaid"
         for payload in image_payloads
     )
+    layout_payloads = [view.get("layout_preview") for view in preview["views"]]
+    assert all(payload is not None for payload in layout_payloads)
+    assert all(payload["format"] == "svg" for payload in layout_payloads)
+    assert all(Path(payload["path"]).exists() for payload in layout_payloads)
+    assert all(payload.get("data_uri", "").startswith("data:image/svg+xml") for payload in layout_payloads)
 
 
 def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
@@ -117,6 +122,7 @@ def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
         session_state=None,
     )
     assert preview["view_count"] >= 1
+    assert all("layout_preview" in view for view in preview["views"])
 
 
 def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():

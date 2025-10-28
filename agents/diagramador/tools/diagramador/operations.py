@@ -38,6 +38,7 @@ from .constants import (
     XML_LANG_ATTR,
     XSI_ATTR,
 )
+from .rendering import render_view_layout
 from .session import get_cached_blueprint, store_blueprint
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
@@ -132,7 +133,7 @@ def _build_mermaid_image_payload(
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
     base_url = _kroki_base_url()
-    url = f"{base_url}/"
+    url = f"{base_url}/render"
     mime_type = _mermaid_mime_type(resolved_format)
     request_payload = {
         "diagram_source": mermaid,
@@ -141,7 +142,6 @@ def _build_mermaid_image_payload(
     }
     headers = {
         "Accept": mime_type,
-        "Content-Type": "application/json",
     }
 
     payload: Dict[str, Any] = {
@@ -1421,6 +1421,59 @@ def _merge_node_documentation(
     return node_doc, blueprint_doc
 
 
+def _merge_styles(
+    base: Optional[Dict[str, Any]],
+    override: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    if not base and not override:
+        return None
+
+    merged: Dict[str, Any] = {}
+
+    if isinstance(base, dict):
+        for key, value in base.items():
+            merged[key] = copy.deepcopy(value)
+
+    if isinstance(override, dict):
+        for key, value in override.items():
+            if isinstance(value, dict):
+                existing = merged.get(key)
+                nested_base = existing if isinstance(existing, dict) else None
+                nested_merged = _merge_styles(nested_base, value)
+                if nested_merged is not None:
+                    merged[key] = nested_merged
+            elif value is not None:
+                merged[key] = value
+
+    return merged or None
+
+
+def _resolve_bounds(
+    node: Optional[Dict[str, Any]],
+    blueprint_node: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, float]]:
+    candidates: List[Dict[str, Any]] = []
+    if isinstance(node, dict):
+        candidates.append(node)
+    if isinstance(blueprint_node, dict):
+        candidates.append(blueprint_node)
+
+    for candidate in candidates:
+        bounds = candidate.get("bounds")
+        if not isinstance(bounds, dict):
+            continue
+        try:
+            x = float(bounds["x"])
+            y = float(bounds["y"])
+            w = float(bounds["w"])
+            h = float(bounds["h"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        return {"x": x, "y": y, "w": w, "h": h}
+
+    return None
+
+
 def _unique_alias(base: str, used: set[str]) -> str:
     candidate = base
     index = 1
@@ -1590,6 +1643,8 @@ def _build_view_mermaid(
     defined_nodes: set[str] = set()
     node_details: List[Dict[str, Any]] = []
     connection_details: List[Dict[str, Any]] = []
+    layout_nodes: Dict[str, Dict[str, Any]] = {}
+    layout_connections: Dict[str, Dict[str, Any]] = {}
     anonymous_counter = itertools.count(1)
 
     view_id = view.get("id") or (view_blueprint.get("id") if view_blueprint else None)
@@ -1627,6 +1682,53 @@ def _build_view_mermaid(
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
 
+    def _register_layout_node(
+        metadata: Dict[str, Any],
+        *,
+        node_data: Optional[Dict[str, Any]],
+        blueprint_node: Optional[Dict[str, Any]],
+    ) -> None:
+        bounds = _resolve_bounds(node_data, blueprint_node)
+        if bounds:
+            metadata["bounds"] = bounds
+        style = _merge_styles(
+            blueprint_node.get("style") if isinstance(blueprint_node, dict) else None,
+            node_data.get("style") if isinstance(node_data, dict) else None,
+        )
+        if style:
+            metadata["style"] = style
+        node_key = metadata.get("key")
+        if not node_key and isinstance(node_data, dict):
+            node_key = _view_node_key(node_data)
+        if not node_key and isinstance(blueprint_node, dict):
+            node_key = _view_node_key(blueprint_node)
+        if node_key:
+            metadata.setdefault("key", node_key)
+        alias = metadata.get("alias")
+        entry_key = metadata.get("id") or metadata.get("key") or alias
+        entry = {
+            "id": metadata.get("id") or metadata.get("key") or alias,
+            "alias": alias,
+            "key": metadata.get("key"),
+            "title": metadata.get("title"),
+            "label": metadata.get("label"),
+            "type": metadata.get("type"),
+            "element_type": metadata.get("element_type"),
+            "element_name": metadata.get("element_name"),
+            "bounds": bounds,
+            "style": style,
+            "element_ref": metadata.get("element_ref"),
+            "relationship_ref": metadata.get("relationship_ref"),
+            "view_ref": metadata.get("view_ref"),
+            "source": metadata.get("source"),
+            "documentation": metadata.get("documentation"),
+            "template_documentation": metadata.get("template_documentation"),
+        }
+        if entry_key:
+            layout_nodes[str(entry_key)] = entry
+        elif alias:
+            layout_nodes[str(alias)] = entry
+
     def _ensure_alias_for_key(key: Optional[str]) -> Optional[str]:
         if not key:
             return None
@@ -1647,6 +1749,7 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
+        _register_layout_node(metadata, node_data=None, blueprint_node=blueprint_node)
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
@@ -1675,6 +1778,7 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
+        _register_layout_node(metadata, node_data=node, blueprint_node=blueprint_node)
 
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
@@ -1724,6 +1828,32 @@ def _build_view_mermaid(
         if not source_alias or not target_alias:
             continue
 
+        connection_style = _merge_styles(
+            blueprint_connection.get("style") if isinstance(blueprint_connection, dict) else None,
+            connection.get("style") if isinstance(connection.get("style"), dict) else None,
+        )
+        if connection_style:
+            metadata["style"] = connection_style
+        points = connection.get("points") or (
+            blueprint_connection.get("points") if isinstance(blueprint_connection, dict) else None
+        )
+        if points:
+            metadata["points"] = points
+        layout_key = metadata.get("id") or key or f"conn_{len(layout_connections) + 1}"
+        layout_connections[str(layout_key)] = {
+            "id": metadata.get("id") or key,
+            "label": metadata.get("label"),
+            "relationship_ref": metadata.get("relationship_ref"),
+            "source": connection.get("source") or metadata.get("source"),
+            "target": connection.get("target") or metadata.get("target"),
+            "source_alias": source_alias,
+            "target_alias": target_alias,
+            "style": metadata.get("style"),
+            "points": metadata.get("points"),
+            "documentation": metadata.get("documentation"),
+            "template_documentation": metadata.get("template_documentation"),
+        }
+
         label = metadata.get("label")
         if label:
             lines.append(
@@ -1752,6 +1882,11 @@ def _build_view_mermaid(
         "image": image_payload,
         "nodes": node_details,
         "connections": connection_details,
+        "alias": view_alias,
+        "layout": {
+            "nodes": list(layout_nodes.values()),
+            "connections": list(layout_connections.values()),
+        },
     }
 
 
@@ -1955,6 +2090,24 @@ def generate_mermaid_preview(
 
     results: List[Dict[str, Any]] = []
     processed_ids: set[str] = set()
+    layout_output_dir: Path | None = None
+
+    def _attach_layout_preview(view_payload: Dict[str, Any]) -> Dict[str, Any]:
+        nonlocal layout_output_dir
+        layout_info = view_payload.get("layout")
+        if not layout_info:
+            return view_payload
+        if layout_output_dir is None:
+            layout_output_dir = _ensure_output_dir()
+        preview = render_view_layout(
+            view_name=str(view_payload.get("name") or view_payload.get("id") or "Visão"),
+            view_alias=str(view_payload.get("alias") or view_payload.get("id") or "view"),
+            layout=layout_info,
+            output_dir=layout_output_dir,
+        )
+        if preview:
+            view_payload["layout_preview"] = preview
+        return view_payload
 
     for view in blueprint_views:
         if not isinstance(view, dict):
@@ -1971,18 +2124,17 @@ def generate_mermaid_preview(
         datamodel_connections = (
             datamodel_connection_maps.get(str(view_id), {}) if view_id else {}
         )
-        results.append(
-            _build_view_mermaid(
-                merged_view,
-                view,
-                element_lookup,
-                relation_lookup,
-                blueprint_nodes,
-                blueprint_connections,
-                datamodel_nodes,
-                datamodel_connections,
-            )
+        view_payload = _build_view_mermaid(
+            merged_view,
+            view,
+            element_lookup,
+            relation_lookup,
+            blueprint_nodes,
+            blueprint_connections,
+            datamodel_nodes,
+            datamodel_connections,
         )
+        results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
         processed_ids.add(view_key)
@@ -1995,18 +2147,17 @@ def generate_mermaid_preview(
             continue
         datamodel_nodes = _flatten_view_nodes(view.get("nodes") or [])
         datamodel_connections = _flatten_view_connections(view.get("connections") or [])
-        results.append(
-            _build_view_mermaid(
-                view,
-                None,
-                element_lookup,
-                relation_lookup,
-                {},
-                {},
-                datamodel_nodes,
-                datamodel_connections,
-            )
+        view_payload = _build_view_mermaid(
+            view,
+            None,
+            element_lookup,
+            relation_lookup,
+            {},
+            {},
+            datamodel_nodes,
+            datamodel_connections,
         )
+        results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
 

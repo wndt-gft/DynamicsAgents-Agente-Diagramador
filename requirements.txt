@@ -7,3 +7,5 @@ PyYAML>=6,<7
 pydantic>=2,<3
 requests>=2.31,<3
 vertexai>=1,<2
+svgwrite>=1.4,<2
+cairosvg>=2.7,<3
