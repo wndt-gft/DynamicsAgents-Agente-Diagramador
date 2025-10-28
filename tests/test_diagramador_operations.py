@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+import json
 import sys
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -100,6 +101,72 @@ def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
         session_state=None,
     )
     assert preview["view_count"] >= 1
+
+
+def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
+    datamodel = {
+        "model_identifier": "demo",
+        "elements": [
+            {
+                "id": "element_1",
+                "type": "ApplicationComponent",
+                "name": "Core [Gateway]",
+            },
+            {
+                "id": "element_2",
+                "type": "ApplicationComponent",
+                "name": "Ledger",
+            },
+        ],
+        "relations": [
+            {
+                "id": "rel_1",
+                "type": "FlowRelationship",
+                "source": "element_1",
+                "target": "element_2",
+                "name": "Status | Update",
+            }
+        ],
+        "views": {
+            "diagrams": [
+                {
+                    "id": "view_1",
+                    "name": "View | Demo",
+                    "nodes": [
+                        {
+                            "id": "node_1",
+                            "label": "Primary [Node]",
+                            "elementRef": "element_1",
+                        },
+                        {
+                            "id": "node_2",
+                            "label": "Secondary",
+                            "elementRef": "element_2",
+                        },
+                    ],
+                    "connections": [
+                        {
+                            "id": "conn_1",
+                            "source": "node_1",
+                            "target": "node_2",
+                            "relationshipRef": "rel_1",
+                            "label": "Status | Update",
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+
+    preview = generate_mermaid_preview(json.dumps(datamodel))
+    mermaid_lines = preview["views"][0]["mermaid"].split("\n")
+
+    node_line = next(line for line in mermaid_lines if "node_1" in line and "[")
+    assert "&#91;" in node_line
+    assert "&#93;" in node_line
+
+    edge_line = next(line for line in mermaid_lines if "node_1 -->" in line)
+    assert "&#124;" in edge_line
 
 
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload):
