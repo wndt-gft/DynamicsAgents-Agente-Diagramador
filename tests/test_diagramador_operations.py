@@ -103,11 +103,8 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
         payload["format"] == operations.DEFAULT_MERMAID_IMAGE_FORMAT
         for payload in image_payloads
     )
-    assert all(payload.get("method") == "POST" for payload in image_payloads)
-    assert all(
-        payload.get("body", {}).get("diagram_type") == "mermaid"
-        for payload in image_payloads
-    )
+    assert all(payload.get("method") == "GET" for payload in image_payloads)
+    assert all("body" not in payload for payload in image_payloads)
 
 
 def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
@@ -276,7 +273,7 @@ def test_generate_mermaid_preview_appends_statement_terminators():
     assert "; " in collapsed or collapsed.endswith(";")
 
 
-def test_generate_mermaid_preview_fetches_image_with_post(monkeypatch, tmp_path):
+def test_generate_mermaid_preview_caches_image_with_get(monkeypatch, tmp_path):
     datamodel = {
         "model_identifier": "demo_fetch",
         "elements": [],
@@ -298,33 +295,27 @@ def test_generate_mermaid_preview_fetches_image_with_post(monkeypatch, tmp_path)
     response = mock.Mock()
     response.raise_for_status = mock.Mock()
     response.content = b"PNGDATA"
-    response.headers = {"Content-Type": "image/png"}
 
     monkeypatch.setattr(operations, "FETCH_MERMAID_IMAGES", True)
     monkeypatch.setattr(operations, "OUTPUT_DIR", tmp_path)
-    post = mock.Mock(return_value=response)
-    monkeypatch.setattr(operations.requests, "post", post)
+    get = mock.Mock(return_value=response)
+    monkeypatch.setattr(operations.requests, "get", get)
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
     view = preview["views"][0]
 
-    assert post.called
-    called_url = post.call_args[0][0]
-    assert called_url == f"{operations._kroki_base_url()}/render"
+    assert get.called
+    called_url = get.call_args[0][0]
+    expected_url_prefix = f"{operations._mermaid_validator_base_url()}/img/"
+    assert called_url.startswith(expected_url_prefix)
     image_payload = view["image"]
-    call_kwargs = post.call_args.kwargs
-    body = call_kwargs["json"]
-    assert body["diagram_type"] == "mermaid"
-    assert body["output_format"] == operations.DEFAULT_MERMAID_IMAGE_FORMAT
-    assert body["diagram_source"] == view["mermaid"]
+    assert image_payload["url"] == called_url
+    call_kwargs = get.call_args.kwargs
     assert call_kwargs["headers"] == {"Accept": image_payload["mime_type"]}
     assert image_payload["status"] == "cached"
-    assert image_payload["method"] == "POST"
-    assert image_payload["body"]["diagram_source"] == view["mermaid"]
-    assert image_payload["headers"] == {"Accept": image_payload["mime_type"]}
-    assert image_payload["data_uri"].startswith(
-        f"data:{image_payload['mime_type']};base64,"
-    )
+    assert image_payload["method"] == "GET"
+    assert "data_uri" not in image_payload
+    assert image_payload["digest"]
 
     image_path = Path(image_payload["path"])
     assert image_path.exists()

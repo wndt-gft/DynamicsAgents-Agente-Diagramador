@@ -131,87 +131,50 @@ def _build_mermaid_image_payload(
     fmt: Optional[str] = None,
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
-    base_url = _kroki_base_url()
-    url = f"{base_url}/"
     mime_type = _mermaid_mime_type(resolved_format)
-    request_payload = {
-        "diagram_source": mermaid,
-        "diagram_type": "mermaid",
-        "output_format": resolved_format,
-    }
-    headers = {
-        "Accept": mime_type,
-        "Content-Type": "application/json",
-    }
+    encoded = _encode_mermaid_for_validator(mermaid)
+    preview_base = _mermaid_validator_base_url()
+    resource = "img" if resolved_format == "png" else "svg"
+    url = f"{preview_base}/{resource}/{encoded}"
+    digest = hashlib.sha256(mermaid.encode("utf-8")).hexdigest()[:12]
 
     payload: Dict[str, Any] = {
         "format": resolved_format,
         "mime_type": mime_type,
         "url": url,
-        "source": "kroki",
+        "source": "mermaid.ink",
         "alt_text": title,
         "status": "url",
-        "method": "POST",
-        "body": request_payload,
-        "headers": headers,
+        "method": "GET",
+        "digest": digest,
     }
 
     if not FETCH_MERMAID_IMAGES:
         return payload
 
     try:
-        response = requests.post(url, json=request_payload, headers=headers, timeout=30)
+        response = requests.get(url, headers={"Accept": mime_type}, timeout=30)
         response.raise_for_status()
     except requests.RequestException as exc:
         logger.warning("Falha ao baixar imagem Mermaid", exc_info=exc)
         return payload
 
-    content_type = response.headers.get("Content-Type", "") or ""
-    content: bytes | None = None
-
-    if "application/json" in content_type.lower():
-        try:
-            data = response.json()
-        except ValueError:
-            data = None
-        if isinstance(data, dict):
-            raw_content = data.get("content") or data.get("data")
-            if isinstance(raw_content, str):
-                if raw_content.startswith("data:"):
-                    payload["data_uri"] = raw_content
-                    try:
-                        encoded = raw_content.split(",", 1)[1]
-                    except IndexError:
-                        encoded = ""
-                else:
-                    encoded = raw_content
-                if encoded:
-                    try:
-                        content = base64.b64decode(encoded)
-                    except (ValueError, TypeError):
-                        content = None
-    else:
-        content = response.content
-
+    content = response.content or b""
     if not content:
-        logger.warning("Resposta vazia ao solicitar imagem Mermaid via Kroki")
+        logger.warning("Resposta vazia ao solicitar imagem Mermaid para cache")
         return payload
-
-    payload["status"] = "cached"
-    payload["data_uri"] = (
-        f"data:{mime_type};base64,{base64.b64encode(content).decode('ascii')}"
-    )
 
     try:
         output_dir = _ensure_output_dir()
-        digest = hashlib.sha256(mermaid.encode("utf-8")).hexdigest()[:12]
         filename = f"{alias}_{digest}.{resolved_format}"
         image_path = output_dir / filename
         image_path.write_bytes(content)
-        payload["path"] = str(image_path.resolve())
     except OSError as exc:
         logger.warning("Falha ao salvar imagem Mermaid", exc_info=exc)
+        return payload
 
+    payload["status"] = "cached"
+    payload["path"] = str(image_path.resolve())
     return payload
 
 
