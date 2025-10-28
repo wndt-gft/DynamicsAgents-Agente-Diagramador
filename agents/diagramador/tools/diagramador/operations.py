@@ -1715,6 +1715,71 @@ def _flatten_view_connections(
     return flattened
 
 
+def _prune_view_to_datamodel(
+    view_payload: Dict[str, Any],
+    datamodel_node_map: Dict[str, Dict[str, Any]] | None,
+    datamodel_connection_map: Dict[str, Dict[str, Any]] | None,
+) -> None:
+    """Remove nós e conexões que existem apenas na visão do template."""
+
+    datamodel_node_map = datamodel_node_map or {}
+    datamodel_connection_map = datamodel_connection_map or {}
+
+    relevant_node_keys = {
+        str(key)
+        for key in datamodel_node_map.keys()
+        if key is not None and str(key)
+    }
+
+    if relevant_node_keys:
+
+        def _prune_children(nodes: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            kept: List[Dict[str, Any]] = []
+            for child in nodes or []:
+                if not isinstance(child, dict):
+                    continue
+                if _prune_node(child):
+                    kept.append(child)
+            return kept
+
+        def _prune_node(node: Dict[str, Any]) -> bool:
+            key = _view_node_key(node)
+            child_nodes = _node_children(node)
+            kept_children = _prune_children(child_nodes)
+            if kept_children:
+                node["nodes"] = kept_children
+            else:
+                node.pop("nodes", None)
+
+            keep_self = key is not None and str(key) in relevant_node_keys
+            return keep_self or bool(kept_children)
+
+        pruned_root_children = _prune_children(view_payload.get("nodes") or [])
+        if pruned_root_children:
+            view_payload["nodes"] = pruned_root_children
+        else:
+            view_payload.pop("nodes", None)
+
+    if datamodel_connection_map:
+        relevant_connection_keys = {
+            str(key)
+            for key in datamodel_connection_map.keys()
+            if key is not None and str(key)
+        }
+        if relevant_connection_keys:
+            filtered_connections: List[Dict[str, Any]] = []
+            for connection in view_payload.get("connections") or []:
+                if not isinstance(connection, dict):
+                    continue
+                identifier = connection.get("id") or connection.get("identifier")
+                if identifier and str(identifier) in relevant_connection_keys:
+                    filtered_connections.append(connection)
+            if filtered_connections:
+                view_payload["connections"] = filtered_connections
+            else:
+                view_payload.pop("connections", None)
+
+
 def _merge_node_documentation(
     node: Dict[str, Any],
     blueprint_node: Optional[Dict[str, Any]],
@@ -2617,16 +2682,23 @@ def generate_mermaid_preview(
         for view in datamodel_views:
             if not isinstance(view, dict):
                 continue
+            datamodel_nodes, datamodel_connections = _flatten_nodes_and_connections(view)
             template_view = _match_template_view(view)
             if template_view:
                 merged_view = _merge_view_diagram(template_view, view)
+                _prune_view_to_datamodel(
+                    merged_view,
+                    datamodel_nodes,
+                    datamodel_connections,
+                )
+                if not merged_view.get("nodes") and view.get("nodes"):
+                    merged_view = copy.deepcopy(view)
                 blueprint_nodes, blueprint_connections = _flatten_nodes_and_connections(
                     template_view
                 )
             else:
                 merged_view = copy.deepcopy(view)
                 blueprint_nodes, blueprint_connections = {}, {}
-            datamodel_nodes, datamodel_connections = _flatten_nodes_and_connections(view)
             results.append(
                 _render_view_with_fallback(
                     merged_view,

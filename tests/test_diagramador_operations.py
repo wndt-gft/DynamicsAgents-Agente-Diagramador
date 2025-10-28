@@ -403,6 +403,45 @@ def test_generate_mermaid_preview_falls_back_to_flowchart_on_c4_error(
     assert any(view["mermaid"].startswith("flowchart TD") for view in preview["views"])
 
 
+def test_generate_mermaid_preview_ignores_template_only_nodes(sample_payload):
+    payload = json.loads(sample_payload)
+    diagrams = payload["views"]["diagrams"]
+    assert diagrams, "payload should contain diagrams for the sample template"
+
+    target_view = diagrams[0]
+    removed_node = None
+    for index in range(len(target_view["nodes"]) - 1, -1, -1):
+        candidate = target_view["nodes"][index]
+        if isinstance(candidate, dict) and candidate.get("id"):
+            removed_node = target_view["nodes"].pop(index)
+            break
+
+    assert removed_node is not None, "expected at least one node with an identifier"
+
+    removed_id = str(removed_node.get("id"))
+    target_view["connections"] = [
+        conn
+        for conn in target_view.get("connections", [])
+        if conn.get("source") != removed_id and conn.get("target") != removed_id
+    ]
+
+    preview = generate_mermaid_preview(
+        json.dumps(payload),
+        str(SAMPLE_TEMPLATE),
+    )
+
+    rendered_view = preview["views"][0]
+    rendered_ids = {
+        str(node.get("id"))
+        for node in rendered_view["nodes"]
+        if isinstance(node, dict) and node.get("id")
+    }
+
+    assert removed_id not in rendered_ids
+    assert all(node.get("id") != removed_id for node in rendered_view["nodes"])
+    assert removed_id not in rendered_view["mermaid"]
+
+
 def test_generate_mermaid_preview_appends_statement_terminators():
     datamodel = {
         "model_identifier": "demo_semicolon",
