@@ -132,14 +132,17 @@ def _build_mermaid_image_payload(
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
     base_url = _kroki_base_url()
-    url = f"{base_url}/render"
+    url = f"{base_url}/"
     mime_type = _mermaid_mime_type(resolved_format)
     request_payload = {
         "diagram_source": mermaid,
         "diagram_type": "mermaid",
         "output_format": resolved_format,
     }
-    headers = {"Accept": mime_type}
+    headers = {
+        "Accept": mime_type,
+        "Content-Type": "application/json",
+    }
 
     payload: Dict[str, Any] = {
         "format": resolved_format,
@@ -163,7 +166,33 @@ def _build_mermaid_image_payload(
         logger.warning("Falha ao baixar imagem Mermaid", exc_info=exc)
         return payload
 
-    content = response.content
+    content_type = response.headers.get("Content-Type", "") or ""
+    content: bytes | None = None
+
+    if "application/json" in content_type.lower():
+        try:
+            data = response.json()
+        except ValueError:
+            data = None
+        if isinstance(data, dict):
+            raw_content = data.get("content") or data.get("data")
+            if isinstance(raw_content, str):
+                if raw_content.startswith("data:"):
+                    payload["data_uri"] = raw_content
+                    try:
+                        encoded = raw_content.split(",", 1)[1]
+                    except IndexError:
+                        encoded = ""
+                else:
+                    encoded = raw_content
+                if encoded:
+                    try:
+                        content = base64.b64decode(encoded)
+                    except (ValueError, TypeError):
+                        content = None
+    else:
+        content = response.content
+
     if not content:
         logger.warning("Resposta vazia ao solicitar imagem Mermaid via Kroki")
         return payload
