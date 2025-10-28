@@ -186,6 +186,25 @@ def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
     assert stored_preview["view_count"] >= 1
 
 
+def test_generate_mermaid_preview_reuses_preview_without_session(sample_payload):
+    first = generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=None,
+    )
+    assert first["status"] == "ok"
+    reference = f"preview_id: {first['preview_id']}"
+    follow_up = generate_mermaid_preview(
+        reference,
+        session_state=None,
+        view_name="visao de container",
+    )
+    assert follow_up["status"] == "ok"
+    assert follow_up["view_count"] >= 1
+    view_names = {entry.get("name", "") for entry in follow_up["views"]}
+    assert any("container" in name.lower() for name in view_names)
+
+
 def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
     datamodel = {
         "model_identifier": "demo",
@@ -649,7 +668,10 @@ def test_generate_mermaid_preview_fetches_image_with_post(monkeypatch, tmp_path)
 
     assert post.called
     called_url = post.call_args[0][0]
-    assert called_url == f"{operations._kroki_base_url()}/render"
+    expected_url = (
+        f"{operations._kroki_base_url()}/mermaid/{operations.DEFAULT_MERMAID_IMAGE_FORMAT}"
+    )
+    assert called_url == expected_url
     image_payload = view["image"]
     call_kwargs = post.call_args.kwargs
     body = call_kwargs["json"]

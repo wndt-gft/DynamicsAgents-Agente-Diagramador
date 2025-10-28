@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 _GLOBAL_PREVIEW_CACHE: Dict[str, Dict[str, Any]] = {}
+_GLOBAL_DATAMODEL_CACHE: Dict[str, Dict[str, Any]] = {}
 
 
 def _store_preview_fallback(preview_id: str, payload: Dict[str, Any]) -> None:
@@ -64,6 +65,19 @@ def _store_preview_fallback(preview_id: str, payload: Dict[str, Any]) -> None:
 def _get_preview_fallback(preview_id: str) -> Optional[Dict[str, Any]]:
     preview = _GLOBAL_PREVIEW_CACHE.get(preview_id)
     return copy.deepcopy(preview) if isinstance(preview, dict) else None
+
+
+def _store_datamodel_snapshot_fallback(cache_key: str, payload: Dict[str, Any]) -> None:
+    if not cache_key:
+        return
+    _GLOBAL_DATAMODEL_CACHE[cache_key] = copy.deepcopy(payload)
+
+
+def _get_datamodel_snapshot_fallback(cache_key: str) -> Optional[Dict[str, Any]]:
+    if not cache_key:
+        return None
+    snapshot = _GLOBAL_DATAMODEL_CACHE.get(cache_key)
+    return copy.deepcopy(snapshot) if isinstance(snapshot, dict) else None
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -220,7 +234,7 @@ def _build_mermaid_image_payload(
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
     base_url = _kroki_base_url()
-    url = f"{base_url}/render"
+    url = f"{base_url}/mermaid/{resolved_format}"
     mime_type = _mermaid_mime_type(resolved_format)
     request_payload = {
         "diagram_source": mermaid,
@@ -1497,6 +1511,63 @@ def _selector_cache_keys(selectors: Dict[str, Set[str]]) -> List[str]:
     return keys
 
 
+_REFERENCE_TOKEN_PATTERN = re.compile(
+    r"(?P<key>preview[_-]?id|datamodel[_-]?ref|datamodel[_-]?id|ref|reference|id)\s*[:=]\s*(?P<value>[A-Za-z0-9_-]{6,})",
+    re.IGNORECASE,
+)
+
+
+def _extract_reference_tokens(raw_reference: Optional[str]) -> List[str]:
+    if not raw_reference:
+        return []
+
+    tokens: List[str] = []
+    for match in _REFERENCE_TOKEN_PATTERN.finditer(raw_reference):
+        candidate = match.group("value")
+        if candidate:
+            tokens.append(candidate.strip())
+
+    if tokens:
+        return tokens
+
+    for chunk in re.split(r"[\s,;]+", raw_reference):
+        cleaned = chunk.strip().strip("'\"")
+        if len(cleaned) >= 6 and any(ch.isalpha() for ch in cleaned):
+            tokens.append(cleaned)
+
+    return tokens
+
+
+def _selector_snapshot_to_sets(snapshot: Any) -> Dict[str, Set[str]]:
+    result: Dict[str, Set[str]] = {"ids": set(), "names": set()}
+    if not isinstance(snapshot, dict):
+        return result
+
+    def _register(bucket: str, value: Any) -> None:
+        if value is None:
+            return
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                _register(bucket, item)
+            return
+        text = str(value).strip()
+        if not text:
+            return
+        if bucket == "names":
+            normalized = _normalize_text(text) or text
+            result[bucket].add(normalized.lower())
+            fingerprint = _fingerprint_text(normalized)
+            if fingerprint:
+                result[bucket].add(fingerprint)
+        else:
+            result[bucket].add(text)
+
+    _register("ids", snapshot.get("ids"))
+    _register("names", snapshot.get("names"))
+
+    return result
+
+
 def _template_cache_identifier(metadata: Optional[Dict[str, Any]]) -> str:
     if not metadata:
         return "__template__:default"
@@ -1523,9 +1594,6 @@ def _cache_datamodel_snapshots(
     payload: Dict[str, Any],
     preview_id: Optional[str],
 ) -> None:
-    if session_state is None:
-        return
-
     template_key = _template_cache_identifier(template_metadata)
     selector_keys = _selector_cache_keys(selectors)
     if preview_id:
@@ -1537,8 +1605,23 @@ def _cache_datamodel_snapshots(
         if key
     }
 
+    stored_selectors = {
+        "ids": sorted(selectors.get("ids", set())),
+        "names": sorted(selectors.get("names", set())),
+    }
+    snapshot: Dict[str, Any] = {
+        "payload": copy.deepcopy(payload),
+        "selectors": stored_selectors,
+    }
+    if template_metadata:
+        snapshot["template"] = copy.deepcopy(template_metadata)
+    if preview_id:
+        snapshot["preview_id"] = preview_id
+
     for cache_key in normalized_keys:
-        store_datamodel_snapshot(session_state, cache_key, payload)
+        if session_state is not None:
+            store_datamodel_snapshot(session_state, cache_key, snapshot)
+        _store_datamodel_snapshot_fallback(cache_key, snapshot)
 
 
 def _is_datamodel_payload(payload: Any) -> bool:
@@ -1558,13 +1641,46 @@ def _is_datamodel_payload(payload: Any) -> bool:
     return False
 
 
+def _unpack_datamodel_snapshot(
+    snapshot: Any,
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Set[str]], Optional[Dict[str, Any]]]:
+    selectors = {"ids": set(), "names": set()}
+    template_meta: Optional[Dict[str, Any]] = None
+
+    if isinstance(snapshot, dict):
+        payload_candidate = snapshot.get("payload") or snapshot.get("datamodel")
+        if payload_candidate is None and _is_datamodel_payload(snapshot):
+            payload_candidate = snapshot
+        elif payload_candidate is None and snapshot.get("model"):
+            payload_candidate = snapshot.get("model")
+        if _is_datamodel_payload(payload_candidate):
+            payload = copy.deepcopy(payload_candidate)
+        elif _is_datamodel_payload(snapshot):
+            payload = copy.deepcopy(snapshot)
+        else:
+            payload = None
+
+        selector_snapshot = snapshot.get("selectors")
+        selectors = _merge_selector_sets(selectors, _selector_snapshot_to_sets(selector_snapshot))
+
+        template_candidate = snapshot.get("template")
+        if isinstance(template_candidate, dict):
+            template_meta = copy.deepcopy(template_candidate)
+    elif _is_datamodel_payload(snapshot):
+        payload = copy.deepcopy(snapshot)
+    else:
+        payload = None
+
+    return payload, selectors, template_meta
+
+
 def _load_cached_datamodel_payload(
     session_state: Optional[MutableMapping[str, Any]],
     template_metadata: Optional[Dict[str, Any]],
     selectors: Dict[str, Set[str]],
     reference_payload: Optional[Dict[str, Any]],
     raw_reference: Optional[str],
-) -> Optional[Dict[str, Any]]:
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Set[str]], Optional[Dict[str, Any]]]:
     template_key = _template_cache_identifier(template_metadata)
     candidate_keys: List[str] = []
 
@@ -1585,30 +1701,54 @@ def _load_cached_datamodel_payload(
                 candidate_keys.append(value.strip())
 
     if isinstance(raw_reference, str) and raw_reference.strip():
-        candidate_keys.append(raw_reference.strip())
+        stripped = raw_reference.strip()
+        candidate_keys.append(stripped)
+        candidate_keys.extend(_extract_reference_tokens(stripped))
 
     candidate_keys.extend(_selector_cache_keys(selectors))
+    augmented_candidates = list(candidate_keys)
+    for key in candidate_keys:
+        if key and not key.startswith("preview::"):
+            augmented_candidates.append(f"preview::{key}")
+    candidate_keys = augmented_candidates
 
     tried: Set[str] = set()
+    extra_selectors = {"ids": set(), "names": set()}
+    template_hint: Optional[Dict[str, Any]] = None
     for key in candidate_keys:
         normalized_key = _normalize_datamodel_cache_key(template_key, key)
         if normalized_key in tried:
             continue
         tried.add(normalized_key)
         cached = get_cached_datamodel_snapshot(session_state, normalized_key)
+        if cached is None:
+            cached = _get_datamodel_snapshot_fallback(normalized_key)
         if cached is not None:
-            return cached
+            payload_candidate, selectors_hint, template_candidate = _unpack_datamodel_snapshot(cached)
+            extra_selectors = _merge_selector_sets(extra_selectors, selectors_hint)
+            if template_hint is None and template_candidate:
+                template_hint = template_candidate
+            if payload_candidate is not None:
+                return payload_candidate, extra_selectors, template_hint
 
     for key in candidate_keys:
         if not key:
             continue
         preview = get_cached_preview(session_state, key) or _get_preview_fallback(key)
         if isinstance(preview, dict):
-            payload = preview.get("datamodel")
-            if _is_datamodel_payload(payload):
-                return copy.deepcopy(payload)
+            payload_candidate = preview.get("datamodel") or preview.get("payload")
+            selectors_snapshot = preview.get("selectors")
+            extra_selectors = _merge_selector_sets(
+                extra_selectors,
+                _selector_snapshot_to_sets(selectors_snapshot),
+            )
+            template_candidate = preview.get("template")
+            if template_hint is None and isinstance(template_candidate, dict):
+                template_hint = copy.deepcopy(template_candidate)
+            if _is_datamodel_payload(payload_candidate):
+                return copy.deepcopy(payload_candidate), extra_selectors, template_hint
 
-    return None
+    return None, extra_selectors, template_hint
 
 
 def _filter_views_by_selectors(
@@ -2914,6 +3054,8 @@ def generate_mermaid_preview(
 
     selectors = _selectors_from_metadata(view_identifier, view_name, view_metadata)
     payload: Optional[Dict[str, Any]] = None
+    cached_selector_hints: Dict[str, Set[str]] = {"ids": set(), "names": set()}
+    cached_template_metadata: Optional[Dict[str, Any]] = None
 
     if _is_datamodel_payload(parsed_payload):
         payload = parsed_payload
@@ -2925,19 +3067,34 @@ def generate_mermaid_preview(
                 selectors,
                 _extract_view_selectors(reference_payload),
             )
-        payload = _load_cached_datamodel_payload(
+        payload, cached_selector_hints, cached_template_metadata = _load_cached_datamodel_payload(
             session_state,
             template_metadata,
             selectors,
             reference_payload,
             stripped_payload,
         )
+        selectors = _merge_selector_sets(selectors, cached_selector_hints)
         if payload is None:
             logger.error("Datamodel inválido para pré-visualização Mermaid")
             raise ValueError("O conteúdo enviado não é um JSON válido.")
         selectors = _merge_selector_sets(selectors, _extract_view_selectors(payload))
 
     assert payload is not None
+
+    if cached_template_metadata and not template_metadata:
+        template_metadata = copy.deepcopy(cached_template_metadata)
+
+    if not template and template_metadata.get("path"):
+        try:
+            cached_template_path = _resolve_package_path(Path(template_metadata["path"]))
+        except Exception:
+            cached_template_path = None
+        if cached_template_path and cached_template_path.exists():
+            template = get_cached_blueprint(session_state, cached_template_path) or _parse_template_blueprint(
+                cached_template_path
+            )
+            store_blueprint(session_state, cached_template_path, template)
 
     element_lookup = _build_element_lookup(template, payload)
     relation_lookup = _build_relationship_lookup(template, payload)
