@@ -13,6 +13,9 @@ __all__ = [
     "DEFAULT_TEMPLATE",
     "DEFAULT_TEMPLATES_DIR",
     "DEFAULT_XSD_DIR",
+    "DEFAULT_KROKI_URL",
+    "DEFAULT_MERMAID_IMAGE_FORMAT",
+    "FETCH_MERMAID_IMAGES",
     "ARCHIMATE_NS",
     "XSI_ATTR",
     "XML_LANG_ATTR",
@@ -27,6 +30,19 @@ DEFAULT_TEMPLATES_DIR = Path(os.getenv("DIAGRAMADOR_TEMPLATES_DIR", "templates")
 DEFAULT_XSD_DIR = Path(
     os.getenv("DIAGRAMADOR_XSD_DIR", "templates/BV-C4-Model-SDLC/schemas")
 )
+DEFAULT_KROKI_URL = os.getenv("DIAGRAMADOR_KROKI_URL", "https://kroki.io")
+FETCH_MERMAID_IMAGES = os.getenv("DIAGRAMADOR_FETCH_MERMAID_IMAGES", "0").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+_MERMAID_SUPPORTED_FORMATS = {"png", "svg"}
+DEFAULT_MERMAID_IMAGE_FORMAT = (
+    os.getenv("DIAGRAMADOR_MERMAID_FORMAT", "png").lower() or "png"
+)
+if DEFAULT_MERMAID_IMAGE_FORMAT not in _MERMAID_SUPPORTED_FORMATS:
+    DEFAULT_MERMAID_IMAGE_FORMAT = "png"
 
 ARCHIMATE_NS = "http://www.opengroup.org/xsd/archimate/3.0/"
 XSI_ATTR = "{http://www.w3.org/2001/XMLSchema-instance}type"
