@@ -13,6 +13,8 @@ __all__ = [
     "DEFAULT_TEMPLATE",
     "DEFAULT_TEMPLATES_DIR",
     "DEFAULT_XSD_DIR",
+    "DEFAULT_KROKI_URL",
+    "FETCH_MERMAID_IMAGES",
     "ARCHIMATE_NS",
     "XSI_ATTR",
     "XML_LANG_ATTR",
@@ -26,6 +28,12 @@ DEFAULT_TEMPLATE = Path("templates/BV-C4-Model-SDLC/layout_template.xml")
 DEFAULT_TEMPLATES_DIR = Path(os.getenv("DIAGRAMADOR_TEMPLATES_DIR", "templates"))
 DEFAULT_XSD_DIR = Path(
     os.getenv("DIAGRAMADOR_XSD_DIR", "templates/BV-C4-Model-SDLC/schemas")
+)
+DEFAULT_KROKI_URL = os.getenv("DIAGRAMADOR_KROKI_URL", "https://kroki.io")
+FETCH_MERMAID_IMAGES = os.getenv("DIAGRAMADOR_FETCH_MERMAID_IMAGES", "0").lower() in (
+    "1",
+    "true",
+    "yes",
 )
 
 ARCHIMATE_NS = "http://www.opengroup.org/xsd/archimate/3.0/"

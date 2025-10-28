@@ -2,7 +2,10 @@ from __future__ import annotations
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "agents" / "diagramador"))
+import sitecustomize  # noqa: F401  # Ensure stub packages are available before imports
 from unittest import mock
 
 import pytest
@@ -82,6 +85,9 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
     assert preview["view_count"] >= 1
     mermaid_blocks = [view["mermaid"] for view in preview["views"]]
     assert all(block.startswith("flowchart TD") for block in mermaid_blocks)
+    image_payloads = [view["image"] for view in preview["views"]]
+    assert all(payload["url"].startswith("https://") for payload in image_payloads)
+    assert all(payload["format"] == "svg" for payload in image_payloads)
 
 
 def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
