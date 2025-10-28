@@ -10,6 +10,7 @@ import hashlib
 import itertools
 import json
 import logging
+import re
 import textwrap
 import warnings
 import zlib
@@ -181,10 +182,23 @@ def _resolve_templates_dir(directory: str | None = None) -> Path:
     return _resolve_package_path(base)
 
 
+_BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)
+_INLINE_WHITESPACE_RE = re.compile(r"[ \t\f\v]+")
+
+
 def _clean_text(value: Optional[str]) -> str:
     if value is None:
         return ""
-    return " ".join(value.replace("\r", "\n").split())
+
+    # Normaliza quebras de linha vindas de HTML e sequências de espaços.
+    normalized = _BREAK_TAG_PATTERN.sub("\n", value)
+    normalized = normalized.replace("\r", "\n")
+    normalized = _INLINE_WHITESPACE_RE.sub(" ", normalized)
+    normalized = normalized.replace(" \n", "\n").replace("\n ", "\n")
+    # Evita múltiplas quebras consecutivas que não agregam informação.
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+
+    return normalized.strip()
 
 
 def _text_payload(element: Optional[ET.Element]) -> Optional[Dict[str, str]]:
@@ -237,18 +251,17 @@ def _local_name(tag: Any) -> str:
 def _mermaid_escape(value: str) -> str:
     """Escape strings for safe embedding inside Mermaid diagrams."""
 
-    sanitized = (
-        value.replace("\\", "\\\\")
-        .replace("\n", " ")
-        .replace("\r", " ")
-        .replace("\"", "\\\"")
-    )
+    sanitized = value.replace("\\", "\\\\").replace("\r", "\n")
+    sanitized = sanitized.replace("\"", "\\\"")
 
-    # Mermaid interprets pipes as delimiters for edge labels and square brackets as
-    # part of the node syntax. Converting these characters to HTML entities keeps
-    # the rendered output intact while preventing syntax errors.
+    # Mermaid interpreta pipes como delimitadores de rótulos de arestas e colchetes
+    # como parte da sintaxe de nós. Convertê-los em entidades HTML evita erros de
+    # sintaxe mantendo a renderização correta.
     sanitized = sanitized.replace("|", "&#124;")
     sanitized = sanitized.replace("[", "&#91;").replace("]", "&#93;")
+
+    # Converte quebras de linha explícitas para o formato aceito pelo Mermaid.
+    sanitized = sanitized.replace("\n", "<br/>")
 
     return sanitized
 
@@ -269,7 +282,15 @@ def _format_comment_lines(text: str, width: int = 100) -> List[str]:
     normalized = _clean_text(text)
     if not normalized:
         return []
-    return textwrap.wrap(normalized, width=width)
+
+    wrapped: List[str] = []
+    for paragraph in normalized.split("\n"):
+        stripped = paragraph.strip()
+        if not stripped:
+            continue
+        wrapped.extend(textwrap.wrap(stripped, width=width))
+
+    return wrapped
 
 
 def _coerce_number(value: Optional[str]) -> Optional[float | int | str]:

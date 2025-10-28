@@ -169,6 +169,50 @@ def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
     assert "&#124;" in edge_line
 
 
+def test_generate_mermaid_preview_converts_html_line_breaks():
+    datamodel = {
+        "model_identifier": "demo_html_breaks",
+        "elements": [
+            {
+                "id": "element_1",
+                "type": "ApplicationComponent",
+                "name": "Core</BR>Sistema",
+                "documentation": "Primeira linha</BR>Segunda linha",
+            }
+        ],
+        "relations": [],
+        "views": {
+            "diagrams": [
+                {
+                    "id": "view_html",
+                    "name": "Visão</BR>Principal",
+                    "nodes": [
+                        {
+                            "id": "node_html",
+                            "elementRef": "element_1",
+                        }
+                    ],
+                    "connections": [],
+                    "documentation": "Comentário</BR>extra",
+                }
+            ]
+        },
+    }
+
+    preview = generate_mermaid_preview(json.dumps(datamodel))
+    mermaid_source = preview["views"][0]["mermaid"]
+
+    assert "</BR>" not in mermaid_source.upper()
+
+    lines = mermaid_source.split("\n")
+    assert lines[0].strip() == "flowchart TD"
+    assert lines[1].startswith("view_html[")
+    assert "<br/>" in lines[1]
+
+    node_line = next(line for line in lines if "node_html" in line and "[")
+    assert "<br/>" in node_line
+
+
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload):
     # Redireciona os artefatos para um diretório temporário.
     operations.OUTPUT_DIR = tmp_path  # type: ignore[attr-defined]
