@@ -51,18 +51,100 @@ Autor: você
 from __future__ import annotations
 
 import argparse
+import io
 import json
 from pathlib import Path
 from typing import Dict, Optional
 
-from lxml import etree as ET
+try:
+    from lxml import etree as ET  # type: ignore
+    LXML_AVAILABLE = True
+except ModuleNotFoundError:  # pragma: no cover - fallback for environments sem lxml
+    from xml.dom import minidom
+    from xml.etree import ElementTree as _ET
+
+    LXML_AVAILABLE = False
+
+    class _CompatET:
+        """Fallback mínimo usando xml.etree.ElementTree quando lxml não está disponível."""
+
+        Element = staticmethod(_ET.Element)
+        SubElement = staticmethod(_ET.SubElement)
+        QName = staticmethod(_ET.QName)
+        ParseError = _ET.ParseError
+        ElementTree = _ET.ElementTree
+        _Element = _ET.Element
+
+        @staticmethod
+        def parse(source):
+            return _ET.parse(source)
+
+        @staticmethod
+        def tostring(element_or_tree, encoding="utf-8", xml_declaration=False, pretty_print=False):
+            if isinstance(element_or_tree, _ET.ElementTree):
+                tree = element_or_tree
+            else:
+                tree = _ET.ElementTree(element_or_tree)
+
+            buffer = io.BytesIO()
+            tree.write(buffer, encoding=encoding, xml_declaration=xml_declaration)
+            data = buffer.getvalue()
+
+            if pretty_print:
+                try:
+                    parsed = minidom.parseString(data)
+                    data = parsed.toprettyxml(indent="  ", encoding=encoding)
+                except Exception:
+                    # Mantém saída sem pretty print caso a formatação falhe
+                    pass
+
+            return data
+
+        @staticmethod
+        def XMLSchema(*_args, **_kwargs):
+            raise ModuleNotFoundError(
+                "A validação XSD requer a dependência opcional 'lxml'."
+            )
+
+        @staticmethod
+        def fromstring(text):
+            return _ET.fromstring(text)
+
+    ET = _CompatET()  # type: ignore
 
 ARCHI_NS = "http://www.opengroup.org/xsd/archimate/3.0/"
 XSI_NS   = "http://www.w3.org/2001/XMLSchema-instance"
 XML_NS   = "http://www.w3.org/XML/1998/namespace"
 
-def qn(tag: str) -> ET.QName:
-    return ET.QName(ARCHI_NS, tag)
+
+def qn(tag: str) -> str:
+    """Retorna o QName completo para uma tag dentro do namespace ArchiMate."""
+
+    return str(ET.QName(ARCHI_NS, tag))
+
+
+def _local_name(tag: str) -> str:
+    """Extrai o localname de uma tag potencialmente qualificada."""
+
+    if isinstance(tag, str):
+        if tag.startswith("{"):
+            return tag.rsplit("}", 1)[-1]
+        return tag
+    # Compatível com objetos QName do lxml
+    return str(tag).rsplit("}", 1)[-1]
+
+
+def _serialize_tree(tree: "ET.ElementTree") -> str:
+    """Serializa uma árvore XML com declaração XML e identação estável."""
+
+    if LXML_AVAILABLE:
+        xml_bytes = ET.tostring(tree, encoding="utf-8", xml_declaration=True, pretty_print=True)
+        return xml_bytes.decode("utf-8")
+
+    xml_bytes = ET.tostring(tree, encoding="utf-8", xml_declaration=True, pretty_print=True)
+    if isinstance(xml_bytes, bytes):
+        return xml_bytes.decode("utf-8")
+    return xml_bytes
 
 # Ordem de filhos que manipulamos (subset suficiente e seguro)
 ORDER: Dict[str, list[str]] = {
@@ -125,41 +207,61 @@ def _encode_doc_cr_entities(s: str | None) -> str | None:
     return s
 
 def _prune_invalid_identifierRefs(root: ET._Element) -> int:
-    """Remove <item identifierRef="..."> em <organizations> quando o ID não existe em lugar nenhum."""
+    """Remove <item> inválidos da seção <organizations>, mesmo sem suporte a XPath."""
+
+    organizations = root.find(qn("organizations"))
+    if organizations is None:
+        return 0
+
+    all_ids = {el.get("identifier") for el in root.iter() if el.get("identifier")}
     removed = 0
-    ns = {"a": ARCHI_NS}
-    # Conjunto de todos os IDs válidos
-    all_ids = set(root.xpath("//*[@identifier]/@identifier"))
-    # Percorre todos os items com identifierRef
-    for it in root.xpath("//a:organizations//a:item[@identifierRef]", namespaces=ns):
-        ref = it.get("identifierRef")
-        if ref not in all_ids:
-            it.getparent().remove(it)
-            removed += 1
-    # (Opcional) remover itens vazios que sobram
-    changed = True
-    while changed:
-        changed = False
-        for it in root.xpath("//a:organizations//a:item", namespaces=ns):
-            if it.get("identifierRef") is None and not list(it.xpath("./a:item", namespaces=ns)):
-                p = it.getparent()
-                if p is not None:
-                    p.remove(it)
-                    removed += 1
-                    changed = True
-                    break
+
+    def prune_invalid(parent):
+        nonlocal removed
+        for child in list(parent):
+            prune_invalid(child)
+            if _local_name(child.tag) != "item":
+                continue
+            ref = child.get("identifierRef")
+            if ref and ref not in all_ids:
+                parent.remove(child)
+                removed += 1
+
+    prune_invalid(organizations)
+
+    def remove_empty(parent):
+        nonlocal removed
+        changed = True
+        while changed:
+            changed = False
+
+            def walk(node):
+                nonlocal changed, removed
+                for child in list(node):
+                    walk(child)
+                    if _local_name(child.tag) != "item":
+                        continue
+                    has_child_item = any(_local_name(grand.tag) == "item" for grand in child)
+                    if child.get("identifierRef") is None and not has_child_item:
+                        node.remove(child)
+                        removed += 1
+                        changed = True
+
+            walk(parent)
+
+    remove_empty(organizations)
     return removed
 
 def _upsert_in_order(parent: ET._Element, tag: str, text: str, lang: Optional[str] = None) -> ET._Element:
     """Insere <tag> mantendo a sequência esperada pelo XSD para o 'parent'.
        Se já existir <tag>, substitui o conteúdo e garante que não tenha filhos indevidos.
     """
-    parent_local = ET.QName(parent.tag).localname
+    parent_local = _local_name(parent.tag)
     seq = ORDER.get(parent_local, [])
 
     existing = None
     for ch in parent:
-        if ET.QName(ch.tag).localname == tag:
+        if _local_name(ch.tag) == tag:
             existing = ch
             break
 
@@ -168,7 +270,7 @@ def _upsert_in_order(parent: ET._Element, tag: str, text: str, lang: Optional[st
         idx_tag = seq.index(tag) if tag in seq else len(seq)
         insert_pos = len(parent)
         for i, ch in enumerate(list(parent)):
-            loc = ET.QName(ch.tag).localname
+            loc = _local_name(ch.tag)
             if loc in seq and seq.index(loc) > idx_tag:
                 insert_pos = i
                 break
@@ -298,7 +400,7 @@ def _replace_child(parent: ET._Element, tag: str, new_child: Optional[ET._Elemen
     children = list(parent)
     existing = None
     for idx, ch in enumerate(children):
-        if ET.QName(ch.tag).localname == tag:
+        if _local_name(ch.tag) == tag:
             existing = (idx, ch)
             break
 
@@ -306,12 +408,12 @@ def _replace_child(parent: ET._Element, tag: str, new_child: Optional[ET._Elemen
         idx, ch = existing
         parent.remove(ch)
     else:
-        seq = ORDER.get(ET.QName(parent.tag).localname, [])
+        seq = ORDER.get(_local_name(parent.tag), [])
         idx = len(children)
         if tag in seq:
             target_pos = seq.index(tag)
             for i, ch in enumerate(children):
-                loc = ET.QName(ch.tag).localname
+                loc = _local_name(ch.tag)
                 if loc in seq and seq.index(loc) > target_pos:
                     idx = i
                     break
@@ -628,7 +730,7 @@ def patch_template_with_model(template_xml: str | Path, model_json: str | Path, 
 
 
     # serializa e corrige entidades numéricas de CR
-    xml_txt = ET.tostring(tree, encoding="utf-8", xml_declaration=True, pretty_print=True).decode("utf-8")
+    xml_txt = _serialize_tree(tree)
     xml_txt = xml_txt.replace("&amp;#xD;", "&#xD;")
 
     out_xml.parent.mkdir(parents=True, exist_ok=True)
@@ -679,7 +781,7 @@ def _ensure_view_children_order(root: ET._Element) -> None:
             # procura <name>
             name_el = None
             for ch in v:
-                if ET.QName(ch.tag).localname == "name":
+                if _local_name(ch.tag) == "name":
                     name_el = ch
                     break
             if name_el is None:
@@ -791,6 +893,11 @@ def validate_with_full_xsd(xml_path: str | Path, xsd_dir: str | Path) -> tuple[b
     - Patching local: substitui o schemaLocation do xml.xsd dentro do Model.xsd
       e faz com que os demais XSDs apontem para as versões locais.
     """
+    if not LXML_AVAILABLE:
+        return False, [
+            "Validação indisponível: instale a dependência opcional 'lxml' (ex.: pip install lxml)."
+        ]
+
     xml_path = Path(xml_path)
     xsd_dir = Path(xsd_dir)
 
