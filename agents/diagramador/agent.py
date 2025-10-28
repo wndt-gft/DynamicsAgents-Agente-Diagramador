@@ -27,20 +27,33 @@ diagramador_description = (
 )
 
 
+def _make_tool(function):
+    tool = FunctionTool(function)
+    if getattr(tool, "name", None) in (None, ""):
+        tool.name = function.__name__
+    return tool
+
+
 diagramador_agent = Agent(
     model=DEFAULT_MODEL,
     name="diagramador",
     description=diagramador_description,
     instruction=ORCHESTRATOR_PROMPT,
     tools=[
-        FunctionTool(list_templates, name="list_templates"),
-        FunctionTool(describe_template, name="describe_template"),
-        FunctionTool(generate_mermaid_preview, name="generate_mermaid_preview"),
-        FunctionTool(finalize_datamodel, name="finalize_datamodel"),
-        FunctionTool(save_datamodel, name="save_datamodel"),
-        FunctionTool(generate_archimate_diagram, name="generate_archimate_diagram"),
+        _make_tool(list_templates),
+        _make_tool(describe_template),
+        _make_tool(generate_mermaid_preview),
+        _make_tool(finalize_datamodel),
+        _make_tool(save_datamodel),
+        _make_tool(generate_archimate_diagram),
     ],
 )
 
 
-__all__ = ["diagramador_agent"]
+def root_agent() -> Agent:
+    """Return the Diagramador agent as the package entry point."""
+
+    return diagramador_agent
+
+
+__all__ = ["diagramador_agent", "root_agent"]
