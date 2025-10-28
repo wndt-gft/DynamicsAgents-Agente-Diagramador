@@ -31,6 +31,7 @@ from .constants import (
     DEFAULT_TEMPLATES_DIR,
     DEFAULT_XSD_DIR,
     DEFAULT_KROKI_URL,
+    DEFAULT_MERMAID_IMAGE_FORMAT,
     FETCH_MERMAID_IMAGES,
     OUTPUT_DIR,
     XML_LANG_ATTR,
@@ -100,18 +101,40 @@ def _encode_mermaid_for_url(mermaid: str) -> str:
     return base64.urlsafe_b64encode(raw).decode("ascii")
 
 
+def _resolve_mermaid_format(fmt: Optional[str]) -> str:
+    candidate = (fmt or DEFAULT_MERMAID_IMAGE_FORMAT or "png").lower()
+    if candidate not in {"png", "svg"}:
+        logger.warning(
+            "Formato Mermaid '%s' não suportado, utilizando 'png' como fallback.",
+            candidate,
+        )
+        return "png"
+    return candidate
+
+
+def _mermaid_mime_type(fmt: str) -> str:
+    if fmt == "svg":
+        return "image/svg+xml"
+    if fmt == "png":
+        return "image/png"
+    return "application/octet-stream"
+
+
 def _build_mermaid_image_payload(
     mermaid: str,
     *,
     alias: str,
     title: str,
-    fmt: str = "svg",
+    fmt: Optional[str] = None,
 ) -> Dict[str, Any]:
+    resolved_format = _resolve_mermaid_format(fmt)
     encoded = _encode_mermaid_for_url(mermaid)
     base_url = _kroki_base_url()
-    url = f"{base_url}/mermaid/{fmt}/{encoded}"
+    url = f"{base_url}/mermaid/{resolved_format}/{encoded}"
+    mime_type = _mermaid_mime_type(resolved_format)
     payload: Dict[str, Any] = {
-        "format": fmt,
+        "format": resolved_format,
+        "mime_type": mime_type,
         "url": url,
         "source": "kroki",
         "alt_text": title,
@@ -129,7 +152,6 @@ def _build_mermaid_image_payload(
         return payload
 
     content = response.content
-    mime_type = "image/svg+xml" if fmt == "svg" else "image/png"
     payload["status"] = "cached"
     payload["data_uri"] = (
         f"data:{mime_type};base64,{base64.b64encode(content).decode('ascii')}"
@@ -138,7 +160,7 @@ def _build_mermaid_image_payload(
     try:
         output_dir = _ensure_output_dir()
         digest = hashlib.sha256(mermaid.encode("utf-8")).hexdigest()[:12]
-        filename = f"{alias}_{digest}.{fmt}"
+        filename = f"{alias}_{digest}.{resolved_format}"
         image_path = output_dir / filename
         image_path.write_bytes(content)
         payload["path"] = str(image_path.resolve())

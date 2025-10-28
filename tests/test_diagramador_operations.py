@@ -87,7 +87,10 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
     assert all(block.startswith("flowchart TD") for block in mermaid_blocks)
     image_payloads = [view["image"] for view in preview["views"]]
     assert all(payload["url"].startswith("https://") for payload in image_payloads)
-    assert all(payload["format"] == "svg" for payload in image_payloads)
+    assert all(
+        payload["format"] == operations.DEFAULT_MERMAID_IMAGE_FORMAT
+        for payload in image_payloads
+    )
 
 
 def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):

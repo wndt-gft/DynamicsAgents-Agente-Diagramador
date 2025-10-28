@@ -36,7 +36,8 @@ validação XSD concluída.
      instruções/documentações aplicáveis. Utilize os metadados `image` retornados pela ferramenta
      para construir URLs ou anexos visuais de cada visão.
    - Apresente os diagramas como imagens Markdown (por exemplo, `![Visão](URL-gerado)`) com
-     renderização nativa no Web UI do Google ADK, acompanhados dos detalhes textuais de cada visão, e
+     renderização utilizando imagens PNG geradas pela pré-visualização,
+     acompanhados dos detalhes textuais de cada visão, e
      solicite aprovação explícita antes de gravar o datamodel. Se o usuário pedir mudanças, atualize o
      conteúdo e a pré-visualização até obter o aval final.
 5. **Construção do datamodel base** (após aprovação):

@@ -14,6 +14,7 @@ __all__ = [
     "DEFAULT_TEMPLATES_DIR",
     "DEFAULT_XSD_DIR",
     "DEFAULT_KROKI_URL",
+    "DEFAULT_MERMAID_IMAGE_FORMAT",
     "FETCH_MERMAID_IMAGES",
     "ARCHIMATE_NS",
     "XSI_ATTR",
@@ -35,6 +36,13 @@ FETCH_MERMAID_IMAGES = os.getenv("DIAGRAMADOR_FETCH_MERMAID_IMAGES", "0").lower(
     "true",
     "yes",
 )
+
+_MERMAID_SUPPORTED_FORMATS = {"png", "svg"}
+DEFAULT_MERMAID_IMAGE_FORMAT = (
+    os.getenv("DIAGRAMADOR_MERMAID_FORMAT", "png").lower() or "png"
+)
+if DEFAULT_MERMAID_IMAGE_FORMAT not in _MERMAID_SUPPORTED_FORMATS:
+    DEFAULT_MERMAID_IMAGE_FORMAT = "png"
 
 ARCHIMATE_NS = "http://www.opengroup.org/xsd/archimate/3.0/"
 XSI_ATTR = "{http://www.w3.org/2001/XMLSchema-instance}type"
