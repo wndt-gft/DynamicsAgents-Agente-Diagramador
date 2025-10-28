@@ -95,10 +95,14 @@ def _kroki_base_url() -> str:
 
 
 def _encode_mermaid_for_url(mermaid: str) -> str:
-    compressed = zlib.compress(mermaid.encode("utf-8"), level=9)
-    # Kroki expects raw deflate encoding without zlib headers/footers.
-    raw = compressed[2:-4]
-    return base64.urlsafe_b64encode(raw).decode("ascii")
+    """Encode Mermaid source into the URL-safe payload Kroki expects."""
+
+    compressor = zlib.compressobj(level=9, wbits=-zlib.MAX_WBITS)
+    raw = compressor.compress(mermaid.encode("utf-8")) + compressor.flush()
+    # Kroki accepts standard base64url strings and gracefully handles inputs
+    # without padding. Removing the padding keeps the URL shorter and avoids
+    # edge cases with servers that don't like '=' in the path portion.
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
 
 
 def _resolve_mermaid_format(fmt: Optional[str]) -> str:
