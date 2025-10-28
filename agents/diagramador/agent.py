@@ -29,10 +29,13 @@ diagramador_description = (
 )
 
 
-def _make_tool(function):
+def _make_tool(function, *, name: str | None = None):
     tool = FunctionTool(function)
+    tool_name = name or getattr(function, "__tool_name__", None)
     if getattr(tool, "name", None) in (None, ""):
-        tool.name = function.__name__
+        tool.name = tool_name or function.__name__
+    elif tool_name:
+        tool.name = tool_name
     return tool
 
 
@@ -89,12 +92,15 @@ diagramador_agent = Agent(
     description=diagramador_description,
     instruction=ORCHESTRATOR_PROMPT,
     tools=[
-        _make_tool(_list_templates_tool),
-        _make_tool(_describe_template_tool),
-        _make_tool(_generate_mermaid_preview_tool),
-        _make_tool(_finalize_datamodel_tool),
-        _make_tool(_save_datamodel_tool),
-        _make_tool(_generate_archimate_diagram_tool),
+        _make_tool(_list_templates_tool, name="list_templates"),
+        _make_tool(_describe_template_tool, name="describe_template"),
+        _make_tool(_generate_mermaid_preview_tool, name="generate_mermaid_preview"),
+        _make_tool(_finalize_datamodel_tool, name="finalize_datamodel"),
+        _make_tool(_save_datamodel_tool, name="save_datamodel"),
+        _make_tool(
+            _generate_archimate_diagram_tool,
+            name="generate_archimate_diagram",
+        ),
     ],
 )
 
