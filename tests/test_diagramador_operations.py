@@ -125,6 +125,18 @@ def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
     assert all("layout_preview" in view for view in preview["views"])
 
 
+def test_generate_mermaid_preview_filters_views(sample_payload, session_state):
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    preview = generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_filter=["id-154903"],
+    )
+    assert preview["view_count"] == 1
+    assert preview["views"][0]["id"] == "id-154903"
+
+
 def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
     datamodel = {
         "model_identifier": "demo",

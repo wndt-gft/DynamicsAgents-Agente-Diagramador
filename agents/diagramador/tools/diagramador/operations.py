@@ -2044,10 +2044,67 @@ def finalize_datamodel(
     }
 
 
+def _normalize_view_filter(view_filter: Any) -> set[str]:
+    """Normaliza diferentes formatos de filtro de visão para um conjunto comparável."""
+
+    if not view_filter:
+        return set()
+
+    candidates: List[str] = []
+
+    if isinstance(view_filter, (str, bytes)):
+        candidates.append(view_filter.decode("utf-8") if isinstance(view_filter, bytes) else view_filter)
+    elif isinstance(view_filter, Iterable):
+        for item in view_filter:
+            if item is None:
+                continue
+            if isinstance(item, (str, bytes)):
+                candidates.append(item.decode("utf-8") if isinstance(item, bytes) else item)
+            elif isinstance(item, MutableMapping):
+                for key in ("id", "identifier", "name", "alias"):
+                    value = item.get(key)
+                    if isinstance(value, (str, bytes)):
+                        candidates.append(value.decode("utf-8") if isinstance(value, bytes) else value)
+            else:
+                candidates.append(str(item))
+    else:
+        candidates.append(str(view_filter))
+
+    normalized: set[str] = set()
+    for candidate in candidates:
+        value = str(candidate).strip()
+        if not value:
+            continue
+        normalized.add(value.casefold())
+    return normalized
+
+
+def _view_matches_filter(
+    view: Optional[Dict[str, Any]],
+    blueprint_view: Optional[Dict[str, Any]],
+    view_filter: set[str],
+) -> bool:
+    if not view_filter:
+        return True
+
+    tokens: List[str] = []
+    for source in (view, blueprint_view):
+        if not isinstance(source, dict):
+            continue
+        for key in ("id", "identifier", "name", "alias"):
+            value = source.get(key)
+            if isinstance(value, str):
+                candidate = value.strip()
+                if candidate:
+                    tokens.append(candidate.casefold())
+    return any(token in view_filter for token in tokens)
+
+
 def generate_mermaid_preview(
     datamodel: types.Content | str | bytes,
     template_path: str | None = None,
     session_state: Optional[MutableMapping[str, Any]] = None,
+    view_filter: Any | None = None,
 ) -> Dict[str, Any]:
     raw_text = _content_to_text(datamodel)
     try:
@@ -2073,12 +2130,15 @@ def generate_mermaid_preview(
 
     datamodel_views = _normalize_view_diagrams(payload.get("views"))
     blueprint_views = _normalize_view_diagrams(template.get("views"))
+    filter_tokens = _normalize_view_filter(view_filter)
 
     datamodel_view_map: Dict[str, Dict[str, Any]] = {}
     datamodel_node_maps: Dict[str, Dict[str, Any]] = {}
     datamodel_connection_maps: Dict[str, Dict[str, Any]] = {}
     for view in datamodel_views:
         if not isinstance(view, dict):
+            continue
+        if filter_tokens and not _view_matches_filter(view, None, filter_tokens):
             continue
         view_id = view.get("id")
         if view_id:
@@ -2112,6 +2172,8 @@ def generate_mermaid_preview(
     for view in blueprint_views:
         if not isinstance(view, dict):
             continue
+        if filter_tokens and not _view_matches_filter(view, view, filter_tokens):
+            continue
         view_id = view.get("id")
         view_key = str(view_id) if view_id else f"template_{len(results) + 1}"
         override_view = datamodel_view_map.get(str(view_id)) if view_id else None
@@ -2141,6 +2203,8 @@ def generate_mermaid_preview(
 
     for view in datamodel_views:
         if not isinstance(view, dict):
+            continue
+        if filter_tokens and not _view_matches_filter(view, None, filter_tokens):
             continue
         view_id = view.get("id")
         if view_id and str(view_id) in processed_ids:

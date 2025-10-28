@@ -49,11 +49,17 @@ def describe_template(template_path: str):
     return _describe_template(template_path, session_state=None)
 
 
-def generate_mermaid_preview(datamodel: str, template_path: str = ""):
+def generate_mermaid_preview(
+    datamodel: str,
+    template_path: str = "",
+    *,
+    view_filter: str | list[str] | None = None,
+):
     return _generate_mermaid_preview(
         datamodel,
         template_path=template_path or None,
         session_state=None,
+        view_filter=view_filter,
     )
 
 
