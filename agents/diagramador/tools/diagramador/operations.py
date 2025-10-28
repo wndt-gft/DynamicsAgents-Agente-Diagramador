@@ -1125,6 +1125,22 @@ def _merge_view_node(template_node: Dict[str, Any], override_node: Optional[Dict
         _apply_textual_override(merged, clean_override, "label", ("label", "label_hint"))
         _apply_textual_override(merged, clean_override, "documentation", ("documentation", "documentation_hint"))
 
+        for key in ("type", "elementRef", "relationshipRef", "viewRef"):
+            if clean_override.get(key) is not None:
+                merged[key] = clean_override[key]
+
+        if "refs" in clean_override:
+            merged["refs"] = copy.deepcopy(clean_override.get("refs"))
+
+        if "bounds" in clean_override:
+            merged["bounds"] = copy.deepcopy(clean_override.get("bounds"))
+
+        if "style" in clean_override:
+            merged["style"] = copy.deepcopy(clean_override.get("style"))
+
+        if "child_order" in clean_override:
+            merged["child_order"] = list(clean_override.get("child_order") or [])
+
     template_children = _node_children(template_node)
     override_children = _node_children(clean_override) if clean_override else None
     merged_children = _merge_view_nodes(template_children, override_children)
@@ -1863,7 +1879,7 @@ def _build_view_mermaid(
         parent_alias: Optional[str],
         indent: int,
         context: Dict[str, Any],
-    ) -> None:
+    ) -> bool:
         key = _view_node_key(node)
         if not key:
             key = f"anon_{next(anonymous_counter)}"
@@ -1904,10 +1920,14 @@ def _build_view_mermaid(
                         lines.append(
                             f"{indent_str}{_MERMAID_COMMENT_PREFIX} {comment_line}"
                         )
+                produced_child = False
                 for child in _node_children(node):
                     if isinstance(child, dict):
-                        _process_node(child, alias, indent, dict(context))
-                return
+                        produced_child = (
+                            _process_node(child, alias, indent, dict(context))
+                            or produced_child
+                        )
+                return produced_child
 
             if node_type == "container":
                 boundary_macro = _c4_boundary_macro(view_kind or "")
@@ -1916,22 +1936,26 @@ def _build_view_mermaid(
                 lines.append(
                     f"{indent_str}{boundary_macro}({alias}, \"{_mermaid_escape(boundary_label)}\") {{"
                 )
+                boundary_index = len(lines) - 1
                 next_context = dict(context)
                 next_context["external"] = context.get("external", False) or _should_mark_external(
                     boundary_label
                 )
-                child_start = len(lines)
+                produced_child = False
                 for child in _node_children(node):
                     if isinstance(child, dict):
-                        _process_node(child, alias, indent + 1, next_context)
-                if len(lines) == child_start:
-                    lines.pop()
-                    lines.append(
+                        produced_child = (
+                            _process_node(child, alias, indent + 1, next_context)
+                            or produced_child
+                        )
+                if not produced_child:
+                    lines[boundary_index] = (
                         f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(boundary_label)}"
                     )
-                else:
-                    lines.append(f"{indent_str}}}")
-                return
+                    return False
+
+                lines.append(f"{indent_str}}}")
+                return True
 
             label = metadata.get("title") or metadata.get("template_label") or str(alias)
             is_external = context.get("external", False) or _should_mark_external(label)
@@ -1954,7 +1978,7 @@ def _build_view_mermaid(
             for child in _node_children(node):
                 if isinstance(child, dict):
                     _process_node(child, alias, indent + 1, dict(context))
-            return
+            return True
 
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
@@ -1966,6 +1990,8 @@ def _build_view_mermaid(
         for child in _node_children(node):
             if isinstance(child, dict):
                 _process_node(child, alias, indent + 1, dict(context))
+
+        return True
 
     initial_context: Dict[str, Any] = {"external": False}
 
