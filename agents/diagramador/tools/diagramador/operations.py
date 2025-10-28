@@ -141,6 +141,73 @@ def _mermaid_mime_type(fmt: str) -> str:
     return "application/octet-stream"
 
 
+def _clamp_color_value(value: Any) -> int:
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(0, min(255, numeric))
+
+
+def _rgba_to_hex(color: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not isinstance(color, dict):
+        return None
+
+    r = _clamp_color_value(color.get("r"))
+    g = _clamp_color_value(color.get("g"))
+    b = _clamp_color_value(color.get("b"))
+
+    alpha = color.get("a")
+    if isinstance(alpha, (int, float)) and alpha <= 0:
+        return None
+
+    return f"#{r:02X}{g:02X}{b:02X}"
+
+
+def _extract_font_color(style: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not isinstance(style, dict):
+        return None
+    font = style.get("font")
+    if isinstance(font, dict):
+        return _rgba_to_hex(font.get("color"))
+    return None
+
+
+def _extract_node_style(node: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    style = node.get("style") if isinstance(node, dict) else None
+    if not isinstance(style, dict):
+        return {}
+
+    fill = _rgba_to_hex(style.get("fillColor"))
+    stroke = _rgba_to_hex(style.get("lineColor"))
+    font_color = _extract_font_color(style)
+
+    payload: Dict[str, Optional[str]] = {}
+    if fill:
+        payload["fill"] = fill
+    if stroke:
+        payload["stroke"] = stroke
+    if font_color:
+        payload["color"] = font_color
+    return payload
+
+
+def _extract_connection_style(connection: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    style = connection.get("style") if isinstance(connection, dict) else None
+    if not isinstance(style, dict):
+        return {}
+
+    stroke = _rgba_to_hex(style.get("lineColor"))
+    font_color = _extract_font_color(style)
+
+    payload: Dict[str, Optional[str]] = {}
+    if stroke:
+        payload["stroke"] = stroke
+    if font_color:
+        payload["color"] = font_color
+    return payload
+
+
 def _build_mermaid_image_payload(
     mermaid: str,
     *,
@@ -2125,7 +2192,8 @@ def _build_view_mermaid(
     )
 
     view_kind = _detect_view_kind(view, view_blueprint) if prefer_c4 else None
-    use_c4 = bool(view_kind)
+    use_layout = bool(datamodel_node_map)
+    use_c4 = bool(view_kind) and not use_layout
     view_alias = _unique_alias(
         _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
         used_aliases,
@@ -2136,11 +2204,42 @@ def _build_view_mermaid(
         lines: List[str] = [header]
         lines.append(f"    title {_mermaid_escape(view_name)}")
     else:
-        lines = ["flowchart TD"]
+        direction = (
+            view.get("direction")
+            or (view_blueprint or {}).get("direction")
+            or "TB"
+        )
+        normalized_direction = str(direction).upper()
+        if normalized_direction not in {"TB", "TD", "LR", "RL"}:
+            normalized_direction = "TB"
+        lines = [f"flowchart {normalized_direction}"]
         lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
 
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
+
+    style_statements: List[str] = []
+    style_seen: Dict[str, str] = {}
+
+    def _register_style(alias: str, node: Dict[str, Any]) -> None:
+        directives = _extract_node_style(node)
+        if not directives:
+            return
+
+        style_parts = []
+        for key in ("fill", "stroke", "color"):
+            value = directives.get(key)
+            if value:
+                style_parts.append(f"{key}:{value}")
+
+        if not style_parts:
+            return
+
+        statement = f"style {alias} {', '.join(style_parts)}"
+        if style_seen.get(alias) == statement:
+            return
+        style_seen[alias] = statement
+        style_statements.append(statement)
 
     def _ensure_alias_for_key(key: Optional[str]) -> Optional[str]:
         if not key:
@@ -2162,7 +2261,7 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
-        if not use_c4 and alias not in defined_nodes:
+        if not use_c4 and not use_layout and alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
         return alias
@@ -2196,6 +2295,40 @@ def _build_view_mermaid(
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
 
+        if use_layout and not use_c4:
+            indent_str = "    " * indent
+            node_type = (metadata.get("type") or "").lower()
+            label_text = (
+                metadata.get("title")
+                or metadata.get("template_label")
+                or str(alias)
+            )
+            escaped_label = _mermaid_escape(label_text)
+
+            if node_type in {"container", "boundary", "layer", "group", "zone", "frame"}:
+                lines.append(f"{indent_str}subgraph {alias}[\"{escaped_label}\"]")
+                _register_style(alias, node)
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        _process_node(child, alias, indent + 1, dict(context))
+                lines.append(f"{indent_str}end")
+                return True
+
+            if node_type == "label":
+                lines.append(f"{indent_str}{alias}[\"{escaped_label}\"]")
+                _register_style(alias, node)
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        _process_node(child, alias, indent + 1, dict(context))
+                return True
+
+            lines.append(f"{indent_str}{alias}[\"{escaped_label}\"]")
+            _register_style(alias, node)
+            for child in _node_children(node):
+                if isinstance(child, dict):
+                    _process_node(child, alias, indent + 1, dict(context))
+            return True
+
         if use_c4:
             indent_str = "    " * indent
             node_type = (metadata.get("type") or "").lower()
@@ -2213,14 +2346,10 @@ def _build_view_mermaid(
                         lines.append(
                             f"{indent_str}{_MERMAID_COMMENT_PREFIX} {comment_line}"
                         )
-                produced_child = False
                 for child in _node_children(node):
                     if isinstance(child, dict):
-                        produced_child = (
-                            _process_node(child, alias, indent, dict(context))
-                            or produced_child
-                        )
-                return produced_child
+                        _process_node(child, alias, indent, dict(context))
+                return True
 
             if node_type == "container":
                 boundary_macro = _c4_boundary_macro(view_kind or "")
@@ -2229,7 +2358,6 @@ def _build_view_mermaid(
                 lines.append(
                     f"{indent_str}{boundary_macro}({alias}, \"{_mermaid_escape(boundary_label)}\") {{"
                 )
-                boundary_index = len(lines) - 1
                 next_context = dict(context)
                 next_context["external"] = context.get("external", False) or _should_mark_external(
                     boundary_label
@@ -2242,7 +2370,8 @@ def _build_view_mermaid(
                             or produced_child
                         )
                 if not produced_child:
-                    lines[boundary_index] = (
+                    lines.pop()
+                    lines.append(
                         f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(boundary_label)}"
                     )
                     return False
@@ -2292,6 +2421,8 @@ def _build_view_mermaid(
         if isinstance(node, dict):
             _process_node(node, view_alias if not use_c4 else None, 1, dict(initial_context))
 
+    link_style_statements: List[str] = []
+    edge_index = 0
     for connection in view.get("connections") or []:
         if not isinstance(connection, dict):
             continue
@@ -2356,7 +2487,23 @@ def _build_view_mermaid(
                 )
             else:
                 lines.append(f"{source_alias} --> {target_alias}")
+            style_directives = _extract_connection_style(connection)
+            if style_directives:
+                style_parts = []
+                for key_name in ("stroke", "color"):
+                    value = style_directives.get(key_name)
+                    if value:
+                        style_parts.append(f"{key_name}:{value}")
+                if style_parts:
+                    link_style_statements.append(
+                        f"linkStyle {edge_index} {', '.join(style_parts)}"
+                    )
+            edge_index += 1
 
+    if style_statements:
+        lines.extend(style_statements)
+    if link_style_statements:
+        lines.extend(link_style_statements)
 
     mermaid_source = _finalize_mermaid_lines(lines)
     _validate_mermaid_syntax(mermaid_source)

@@ -125,11 +125,7 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
         include_image=True,
     )
     mermaid_blocks = [view["mermaid"] for view in stored_preview["views"]]
-    assert all(
-        block.startswith("C4") or block.startswith("flowchart TD")
-        for block in mermaid_blocks
-    )
-    assert any(block.startswith("C4") for block in mermaid_blocks)
+    assert all(block.startswith("flowchart") for block in mermaid_blocks)
     image_payloads = [view["image"] for view in stored_preview["views"]]
     assert all(payload["url"].startswith("https://") for payload in image_payloads)
     assert all(
@@ -258,7 +254,7 @@ def test_generate_mermaid_preview_converts_html_line_breaks():
     assert "</BR>" not in mermaid_source.upper()
 
     lines = mermaid_source.split("\n")
-    assert lines[0].strip().startswith("flowchart TD")
+    assert lines[0].strip().startswith("flowchart")
     assert lines[1].startswith("view_html[")
     assert "<br/>" in lines[1]
 
@@ -436,7 +432,7 @@ def test_generate_mermaid_preview_falls_back_to_flowchart_on_c4_error(
     stored_preview = _load_full_preview(preview, session_state=session_state)
 
     assert any(
-        view["mermaid"].startswith("flowchart TD")
+        view["mermaid"].startswith("flowchart")
         for view in stored_preview["views"]
     )
 
@@ -479,6 +475,60 @@ def test_generate_mermaid_preview_ignores_template_only_nodes(sample_payload):
     assert removed_id not in rendered_ids
     assert all(node.get("id") != removed_id for node in rendered_view["nodes"])
     assert removed_id not in rendered_view["mermaid"]
+
+
+def test_generate_mermaid_preview_applies_node_styles():
+    datamodel = {
+        "model_identifier": "style-demo",
+        "model_name": "Visão Estilizada",
+        "elements": [
+            {
+                "id": "element-service",
+                "type": "ApplicationComponent",
+                "name": "Serviço Central",
+            }
+        ],
+        "relations": [],
+        "views": {
+            "diagrams": [
+                {
+                    "id": "view-style",
+                    "name": "Visão Estilizada",
+                    "nodes": [
+                        {
+                            "id": "container-root",
+                            "type": "Container",
+                            "label": "Layer Verde",
+                            "style": {
+                                "fillColor": {"r": 0, "g": 255, "b": 0, "a": 100},
+                                "lineColor": {"r": 0, "g": 128, "b": 0, "a": 100},
+                            },
+                            "children": [
+                                {
+                                    "id": "node-service",
+                                    "type": "Element",
+                                    "refs": {"elementRef": "element-service"},
+                                    "style": {
+                                        "fillColor": {"r": 255, "g": 255, "b": 255, "a": 100},
+                                        "lineColor": {"r": 0, "g": 0, "b": 0, "a": 100},
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                    "connections": [],
+                }
+            ]
+        },
+    }
+
+    preview = generate_mermaid_preview(json.dumps(datamodel))
+    stored_preview = _load_full_preview(preview)
+    mermaid = stored_preview["views"][0]["mermaid"]
+
+    assert "subgraph container_root" in mermaid
+    assert "style container_root fill:#00FF00" in mermaid
+    assert "style node_service fill:#FFFFFF" in mermaid
 
 
 def test_generate_mermaid_preview_appends_statement_terminators():
