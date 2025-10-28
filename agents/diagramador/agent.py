@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 
-from typing import Any, MutableMapping
+from typing import Any
 
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
@@ -50,7 +50,7 @@ def list_templates(directory: str = ""):
 def describe_template(
     template_path: str,
     *,
-    session_state: MutableMapping[str, Any] | None = None,
+    session_state: dict[str, Any] | None = None,
 ):
     return _describe_template(template_path, session_state=session_state)
 
@@ -59,7 +59,7 @@ def generate_mermaid_preview(
     datamodel: str,
     template_path: str = "",
     *,
-    session_state: MutableMapping[str, Any] | None = None,
+    session_state: dict[str, Any] | None = None,
 ):
     return _generate_mermaid_preview(
         datamodel,
@@ -72,7 +72,7 @@ def finalize_datamodel(
     datamodel: str,
     template_path: str,
     *,
-    session_state: MutableMapping[str, Any] | None = None,
+    session_state: dict[str, Any] | None = None,
 ):
     return _finalize_datamodel(
         datamodel,
