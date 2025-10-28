@@ -1,2 +1,9 @@
 # Runtime dependencies for the Diagramador agent toolkit
 lxml>=4.9,<6
+# Optional dependencies for the solution-only-sample-references folder
+click>=8.1,<9
+google-auth>=2.21,<3
+PyYAML>=6,<7
+pydantic>=2,<3
+requests>=2.31,<3
+vertexai>=1,<2
