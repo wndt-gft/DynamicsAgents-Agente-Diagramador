@@ -50,10 +50,18 @@ diagramador_agent = Agent(
 )
 
 
-def root_agent() -> Agent:
-    """Return the Diagramador agent as the package entry point."""
+def get_root_agent() -> Agent:
+    """Return the Diagramador agent instance.
+
+    Provided for compatibility with integrations that expect a callable
+    accessor while also exposing ``root_agent`` as a module-level variable for
+    the Google ADK loader.
+    """
 
     return diagramador_agent
 
 
-__all__ = ["diagramador_agent", "root_agent"]
+root_agent: Agent = diagramador_agent
+
+
+__all__ = ["diagramador_agent", "get_root_agent", "root_agent"]
