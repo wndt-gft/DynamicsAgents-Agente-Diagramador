@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, Dict
+
 import warnings
 
 from google.adk import Agent
@@ -55,10 +57,20 @@ def describe_template(template_path: str):
     return _describe_template(template_path, session_state=None)
 
 
-def generate_mermaid_preview(datamodel: str, template_path: str = ""):
+def generate_mermaid_preview(
+    datamodel: str,
+    template_path: str = "",
+    *,
+    view_identifier: str = "",
+    view_name: str = "",
+    view_metadata: Dict[str, Any] | None = None,
+):
     return _generate_mermaid_preview(
         datamodel,
         template_path=template_path or None,
+        view_identifier=view_identifier or None,
+        view_name=view_name or None,
+        view_metadata=view_metadata,
         session_state=None,
     )
 

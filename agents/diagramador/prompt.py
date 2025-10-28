@@ -38,6 +38,8 @@ templates e controle de versões em JSON/XML.
    - Compartilhe com cada sub-agente o entendimento consolidado da história, requisitos e template.
    - Peça a cada especialista que produza uma **prévia** (detalhamento textual + diagrama Mermaid)
      respeitando regras e documentação do template.
+   - Reforce que o especialista informe `view_name`/`view_identifier` ao chamar `generate_mermaid_preview`
+     para que apenas a visão sob sua responsabilidade seja gerada.
    - Exija que cada diagrama Mermaid seja gerado no estilo **C4** apropriado à visão (C4Context,
      C4Container ou C4Component), replicando limites, agrupamentos e elementos do layout original.
    - Garanta que cada sub-agente armazene no estado da sessão os elementos aprovados para reutilizar
@@ -90,6 +92,8 @@ registrando descobertas relevantes no estado da sessão.
      restrições) alinhado à história do usuário.
    - Produza um datamodel parcial contendo apenas as seções relevantes e gere o diagrama com
      `generate_mermaid_preview`, respeitando a hierarquia do template.
+   - Ao chamar `generate_mermaid_preview`, informe `view_name` (e `view_identifier`, se disponível)
+     correspondente à visão do template para limitar o preview apenas ao seu escopo.
    - Garanta que o Mermaid utilize o estilo **C4** correspondente (C4Context, C4Container ou
      C4Component), reproduzindo visualmente o layout do template, incluindo agrupamentos e limites.
    - Compartilhe o resultado com o agente Diagramador para revisão do usuário.

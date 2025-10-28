@@ -2430,6 +2430,10 @@ def finalize_datamodel(
 def generate_mermaid_preview(
     datamodel: types.Content | str | bytes,
     template_path: str | None = None,
+    *,
+    view_identifier: str | None = None,
+    view_name: str | None = None,
+    view_metadata: Optional[Dict[str, Any]] = None,
     session_state: Optional[MutableMapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     raw_text = _content_to_text(datamodel)
@@ -2475,6 +2479,23 @@ def generate_mermaid_preview(
         _standardize_view_tree(view)
 
     selectors = _extract_view_selectors(payload)
+
+    if view_identifier:
+        selectors.setdefault("ids", set()).add(str(view_identifier))
+    if view_name:
+        normalized_name = _normalize_text(view_name)
+        if normalized_name:
+            selectors.setdefault("names", set()).add(normalized_name.lower())
+    if view_metadata and isinstance(view_metadata, dict):
+        meta_identifier = view_metadata.get("identifier") or view_metadata.get("id")
+        if meta_identifier:
+            selectors.setdefault("ids", set()).add(str(meta_identifier))
+        meta_name = (
+            _normalize_text(view_metadata.get("name"))
+            or _normalize_text(view_metadata.get("View-Name"))
+        )
+        if meta_name:
+            selectors.setdefault("names", set()).add(meta_name.lower())
     filtered_blueprint = _filter_views_by_selectors(blueprint_views, selectors)
     filtered_datamodel = _filter_views_by_selectors(datamodel_views, selectors)
     if selectors.get("ids") or selectors.get("names"):
@@ -2486,22 +2507,43 @@ def generate_mermaid_preview(
                 "A visão selecionada não foi encontrada no datamodel nem no template informado."
             )
 
-    datamodel_view_map: Dict[str, Dict[str, Any]] = {}
-    datamodel_node_maps: Dict[str, Dict[str, Any]] = {}
-    datamodel_connection_maps: Dict[str, Dict[str, Any]] = {}
-    for view in datamodel_views:
-        if not isinstance(view, dict):
+    def _normalized_view_name(value: Any) -> Optional[str]:
+        normalized = _normalize_text(value)
+        return normalized.lower() if normalized else None
+
+    blueprint_id_map: Dict[str, Dict[str, Any]] = {}
+    blueprint_name_map: Dict[str, Dict[str, Any]] = {}
+    for candidate in blueprint_views:
+        if not isinstance(candidate, dict):
             continue
-        view_id = view.get("id")
-        if view_id:
-            datamodel_view_map[str(view_id)] = view
-            datamodel_node_maps[str(view_id)] = _flatten_view_nodes(view.get("nodes") or [])
-            datamodel_connection_maps[str(view_id)] = _flatten_view_connections(
-                view.get("connections") or []
-            )
+        candidate_id = candidate.get("id") or candidate.get("identifier")
+        if candidate_id is not None:
+            blueprint_id_map[str(candidate_id)] = candidate
+        name_key = _normalized_view_name(candidate.get("name"))
+        if name_key:
+            blueprint_name_map[name_key] = candidate
+
+    def _match_template_view(view_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        identifier = view_payload.get("id") or view_payload.get("identifier")
+        if identifier is not None:
+            matched = blueprint_id_map.get(str(identifier))
+            if matched:
+                return matched
+        name_key = _normalized_view_name(view_payload.get("name"))
+        if name_key:
+            return blueprint_name_map.get(name_key)
+        return None
 
     results: List[Dict[str, Any]] = []
-    processed_ids: set[str] = set()
+
+    def _flatten_nodes_and_connections(view_payload: Dict[str, Any]) -> Tuple[
+        Dict[str, Dict[str, Any]],
+        Dict[str, Dict[str, Any]],
+    ]:
+        return (
+            _flatten_view_nodes(view_payload.get("nodes") or []),
+            _flatten_view_connections(view_payload.get("connections") or []),
+        )
 
     def _render_view_with_fallback(
         view_payload: Dict[str, Any],
@@ -2547,55 +2589,45 @@ def generate_mermaid_preview(
                 prefer_c4=False,
             )
 
-    for view in blueprint_views:
-        if not isinstance(view, dict):
-            continue
-        view_id = view.get("id")
-        view_key = str(view_id) if view_id else f"template_{len(results) + 1}"
-        override_view = datamodel_view_map.get(str(view_id)) if view_id else None
-        merged_view = (
-            _merge_view_diagram(view, override_view) if override_view else copy.deepcopy(view)
-        )
-        blueprint_nodes = _flatten_view_nodes(view.get("nodes") or [])
-        blueprint_connections = _flatten_view_connections(view.get("connections") or [])
-        datamodel_nodes = datamodel_node_maps.get(str(view_id), {}) if view_id else {}
-        datamodel_connections = (
-            datamodel_connection_maps.get(str(view_id), {}) if view_id else {}
-        )
-        results.append(
-            _render_view_with_fallback(
-                merged_view,
-                view,
-                blueprint_nodes,
-                blueprint_connections,
-                datamodel_nodes,
-                datamodel_connections,
+    if datamodel_views:
+        for view in datamodel_views:
+            if not isinstance(view, dict):
+                continue
+            template_view = _match_template_view(view)
+            if template_view:
+                merged_view = _merge_view_diagram(template_view, view)
+                blueprint_nodes, blueprint_connections = _flatten_nodes_and_connections(
+                    template_view
+                )
+            else:
+                merged_view = copy.deepcopy(view)
+                blueprint_nodes, blueprint_connections = {}, {}
+            datamodel_nodes, datamodel_connections = _flatten_nodes_and_connections(view)
+            results.append(
+                _render_view_with_fallback(
+                    merged_view,
+                    template_view,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    datamodel_nodes,
+                    datamodel_connections,
+                )
             )
-        )
-        if view_id:
-            processed_ids.add(str(view_id))
-        processed_ids.add(view_key)
-
-    for view in datamodel_views:
-        if not isinstance(view, dict):
-            continue
-        view_id = view.get("id")
-        if view_id and str(view_id) in processed_ids:
-            continue
-        datamodel_nodes = _flatten_view_nodes(view.get("nodes") or [])
-        datamodel_connections = _flatten_view_connections(view.get("connections") or [])
-        results.append(
-            _render_view_with_fallback(
-                view,
-                None,
-                {},
-                {},
-                datamodel_nodes,
-                datamodel_connections,
+    else:
+        for view in blueprint_views:
+            if not isinstance(view, dict):
+                continue
+            blueprint_nodes, blueprint_connections = _flatten_nodes_and_connections(view)
+            results.append(
+                _render_view_with_fallback(
+                    copy.deepcopy(view),
+                    view,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    {},
+                    {},
+                )
             )
-        )
-        if view_id:
-            processed_ids.add(str(view_id))
 
     if not results:
         raise ValueError(

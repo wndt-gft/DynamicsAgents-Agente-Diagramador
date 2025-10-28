@@ -336,6 +336,29 @@ def test_generate_mermaid_preview_filters_by_selected_view_name():
     assert preview["views"][0]["name"] == "Visão B"
 
 
+def test_generate_mermaid_preview_honors_view_name_argument():
+    elements, relations = _sample_elements_and_relations()
+    datamodel = {
+        "model_identifier": "demo_argument_view",
+        "elements": elements,
+        "relations": relations,
+        "views": {
+            "diagrams": [
+                _sample_view_payload("Visão de Contexto", "contexto"),
+                _sample_view_payload("Visão de Container", "container"),
+            ],
+        },
+    }
+
+    preview = generate_mermaid_preview(
+        json.dumps(datamodel),
+        view_name="Visão de Container",
+    )
+
+    assert preview["view_count"] == 1
+    assert preview["views"][0]["name"] == "Visão de Container"
+
+
 def test_generate_mermaid_preview_validates_each_view(
     sample_payload, session_state, stub_mermaid_validation
 ):
