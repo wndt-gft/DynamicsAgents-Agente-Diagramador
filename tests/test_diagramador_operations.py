@@ -205,12 +205,47 @@ def test_generate_mermaid_preview_converts_html_line_breaks():
     assert "</BR>" not in mermaid_source.upper()
 
     lines = mermaid_source.split("\n")
-    assert lines[0].strip() == "flowchart TD"
+    assert lines[0].strip().startswith("flowchart TD")
     assert lines[1].startswith("view_html[")
     assert "<br/>" in lines[1]
 
     node_line = next(line for line in lines if "node_html" in line and "[")
     assert "<br/>" in node_line
+
+
+def test_generate_mermaid_preview_appends_statement_terminators():
+    datamodel = {
+        "model_identifier": "demo_semicolon",
+        "elements": [],
+        "relations": [],
+        "views": {
+            "diagrams": [
+                {
+                    "id": "view_semicolon",
+                    "name": "Visão",
+                    "nodes": [
+                        {"id": "node_semicolon", "name": "Label", "type": "Label"}
+                    ],
+                    "connections": [],
+                }
+            ]
+        },
+    }
+
+    preview = generate_mermaid_preview(json.dumps(datamodel))
+    mermaid_lines = preview["views"][0]["mermaid"].split("\n")
+
+    for line in mermaid_lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("%%"):
+            continue
+        assert stripped.endswith(";")
+
+    # Mesmo sem quebras de linha os delimitadores mantêm a sintaxe válida.
+    collapsed = " ".join(
+        part for part in mermaid_lines if part.strip() and not part.strip().startswith("%%")
+    )
+    assert "; " in collapsed or collapsed.endswith(";")
 
 
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload):

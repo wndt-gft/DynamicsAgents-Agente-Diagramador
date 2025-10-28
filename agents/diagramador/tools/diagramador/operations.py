@@ -184,6 +184,7 @@ def _resolve_templates_dir(directory: str | None = None) -> Path:
 
 _BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)
 _INLINE_WHITESPACE_RE = re.compile(r"[ \t\f\v]+")
+_MERMAID_COMMENT_PREFIX = "%%"
 
 
 def _clean_text(value: Optional[str]) -> str:
@@ -199,6 +200,40 @@ def _clean_text(value: Optional[str]) -> str:
     normalized = re.sub(r"\n{3,}", "\n\n", normalized)
 
     return normalized.strip()
+
+
+def _finalize_mermaid_lines(lines: Iterable[str]) -> str:
+    """Normaliza linhas Mermaid garantindo separadores explícitos.
+
+    Alguns consumidores removem quebras de linha ao serializar a saída. O Mermaid
+    permite utilizar ponto e vírgula como delimitador explícito entre comandos,
+    por isso garantimos o caractere ao final de todas as instruções não
+    comentadas. Comentários (`%%`) e linhas vazias são preservados exatamente
+    como foram construídos.
+    """
+
+    finalized: List[str] = []
+
+    for original in lines:
+        if original is None:
+            continue
+
+        text = original.rstrip()
+        if not text:
+            finalized.append("")
+            continue
+
+        stripped = text.lstrip()
+        if stripped.startswith(_MERMAID_COMMENT_PREFIX):
+            finalized.append(text)
+            continue
+
+        if not stripped.endswith(";"):
+            text = f"{text};"
+
+        finalized.append(text)
+
+    return "\n".join(finalized)
 
 
 def _text_payload(element: Optional[ET.Element]) -> Optional[Dict[str, str]]:
@@ -1619,7 +1654,7 @@ def _build_view_mermaid(
             for comment in _format_comment_lines(metadata["documentation"]):
                 lines.append(f"%% rel {metadata.get('id') or ''}: {comment}")
 
-    mermaid_source = "\n".join(lines)
+    mermaid_source = _finalize_mermaid_lines(lines)
     image_payload = _build_mermaid_image_payload(
         mermaid_source,
         alias=view_alias,
