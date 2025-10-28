@@ -1160,15 +1160,199 @@ def _merge_view_node(template_node: Dict[str, Any], override_node: Optional[Dict
     return merged
 
 
+def _looks_like_view_diagram(candidate: Any) -> bool:
+    """Return ``True`` when the payload resembles a diagram definition."""
+
+    if not isinstance(candidate, dict):
+        return False
+
+    if candidate.get("type") == "Diagram":
+        return True
+
+    for key in ("nodes", "connections", "children"):
+        value = candidate.get(key)
+        if isinstance(value, list) and value:
+            return True
+
+    return False
+
+
+def _deduplicate_views(views: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Remove visão duplicadas preservando a ordem original."""
+
+    unique: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for view in views:
+        if not isinstance(view, dict):
+            continue
+
+        key_parts: List[str] = []
+        identifier = view.get("id") or view.get("identifier")
+        if identifier:
+            key_parts.append(f"id:{identifier}")
+        name = _normalize_text(view.get("name"))
+        if name:
+            key_parts.append(f"name:{name.lower()}")
+
+        dedupe_key = "|".join(key_parts)
+        if dedupe_key and dedupe_key in seen:
+            continue
+        if dedupe_key:
+            seen.add(dedupe_key)
+        unique.append(view)
+
+    return unique
+
+
 def _normalize_view_diagrams(views_payload: Any) -> List[Dict[str, Any]]:
+    """Normalize assorted view payload formats into a list of diagrams."""
+
     if views_payload is None:
         return []
+
+    diagrams: List[Dict[str, Any]] = []
+
+    def _add_candidate(candidate: Any) -> None:
+        if not _looks_like_view_diagram(candidate):
+            return
+        prepared = copy.deepcopy(candidate)
+        identifier = prepared.get("identifier")
+        if identifier and not prepared.get("id"):
+            prepared["id"] = identifier
+        diagrams.append(prepared)
+
     if isinstance(views_payload, dict):
-        diagrams = views_payload.get("diagrams")
-        return diagrams if isinstance(diagrams, list) else []
-    if isinstance(views_payload, list):
-        return views_payload
-    return []
+        explicit = views_payload.get("diagrams")
+        if isinstance(explicit, list):
+            for entry in explicit:
+                _add_candidate(entry)
+        elif isinstance(explicit, dict):
+            _add_candidate(explicit)
+
+        for key, value in views_payload.items():
+            if key in {"diagrams", "viewpoints"}:
+                continue
+            if isinstance(value, dict):
+                _add_candidate(value)
+            elif isinstance(value, list):
+                for item in value:
+                    _add_candidate(item)
+
+        _add_candidate(views_payload)
+    elif isinstance(views_payload, list):
+        for entry in views_payload:
+            _add_candidate(entry)
+    else:
+        _add_candidate(views_payload)
+
+    return _deduplicate_views(diagrams)
+
+
+def _extract_view_selectors(payload: Dict[str, Any]) -> Dict[str, set[str]]:
+    """Coleta identificadores ou nomes de visão informados pelo agente."""
+
+    selectors: Dict[str, set[str]] = {"ids": set(), "names": set()}
+
+    def _register(value: Any, bucket: str) -> None:
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                _register(item, bucket)
+            return
+        if isinstance(value, (int, float)):
+            text = str(value)
+        elif isinstance(value, str):
+            text = value.strip()
+        else:
+            return
+        if not text:
+            return
+        if bucket == "names":
+            selectors[bucket].add(text.lower())
+        else:
+            selectors[bucket].add(text)
+
+    id_keys = (
+        "view_identifier",
+        "view_id",
+        "viewIdentifier",
+        "viewId",
+        "selected_view_identifier",
+        "selected_view_id",
+    )
+    name_keys = (
+        "view_name",
+        "viewName",
+        "view",
+        "selected_view",
+        "selected_view_name",
+        "View-Name",
+    )
+
+    for key in id_keys:
+        _register(payload.get(key), "ids")
+    for key in name_keys:
+        _register(payload.get(key), "names")
+
+    view_metadata_keys = (
+        "view_metadata",
+        "viewMeta",
+        "view_info",
+        "viewInfo",
+        "selected_view_metadata",
+    )
+    for meta_key in view_metadata_keys:
+        meta = payload.get(meta_key)
+        if isinstance(meta, dict):
+            for key in id_keys:
+                _register(meta.get(key), "ids")
+            for key in name_keys:
+                _register(meta.get(key), "names")
+            _register(meta.get("identifier"), "ids")
+            _register(meta.get("id"), "ids")
+            _register(meta.get("name"), "names")
+
+    views_payload = payload.get("views")
+    if isinstance(views_payload, dict):
+        for key in ("selected", "selected_view", "selectedView"):
+            value = views_payload.get(key)
+            if isinstance(value, dict):
+                _register(value.get("identifier"), "ids")
+                _register(value.get("id"), "ids")
+                _register(value.get("name"), "names")
+            else:
+                _register(value, "names")
+
+    return selectors
+
+
+def _filter_views_by_selectors(
+    views: List[Dict[str, Any]], selectors: Dict[str, set[str]]
+) -> List[Dict[str, Any]]:
+    if not selectors.get("ids") and not selectors.get("names"):
+        return views
+
+    filtered: List[Dict[str, Any]] = []
+    target_ids = {str(value) for value in selectors.get("ids", set()) if value}
+    target_names = selectors.get("names", set())
+
+    for view in views:
+        if not isinstance(view, dict):
+            continue
+
+        matches = False
+        identifier = view.get("id") or view.get("identifier")
+        if identifier and str(identifier) in target_ids:
+            matches = True
+        else:
+            name = _normalize_text(view.get("name"))
+            if name and name.lower() in target_names:
+                matches = True
+
+        if matches:
+            filtered.append(view)
+
+    return filtered
 
 
 def _merge_view_diagram(
@@ -2269,11 +2453,36 @@ def generate_mermaid_preview(
     relation_lookup = _build_relationship_lookup(template, payload)
 
     datamodel_views = _normalize_view_diagrams(payload.get("views"))
+    if not datamodel_views:
+        for extra_key in (
+            "view",
+            "diagram",
+            "view_diagram",
+            "diagram_view",
+            "selected_view_data",
+            "selectedViewData",
+        ):
+            extra_payload = payload.get(extra_key)
+            if extra_payload:
+                datamodel_views.extend(_normalize_view_diagrams(extra_payload))
+        datamodel_views = _deduplicate_views(datamodel_views)
     for view in datamodel_views:
         _standardize_view_tree(view)
     blueprint_views = _normalize_view_diagrams(template.get("views"))
     for view in blueprint_views:
         _standardize_view_tree(view)
+
+    selectors = _extract_view_selectors(payload)
+    filtered_blueprint = _filter_views_by_selectors(blueprint_views, selectors)
+    filtered_datamodel = _filter_views_by_selectors(datamodel_views, selectors)
+    if selectors.get("ids") or selectors.get("names"):
+        if filtered_blueprint or filtered_datamodel:
+            blueprint_views = filtered_blueprint or blueprint_views
+            datamodel_views = filtered_datamodel
+        else:
+            raise ValueError(
+                "A visão selecionada não foi encontrada no datamodel nem no template informado."
+            )
 
     datamodel_view_map: Dict[str, Dict[str, Any]] = {}
     datamodel_node_maps: Dict[str, Dict[str, Any]] = {}

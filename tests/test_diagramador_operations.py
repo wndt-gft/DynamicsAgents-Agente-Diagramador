@@ -233,6 +233,109 @@ def test_generate_mermaid_preview_converts_html_line_breaks():
     assert "<br/>" in node_line
 
 
+def _sample_elements_and_relations():
+    return (
+        [
+            {
+                "id": "element_alpha",
+                "type": "ApplicationComponent",
+                "name": "Serviço Alpha",
+            },
+            {
+                "id": "element_beta",
+                "type": "ApplicationComponent",
+                "name": "Serviço Beta",
+            },
+        ],
+        [
+            {
+                "id": "rel_alpha_beta",
+                "type": "FlowRelationship",
+                "source": "element_alpha",
+                "target": "element_beta",
+            }
+        ],
+    )
+
+
+def _sample_view_payload(name: str, suffix: str) -> dict:
+    return {
+        "id": f"view_{suffix}",
+        "name": name,
+        "nodes": [
+            {
+                "id": f"node_{suffix}_alpha",
+                "elementRef": "element_alpha",
+            },
+            {
+                "id": f"node_{suffix}_beta",
+                "elementRef": "element_beta",
+            },
+        ],
+        "connections": [
+            {
+                "id": f"conn_{suffix}",
+                "source": f"node_{suffix}_alpha",
+                "target": f"node_{suffix}_beta",
+                "relationshipRef": "rel_alpha_beta",
+            }
+        ],
+    }
+
+
+def test_generate_mermaid_preview_accepts_named_view_mapping():
+    elements, relations = _sample_elements_and_relations()
+    datamodel = {
+        "model_identifier": "demo_named_views",
+        "elements": elements,
+        "relations": relations,
+        "views": {
+            "Visão Técnica (VT)": _sample_view_payload("Visão Técnica (VT)", "vt"),
+        },
+    }
+
+    preview = generate_mermaid_preview(json.dumps(datamodel))
+
+    assert preview["view_count"] == 1
+    assert preview["views"][0]["name"] == "Visão Técnica (VT)"
+
+
+def test_generate_mermaid_preview_accepts_top_level_view_payload():
+    elements, relations = _sample_elements_and_relations()
+    datamodel = {
+        "model_identifier": "demo_top_level_view",
+        "elements": elements,
+        "relations": relations,
+        "view": _sample_view_payload("Visão de Container", "container"),
+    }
+
+    preview = generate_mermaid_preview(json.dumps(datamodel))
+
+    assert preview["view_count"] == 1
+    assert preview["views"][0]["name"] == "Visão de Container"
+
+
+def test_generate_mermaid_preview_filters_by_selected_view_name():
+    elements, relations = _sample_elements_and_relations()
+    datamodel = {
+        "model_identifier": "demo_selected_view",
+        "elements": elements,
+        "relations": relations,
+        "views": {
+            "diagrams": [
+                _sample_view_payload("Visão A", "a"),
+                _sample_view_payload("Visão B", "b"),
+            ],
+        },
+        "selected_view": "Visão B",
+    }
+
+    preview = generate_mermaid_preview(json.dumps(datamodel))
+
+    assert preview["view_count"] == 1
+    assert preview["views"][0]["name"] == "Visão B"
+
+
 def test_generate_mermaid_preview_validates_each_view(
     sample_payload, session_state, stub_mermaid_validation
 ):
