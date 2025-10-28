@@ -42,19 +42,39 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 def _resolve_package_path(path: Path) -> Path:
     """Resolve a resource path relative to the package when needed."""
 
-    if path.is_absolute():
-        return path
+    candidate = Path(path)
 
-    cwd_candidate = Path.cwd() / path
-    package_candidate = PACKAGE_ROOT / path
+    if candidate.is_absolute():
+        return candidate
 
-    if cwd_candidate.exists():
-        return cwd_candidate
+    repo_root = PACKAGE_ROOT.parent.parent
+    search_order = [
+        Path.cwd() / candidate,
+        PACKAGE_ROOT / candidate,
+        repo_root / candidate,
+    ]
 
-    if package_candidate.exists():
-        return package_candidate
+    parts = candidate.parts
 
-    return cwd_candidate
+    if parts:
+        if parts[0].lower() == "agents" and len(parts) > 1:
+            stripped = Path(*parts[1:])
+            search_order.extend(
+                [
+                    PACKAGE_ROOT / stripped,
+                    PACKAGE_ROOT / "templates" / stripped,
+                ]
+            )
+        elif parts[0].lower() != "templates":
+            search_order.append(PACKAGE_ROOT / "templates" / candidate)
+    else:
+        search_order.append(PACKAGE_ROOT / "templates")
+
+    for option in search_order:
+        if option.exists():
+            return option
+
+    return search_order[0]
 
 
 def _ensure_output_dir() -> Path:
@@ -1871,9 +1891,7 @@ def describe_template(
 ) -> Dict[str, Any]:
     """Retorna a estrutura detalhada de um template ArchiMate."""
 
-    template = Path(template_path)
-    if not template.is_absolute():
-        template = Path.cwd() / template
+    template = _resolve_package_path(Path(template_path))
 
     if not template.exists():
         raise FileNotFoundError(f"Template não encontrado: {template}")
