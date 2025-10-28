@@ -259,10 +259,34 @@ def _validate_mermaid_syntax(mermaid: str) -> None:
 
 
 def _resolve_templates_dir(directory: str | None = None) -> Path:
-    """Resolves the directory that stores template XML files."""
+    """Resolves the directory that stores template XML files.
+
+    If a custom directory is provided but cannot be located, the default
+    templates directory is returned as a graceful fallback so the agent keeps
+    operating with the bundled assets.
+    """
 
     base = Path(directory) if directory else DEFAULT_TEMPLATES_DIR
-    return _resolve_package_path(base)
+    resolved = _resolve_package_path(base)
+
+    if resolved.exists():
+        return resolved
+
+    if directory:
+        logger.warning(
+            "Diretório de templates '%s' não encontrado, utilizando diretório padrão.",
+            directory,
+        )
+        default_dir = _resolve_package_path(DEFAULT_TEMPLATES_DIR)
+        if default_dir.exists():
+            return default_dir
+
+        logger.error(
+            "Diretório padrão de templates '%s' também não foi localizado.",
+            DEFAULT_TEMPLATES_DIR,
+        )
+
+    return resolved
 
 
 _BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)

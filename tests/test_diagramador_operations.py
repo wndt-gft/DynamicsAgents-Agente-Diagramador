@@ -59,6 +59,13 @@ def test_list_templates_returns_entries():
     assert SAMPLE_TEMPLATE.name in paths
 
 
+def test_list_templates_uses_default_when_custom_dir_missing():
+    result = list_templates("agents/c4-model")
+    assert result["count"] > 0
+    default_dir = operations._resolve_templates_dir()
+    assert Path(result["directory"]).resolve() == default_dir.resolve()
+
+
 def test_describe_template_stores_blueprint(session_state):
     guidance = describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
     assert guidance["model"]["identifier"]
