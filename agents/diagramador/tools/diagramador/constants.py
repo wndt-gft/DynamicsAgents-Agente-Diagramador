@@ -15,6 +15,7 @@ __all__ = [
     "DEFAULT_XSD_DIR",
     "DEFAULT_KROKI_URL",
     "DEFAULT_MERMAID_IMAGE_FORMAT",
+    "DEFAULT_MERMAID_VALIDATION_URL",
     "FETCH_MERMAID_IMAGES",
     "ARCHIMATE_NS",
     "XSI_ATTR",
@@ -31,6 +32,9 @@ DEFAULT_XSD_DIR = Path(
     os.getenv("DIAGRAMADOR_XSD_DIR", "templates/BV-C4-Model-SDLC/schemas")
 )
 DEFAULT_KROKI_URL = os.getenv("DIAGRAMADOR_KROKI_URL", "https://kroki.io")
+DEFAULT_MERMAID_VALIDATION_URL = os.getenv(
+    "DIAGRAMADOR_MERMAID_VALIDATION_URL", "https://mermaid.ink"
+)
 FETCH_MERMAID_IMAGES = os.getenv("DIAGRAMADOR_FETCH_MERMAID_IMAGES", "0").lower() in (
     "1",
     "true",

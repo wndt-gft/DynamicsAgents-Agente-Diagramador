@@ -10,6 +10,7 @@ import sitecustomize  # noqa: F401  # Ensure stub packages are available before 
 from unittest import mock
 
 import pytest
+import requests
 
 from tools.diagramador import (
     BLUEPRINT_CACHE_KEY,
@@ -39,6 +40,16 @@ def sample_payload() -> str:
 @pytest.fixture()
 def session_state() -> dict:
     return {}
+
+
+@pytest.fixture(autouse=True)
+def stub_mermaid_validation(monkeypatch):
+    response = mock.Mock()
+    response.raise_for_status = mock.Mock()
+    response.text = "<svg id='mermaidInkSvg'></svg>"
+    validator = mock.Mock(return_value=response)
+    monkeypatch.setattr(operations, "_mermaid_validation_request", validator)
+    return validator
 
 
 def test_list_templates_returns_entries():
@@ -213,6 +224,18 @@ def test_generate_mermaid_preview_converts_html_line_breaks():
     assert "<br/>" in node_line
 
 
+def test_generate_mermaid_preview_validates_each_view(
+    sample_payload, session_state, stub_mermaid_validation
+):
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    preview = generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+    assert stub_mermaid_validation.call_count == preview["view_count"]
+
+
 def test_generate_mermaid_preview_appends_statement_terminators():
     datamodel = {
         "model_identifier": "demo_semicolon",
@@ -246,6 +269,21 @@ def test_generate_mermaid_preview_appends_statement_terminators():
         part for part in mermaid_lines if part.strip() and not part.strip().startswith("%%")
     )
     assert "; " in collapsed or collapsed.endswith(";")
+
+
+def test_validate_mermaid_syntax_raises_on_error(stub_mermaid_validation):
+    stub_mermaid_validation.return_value.text = (
+        '<svg aria-roledescription="error"><text>Parse error on line 1</text></svg>'
+    )
+
+    with pytest.raises(ValueError, match="Parse error on line 1"):
+        operations._validate_mermaid_syntax("flowchart TD; A-->B;")
+
+
+def test_validate_mermaid_syntax_ignores_network_error(stub_mermaid_validation):
+    stub_mermaid_validation.side_effect = requests.RequestException("network down")
+
+    operations._validate_mermaid_syntax("flowchart TD; X-->Y;")
 
 
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload):
