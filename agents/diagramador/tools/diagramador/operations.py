@@ -13,7 +13,6 @@ import logging
 import re
 import textwrap
 import warnings
-import zlib
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
 from xml.etree import ElementTree as ET
@@ -100,17 +99,6 @@ def _mermaid_validator_base_url() -> str:
     return DEFAULT_MERMAID_VALIDATION_URL.rstrip("/")
 
 
-def _encode_mermaid_for_url(mermaid: str) -> str:
-    """Encode Mermaid source into the URL-safe payload Kroki expects."""
-
-    compressor = zlib.compressobj(level=9, wbits=-zlib.MAX_WBITS)
-    raw = compressor.compress(mermaid.encode("utf-8")) + compressor.flush()
-    # Kroki accepts standard base64url strings and gracefully handles inputs
-    # without padding. Removing the padding keeps the URL shorter and avoids
-    # edge cases with servers that don't like '=' in the path portion.
-    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
-
-
 def _encode_mermaid_for_validator(mermaid: str) -> str:
     encoded = base64.urlsafe_b64encode(mermaid.encode("utf-8")).decode("ascii")
     return encoded.rstrip("=")
@@ -143,10 +131,14 @@ def _build_mermaid_image_payload(
     fmt: Optional[str] = None,
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
-    encoded = _encode_mermaid_for_url(mermaid)
     base_url = _kroki_base_url()
-    url = f"{base_url}/mermaid/{resolved_format}/{encoded}"
+    url = f"{base_url}/render"
     mime_type = _mermaid_mime_type(resolved_format)
+    request_payload = {
+        "diagram_source": mermaid,
+        "diagram_type": "mermaid",
+        "output_format": resolved_format,
+    }
     payload: Dict[str, Any] = {
         "format": resolved_format,
         "mime_type": mime_type,
@@ -154,19 +146,25 @@ def _build_mermaid_image_payload(
         "source": "kroki",
         "alt_text": title,
         "status": "url",
+        "method": "POST",
+        "body": request_payload,
     }
 
     if not FETCH_MERMAID_IMAGES:
         return payload
 
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.post(url, json=request_payload, timeout=30)
         response.raise_for_status()
     except requests.RequestException as exc:
         logger.warning("Falha ao baixar imagem Mermaid", exc_info=exc)
         return payload
 
     content = response.content
+    if not content:
+        logger.warning("Resposta vazia ao solicitar imagem Mermaid via Kroki")
+        return payload
+
     payload["status"] = "cached"
     payload["data_uri"] = (
         f"data:{mime_type};base64,{base64.b64encode(content).decode('ascii')}"
