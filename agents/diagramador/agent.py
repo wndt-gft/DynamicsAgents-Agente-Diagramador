@@ -12,12 +12,12 @@ from .tools.diagramador import (
     DEFAULT_DATAMODEL_FILENAME,
     DEFAULT_DIAGRAM_FILENAME,
     DEFAULT_MODEL,
-    describe_template,
-    finalize_datamodel,
-    generate_archimate_diagram,
-    generate_mermaid_preview,
-    list_templates,
-    save_datamodel,
+    describe_template as _describe_template,
+    finalize_datamodel as _finalize_datamodel,
+    generate_archimate_diagram as _generate_archimate_diagram,
+    generate_mermaid_preview as _generate_mermaid_preview,
+    list_templates as _list_templates,
+    save_datamodel as _save_datamodel,
 )
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
@@ -39,37 +39,37 @@ def _make_tool(function, *, name: str | None = None):
     return tool
 
 
-def _list_templates_tool(directory: str = ""):
+def list_templates(directory: str = ""):
     """Wrapper to keep the public signature simple for automatic calling."""
 
-    return list_templates(directory or None)
+    return _list_templates(directory or None)
 
 
-def _describe_template_tool(template_path: str):
-    return describe_template(template_path, session_state=None)
+def describe_template(template_path: str):
+    return _describe_template(template_path, session_state=None)
 
 
-def _generate_mermaid_preview_tool(datamodel: str, template_path: str = ""):
-    return generate_mermaid_preview(
+def generate_mermaid_preview(datamodel: str, template_path: str = ""):
+    return _generate_mermaid_preview(
         datamodel,
         template_path=template_path or None,
         session_state=None,
     )
 
 
-def _finalize_datamodel_tool(datamodel: str, template_path: str):
-    return finalize_datamodel(datamodel, template_path, session_state=None)
+def finalize_datamodel(datamodel: str, template_path: str):
+    return _finalize_datamodel(datamodel, template_path, session_state=None)
 
 
-def _save_datamodel_tool(
+def save_datamodel(
     datamodel: str,
     filename: str = DEFAULT_DATAMODEL_FILENAME,
 ):
     target = filename or DEFAULT_DATAMODEL_FILENAME
-    return save_datamodel(datamodel, target)
+    return _save_datamodel(datamodel, target)
 
 
-def _generate_archimate_diagram_tool(
+def generate_archimate_diagram(
     model_json_path: str,
     output_filename: str = DEFAULT_DIAGRAM_FILENAME,
     template_path: str = "",
@@ -77,7 +77,7 @@ def _generate_archimate_diagram_tool(
     xsd_dir: str = "",
 ):
     target_output = output_filename or DEFAULT_DIAGRAM_FILENAME
-    return generate_archimate_diagram(
+    return _generate_archimate_diagram(
         model_json_path,
         output_filename=target_output,
         template_path=template_path or None,
@@ -92,13 +92,13 @@ diagramador_agent = Agent(
     description=diagramador_description,
     instruction=ORCHESTRATOR_PROMPT,
     tools=[
-        _make_tool(_list_templates_tool, name="list_templates"),
-        _make_tool(_describe_template_tool, name="describe_template"),
-        _make_tool(_generate_mermaid_preview_tool, name="generate_mermaid_preview"),
-        _make_tool(_finalize_datamodel_tool, name="finalize_datamodel"),
-        _make_tool(_save_datamodel_tool, name="save_datamodel"),
+        _make_tool(list_templates, name="list_templates"),
+        _make_tool(describe_template, name="describe_template"),
+        _make_tool(generate_mermaid_preview, name="generate_mermaid_preview"),
+        _make_tool(finalize_datamodel, name="finalize_datamodel"),
+        _make_tool(save_datamodel, name="save_datamodel"),
         _make_tool(
-            _generate_archimate_diagram_tool,
+            generate_archimate_diagram,
             name="generate_archimate_diagram",
         ),
     ],
