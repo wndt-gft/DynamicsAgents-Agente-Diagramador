@@ -8,13 +8,17 @@ from typing import Any, Dict, MutableMapping, Optional
 
 SESSION_STATE_ROOT = "diagramador"
 BLUEPRINT_CACHE_KEY = "template_blueprints"
+ARTIFACTS_CACHE_KEY = "artifacts"
 
 __all__ = [
     "SESSION_STATE_ROOT",
     "BLUEPRINT_CACHE_KEY",
+    "ARTIFACTS_CACHE_KEY",
     "get_session_bucket",
     "get_cached_blueprint",
     "store_blueprint",
+    "get_cached_artifact",
+    "store_artifact",
 ]
 
 
@@ -69,3 +73,39 @@ def store_blueprint(
         bucket[BLUEPRINT_CACHE_KEY] = cache
     normalized = _normalize_template_path(template_path)
     cache[normalized] = copy.deepcopy(blueprint)
+
+
+def store_artifact(
+    session_state: Optional[MutableMapping[str, Any]],
+    key: str,
+    payload: Any,
+) -> None:
+    """Persist a deep copy of an artifact inside the session bucket."""
+
+    if session_state is None:
+        return
+
+    bucket = get_session_bucket(session_state)
+    artifacts = bucket.setdefault(ARTIFACTS_CACHE_KEY, {})
+    if not isinstance(artifacts, MutableMapping):
+        artifacts = {}
+        bucket[ARTIFACTS_CACHE_KEY] = artifacts
+
+    artifacts[key] = copy.deepcopy(payload)
+
+
+def get_cached_artifact(
+    session_state: Optional[MutableMapping[str, Any]], key: str
+) -> Any:
+    """Retrieve a deep copy of an artifact stored in the session bucket."""
+
+    if session_state is None:
+        return None
+
+    bucket = get_session_bucket(session_state)
+    artifacts = bucket.get(ARTIFACTS_CACHE_KEY)
+    if not isinstance(artifacts, MutableMapping):
+        return None
+
+    payload = artifacts.get(key)
+    return copy.deepcopy(payload)

@@ -18,6 +18,12 @@ from .constants import (
     XSI_ATTR,
 )
 from .operations import (
+    SESSION_ARTIFACT_ARCHIMATE_XML,
+    SESSION_ARTIFACT_FINAL_DATAMODEL,
+    SESSION_ARTIFACT_MERMAID_PREVIEW,
+    SESSION_ARTIFACT_SAVED_DATAMODEL,
+    SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+    SESSION_ARTIFACT_TEMPLATE_LISTING,
     describe_template,
     finalize_datamodel,
     generate_archimate_diagram,
@@ -27,9 +33,12 @@ from .operations import (
 )
 from .session import (
     BLUEPRINT_CACHE_KEY,
+    ARTIFACTS_CACHE_KEY,
     SESSION_STATE_ROOT,
+    get_cached_artifact,
     get_cached_blueprint,
     get_session_bucket,
+    store_artifact,
     store_blueprint,
 )
 
@@ -47,6 +56,12 @@ __all__ = [
     "OUTPUT_DIR",
     "XML_LANG_ATTR",
     "XSI_ATTR",
+    "SESSION_ARTIFACT_TEMPLATE_LISTING",
+    "SESSION_ARTIFACT_TEMPLATE_GUIDANCE",
+    "SESSION_ARTIFACT_FINAL_DATAMODEL",
+    "SESSION_ARTIFACT_MERMAID_PREVIEW",
+    "SESSION_ARTIFACT_SAVED_DATAMODEL",
+    "SESSION_ARTIFACT_ARCHIMATE_XML",
     "describe_template",
     "finalize_datamodel",
     "generate_archimate_diagram",
@@ -54,8 +69,11 @@ __all__ = [
     "list_templates",
     "save_datamodel",
     "BLUEPRINT_CACHE_KEY",
+    "ARTIFACTS_CACHE_KEY",
     "SESSION_STATE_ROOT",
+    "get_cached_artifact",
     "get_cached_blueprint",
     "get_session_bucket",
+    "store_artifact",
     "store_blueprint",
 ]

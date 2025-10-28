@@ -39,7 +39,12 @@ from .constants import (
     XSI_ATTR,
 )
 from .rendering import render_view_layout
-from .session import get_cached_blueprint, store_blueprint
+from .session import (
+    get_cached_artifact,
+    get_cached_blueprint,
+    store_artifact,
+    store_blueprint,
+)
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
@@ -47,6 +52,14 @@ logger = logging.getLogger(__name__)
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+
+
+SESSION_ARTIFACT_TEMPLATE_LISTING = "template_listing"
+SESSION_ARTIFACT_TEMPLATE_GUIDANCE = "template_guidance"
+SESSION_ARTIFACT_FINAL_DATAMODEL = "final_datamodel"
+SESSION_ARTIFACT_MERMAID_PREVIEW = "mermaid_preview"
+SESSION_ARTIFACT_SAVED_DATAMODEL = "saved_datamodel"
+SESSION_ARTIFACT_ARCHIMATE_XML = "archimate_xml"
 
 
 def _resolve_package_path(path: Path) -> Path:
@@ -1907,8 +1920,9 @@ def _content_to_text(content: types.Content | str | bytes) -> str:
 
 
 def save_datamodel(
-    datamodel: types.Content | str | bytes,
+    datamodel: types.Content | str | bytes | None,
     filename: str = DEFAULT_DATAMODEL_FILENAME,
+    session_state: Optional[MutableMapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Persiste o datamodel JSON formatado no diretório `outputs/`.
 
@@ -1921,12 +1935,42 @@ def save_datamodel(
         os identificadores do modelo.
     """
 
-    raw_text = _content_to_text(datamodel)
-    try:
-        payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        logger.error("Falha ao converter datamodel para JSON", exc_info=exc)
-        raise ValueError("O conteúdo enviado para `save_datamodel` não é um JSON válido.") from exc
+    raw_text: Optional[str] = None
+    payload: Optional[Dict[str, Any]] = None
+
+    if datamodel is not None:
+        raw_text = _content_to_text(datamodel)
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError as exc:
+            logger.error("Falha ao converter datamodel para JSON", exc_info=exc)
+            raise ValueError(
+                "O conteúdo enviado para `save_datamodel` não é um JSON válido."
+            ) from exc
+    elif session_state is not None:
+        cached = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
+        if isinstance(cached, MutableMapping):
+            source_payload = cached.get("source")
+            if isinstance(source_payload, MutableMapping):
+                payload = copy.deepcopy(source_payload)
+                source_json = cached.get("source_json")
+                raw_text = source_json if isinstance(source_json, str) else None
+                if raw_text is None:
+                    raw_text = json.dumps(payload, indent=2, ensure_ascii=False)
+            else:
+                payload = copy.deepcopy(cached.get("datamodel"))
+                if payload is None and cached.get("json"):
+                    try:
+                        payload = json.loads(str(cached["json"]))
+                    except (TypeError, json.JSONDecodeError):
+                        payload = None
+                if payload is not None:
+                    raw_text = json.dumps(payload, indent=2, ensure_ascii=False)
+
+    if payload is None or raw_text is None:
+        raise ValueError(
+            "Não foi possível localizar um datamodel válido para salvar; informe o conteúdo ou utilize `finalize_datamodel` antes."
+        )
 
     output_dir = _ensure_output_dir()
     target_path = output_dir / filename
@@ -1946,13 +1990,27 @@ def save_datamodel(
         }
     )
 
-    return {
+    artifact = {
         "path": str(target_path.resolve()),
         "element_count": len(elements),
         "relationship_count": len(relations),
         "model_identifier": payload.get("model_identifier"),
         "model_name": payload.get("model_name"),
     }
+
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_SAVED_DATAMODEL,
+            artifact,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_SAVED_DATAMODEL,
+            "path": artifact["path"],
+        }
+
+    return artifact
 
 
 def finalize_datamodel(
@@ -2030,7 +2088,7 @@ def finalize_datamodel(
             final_payload[key] = value
 
     final_json = json.dumps(final_payload, indent=2, ensure_ascii=False)
-    return {
+    artifact = {
         "datamodel": copy.deepcopy(final_payload),
         "json": final_json,
         "element_count": len(final_payload.get("elements", [])),
@@ -2041,7 +2099,25 @@ def finalize_datamodel(
             else []
         ),
         "template": str(template.resolve()),
+        "source": copy.deepcopy(base_payload),
+        "source_json": raw_text,
     }
+
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_FINAL_DATAMODEL,
+            artifact,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_FINAL_DATAMODEL,
+            "element_count": artifact["element_count"],
+            "relationship_count": artifact["relationship_count"],
+            "view_count": artifact["view_count"],
+        }
+
+    return artifact
 
 
 def _normalize_view_filter(view_filter: Any) -> set[str]:
@@ -2130,17 +2206,34 @@ def _view_matches_filter(
 
 
 def generate_mermaid_preview(
-    datamodel: types.Content | str | bytes,
+    datamodel: types.Content | str | bytes | None,
     template_path: str | None = None,
     session_state: Optional[MutableMapping[str, Any]] = None,
     view_filter: Optional[Any] = None,
 ) -> Dict[str, Any]:
-    raw_text = _content_to_text(datamodel)
-    try:
-        payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        logger.error("Datamodel inválido para pré-visualização Mermaid", exc_info=exc)
-        raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
+    payload: Optional[Dict[str, Any]] = None
+
+    if datamodel is not None:
+        raw_text = _content_to_text(datamodel)
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError as exc:
+            logger.error("Datamodel inválido para pré-visualização Mermaid", exc_info=exc)
+            raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
+    elif session_state is not None:
+        cached = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
+        if isinstance(cached, MutableMapping):
+            payload = copy.deepcopy(cached.get("datamodel"))
+            if payload is None and cached.get("json"):
+                try:
+                    payload = json.loads(str(cached["json"]))
+                except (TypeError, json.JSONDecodeError):
+                    payload = None
+
+    if not isinstance(payload, MutableMapping):
+        raise ValueError(
+            "Datamodel ausente para geração de prévia; forneça o conteúdo ou finalize o datamodel antes."
+        )
 
     template: Dict[str, Any] = {}
     template_metadata: Dict[str, Any] = {}
@@ -2272,19 +2365,45 @@ def generate_mermaid_preview(
     if template_metadata:
         response["template"] = template_metadata
 
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_MERMAID_PREVIEW,
+            response,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_MERMAID_PREVIEW,
+            "view_count": len(results),
+        }
+
     return response
 
 
 def generate_archimate_diagram(
-    model_json_path: str,
+    model_json_path: str | None,
     output_filename: str = DEFAULT_DIAGRAM_FILENAME,
     template_path: str | None = None,
     validate: bool = True,
     xsd_dir: str | None = None,
+    session_state: Optional[MutableMapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Gera o XML ArchiMate utilizando o template padrão e valida com os XSDs oficiais."""
 
-    model_path = Path(model_json_path)
+    resolved_model_path = model_json_path
+    if not resolved_model_path and session_state is not None:
+        cached = get_cached_artifact(session_state, SESSION_ARTIFACT_SAVED_DATAMODEL)
+        if isinstance(cached, MutableMapping):
+            cached_path = cached.get("path")
+            if isinstance(cached_path, str) and cached_path.strip():
+                resolved_model_path = cached_path
+
+    if not resolved_model_path:
+        raise ValueError(
+            "Caminho do datamodel não informado; salve o datamodel antes de gerar o XML ou forneça o caminho explicitamente."
+        )
+
+    model_path = Path(resolved_model_path)
     if not model_path.is_absolute():
         model_path = Path.cwd() / model_path
 
@@ -2330,14 +2449,32 @@ def generate_archimate_diagram(
             },
         )
 
-    return {
+    response = {
         "path": str(xml_path.resolve()),
         "validated": validate,
         "validation_report": validation,
     }
 
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_ARCHIMATE_XML,
+            response,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_ARCHIMATE_XML,
+            "path": response["path"],
+            "validated": response.get("validated", False),
+        }
 
-def list_templates(directory: str | None = None) -> Dict[str, Any]:
+    return response
+
+
+def list_templates(
+    directory: str | None = None,
+    session_state: Optional[MutableMapping[str, Any]] = None,
+) -> Dict[str, Any]:
     """Lista templates ArchiMate disponíveis no diretório informado."""
 
     templates_dir = _resolve_templates_dir(directory)
@@ -2366,11 +2503,25 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
             logger.warning("Template inválido ignorado", extra={"path": str(template_path)})
             continue
 
-    return {
+    payload = {
         "directory": str(templates_dir.resolve()),
         "count": len(discovered),
         "templates": discovered,
     }
+
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_TEMPLATE_LISTING,
+            payload,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_TEMPLATE_LISTING,
+            "count": len(discovered),
+        }
+
+    return payload
 
 
 def describe_template(
@@ -2388,8 +2539,31 @@ def describe_template(
     store_blueprint(session_state, template, blueprint)
     guidance = _build_guidance_from_blueprint(blueprint)
     guidance["model"]["path"] = str(template.resolve())
+
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+            guidance,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+            "view_count": len(
+                guidance.get("views", {}).get("diagrams", [])
+                if isinstance(guidance.get("views"), dict)
+                else []
+            ),
+        }
+
     return guidance
 __all__ = [
+    "SESSION_ARTIFACT_TEMPLATE_LISTING",
+    "SESSION_ARTIFACT_TEMPLATE_GUIDANCE",
+    "SESSION_ARTIFACT_FINAL_DATAMODEL",
+    "SESSION_ARTIFACT_MERMAID_PREVIEW",
+    "SESSION_ARTIFACT_SAVED_DATAMODEL",
+    "SESSION_ARTIFACT_ARCHIMATE_XML",
     "list_templates",
     "describe_template",
     "generate_mermaid_preview",

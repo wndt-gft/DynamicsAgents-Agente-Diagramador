@@ -13,13 +13,21 @@ import pytest
 import requests
 
 from tools.diagramador import (
+    ARTIFACTS_CACHE_KEY,
     BLUEPRINT_CACHE_KEY,
     DEFAULT_TEMPLATE,
+    SESSION_ARTIFACT_ARCHIMATE_XML,
+    SESSION_ARTIFACT_FINAL_DATAMODEL,
+    SESSION_ARTIFACT_MERMAID_PREVIEW,
+    SESSION_ARTIFACT_SAVED_DATAMODEL,
+    SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+    SESSION_ARTIFACT_TEMPLATE_LISTING,
     SESSION_STATE_ROOT,
     describe_template,
     finalize_datamodel,
     generate_archimate_diagram,
     generate_mermaid_preview,
+    get_cached_artifact,
     list_templates,
     save_datamodel,
 )
@@ -52,15 +60,26 @@ def stub_mermaid_validation(monkeypatch):
     return validator
 
 
-def test_list_templates_returns_entries():
-    result = list_templates()
-    assert result["count"] > 0
-    paths = {Path(entry["path"]).name for entry in result["templates"]}
+def test_list_templates_returns_entries(session_state):
+    result = list_templates(session_state=session_state)
+    assert result["status"] == "ok"
+
+    listing = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_TEMPLATE_LISTING
+    )
+    assert listing is not None
+    assert listing["count"] > 0
+    paths = {Path(entry["path"]).name for entry in listing["templates"]}
     assert SAMPLE_TEMPLATE.name in paths
 
 
 def test_describe_template_stores_blueprint(session_state):
-    guidance = describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    result = describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    assert result["status"] == "ok"
+
+    guidance = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_TEMPLATE_GUIDANCE
+    )
     assert guidance["model"]["identifier"]
     bucket = session_state[SESSION_STATE_ROOT]
     cache = bucket[BLUEPRINT_CACHE_KEY]
@@ -79,21 +98,34 @@ def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state)
             str(SAMPLE_TEMPLATE),
             session_state=session_state,
         )
-    assert result["element_count"] > 0
-    assert "json" in result
+    assert result["status"] == "ok"
+    artifact = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_FINAL_DATAMODEL
+    )
+    assert artifact["element_count"] > 0
+    assert "json" in artifact
 
 
 def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
     describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    finalize_datamodel(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
     with mock.patch(
         "tools.diagramador.operations._parse_template_blueprint",
         side_effect=AssertionError("template parse should not run when cached"),
     ):
-        preview = generate_mermaid_preview(
-            sample_payload,
+        result = generate_mermaid_preview(
+            None,
             str(SAMPLE_TEMPLATE),
             session_state=session_state,
         )
+    assert result["status"] == "ok"
+    preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_MERMAID_PREVIEW
+    )
     assert preview["view_count"] >= 1
     mermaid_blocks = [view["mermaid"] for view in preview["views"]]
     assert all(block.startswith("flowchart TD") for block in mermaid_blocks)
@@ -127,11 +159,20 @@ def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
 
 def test_generate_mermaid_preview_filters_views(sample_payload, session_state):
     describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
-    preview = generate_mermaid_preview(
+    finalize_datamodel(
         sample_payload,
         str(SAMPLE_TEMPLATE),
         session_state=session_state,
+    )
+    result = generate_mermaid_preview(
+        None,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
         view_filter=["id-154903"],
+    )
+    assert result["status"] == "ok"
+    preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_MERMAID_PREVIEW
     )
     assert preview["view_count"] == 1
     assert preview["views"][0]["id"] == "id-154903"
@@ -139,11 +180,20 @@ def test_generate_mermaid_preview_filters_views(sample_payload, session_state):
 
 def test_generate_mermaid_preview_filters_views_with_string(sample_payload, session_state):
     describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
-    preview = generate_mermaid_preview(
+    finalize_datamodel(
         sample_payload,
         str(SAMPLE_TEMPLATE),
         session_state=session_state,
+    )
+    result = generate_mermaid_preview(
+        None,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
         view_filter="id-154903,  id-12345",  # extra token ensures splitting works
+    )
+    assert result["status"] == "ok"
+    preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_MERMAID_PREVIEW
     )
     assert preview["view_count"] == 1
     assert preview["views"][0]["id"] == "id-154903"
@@ -263,10 +313,19 @@ def test_generate_mermaid_preview_validates_each_view(
     sample_payload, session_state, stub_mermaid_validation
 ):
     describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
-    preview = generate_mermaid_preview(
+    finalize_datamodel(
         sample_payload,
         str(SAMPLE_TEMPLATE),
         session_state=session_state,
+    )
+    result = generate_mermaid_preview(
+        None,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+    assert result["status"] == "ok"
+    preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_MERMAID_PREVIEW
     )
     assert stub_mermaid_validation.call_count == preview["view_count"]
 
@@ -375,23 +434,42 @@ def test_validate_mermaid_syntax_ignores_network_error(stub_mermaid_validation):
     operations._validate_mermaid_syntax("flowchart TD; X-->Y;")
 
 
-def test_save_and_generate_archimate_diagram(tmp_path, sample_payload):
+def test_save_and_generate_archimate_diagram(tmp_path, sample_payload, session_state):
     # Redireciona os artefatos para um diretório temporário.
     operations.OUTPUT_DIR = tmp_path  # type: ignore[attr-defined]
 
-    result = save_datamodel(sample_payload, filename="test_datamodel.json")
-    saved_path = Path(result["path"])
+    finalize_datamodel(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    result = save_datamodel(
+        None,
+        filename="test_datamodel.json",
+        session_state=session_state,
+    )
+    assert result["status"] == "ok"
+    saved_artifact = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_SAVED_DATAMODEL
+    )
+    saved_path = Path(saved_artifact["path"])
     assert saved_path.exists()
 
     xml_result = generate_archimate_diagram(
-        str(saved_path),
+        None,
         output_filename="test_diagram.xml",
         template_path=str(SAMPLE_TEMPLATE),
         validate=True,
+        session_state=session_state,
     )
-    xml_path = Path(xml_result["path"])
+    assert xml_result["status"] == "ok"
+    xml_artifact = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_ARCHIMATE_XML
+    )
+    xml_path = Path(xml_artifact["path"])
     assert xml_path.exists()
-    assert xml_result["validation_report"]["valid"] is True
+    assert xml_artifact["validation_report"]["valid"] is True
 
 
 def test_finalize_datamodel_resolves_agent_relative_path(sample_payload):
