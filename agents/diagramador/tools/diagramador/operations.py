@@ -235,12 +235,22 @@ def _local_name(tag: Any) -> str:
 
 
 def _mermaid_escape(value: str) -> str:
-    return (
+    """Escape strings for safe embedding inside Mermaid diagrams."""
+
+    sanitized = (
         value.replace("\\", "\\\\")
         .replace("\n", " ")
         .replace("\r", " ")
         .replace("\"", "\\\"")
     )
+
+    # Mermaid interprets pipes as delimiters for edge labels and square brackets as
+    # part of the node syntax. Converting these characters to HTML entities keeps
+    # the rendered output intact while preventing syntax errors.
+    sanitized = sanitized.replace("|", "&#124;")
+    sanitized = sanitized.replace("[", "&#91;").replace("]", "&#93;")
+
+    return sanitized
 
 
 def _sanitize_mermaid_identifier(identifier: str, fallback: str = "node") -> str:
