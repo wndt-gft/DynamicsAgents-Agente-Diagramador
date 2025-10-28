@@ -9,6 +9,8 @@ from google.adk.tools.function_tool import FunctionTool
 
 from .prompt import ORCHESTRATOR_PROMPT
 from .tools.diagramador import (
+    DEFAULT_DATAMODEL_FILENAME,
+    DEFAULT_DIAGRAM_FILENAME,
     DEFAULT_MODEL,
     describe_template,
     finalize_datamodel,
@@ -34,18 +36,65 @@ def _make_tool(function):
     return tool
 
 
+def _list_templates_tool(directory: str = ""):
+    """Wrapper to keep the public signature simple for automatic calling."""
+
+    return list_templates(directory or None)
+
+
+def _describe_template_tool(template_path: str):
+    return describe_template(template_path, session_state=None)
+
+
+def _generate_mermaid_preview_tool(datamodel: str, template_path: str = ""):
+    return generate_mermaid_preview(
+        datamodel,
+        template_path=template_path or None,
+        session_state=None,
+    )
+
+
+def _finalize_datamodel_tool(datamodel: str, template_path: str):
+    return finalize_datamodel(datamodel, template_path, session_state=None)
+
+
+def _save_datamodel_tool(
+    datamodel: str,
+    filename: str = DEFAULT_DATAMODEL_FILENAME,
+):
+    target = filename or DEFAULT_DATAMODEL_FILENAME
+    return save_datamodel(datamodel, target)
+
+
+def _generate_archimate_diagram_tool(
+    model_json_path: str,
+    output_filename: str = DEFAULT_DIAGRAM_FILENAME,
+    template_path: str = "",
+    validate: bool = True,
+    xsd_dir: str = "",
+):
+    target_output = output_filename or DEFAULT_DIAGRAM_FILENAME
+    return generate_archimate_diagram(
+        model_json_path,
+        output_filename=target_output,
+        template_path=template_path or None,
+        validate=validate,
+        xsd_dir=xsd_dir or None,
+    )
+
+
 diagramador_agent = Agent(
     model=DEFAULT_MODEL,
     name="diagramador",
     description=diagramador_description,
     instruction=ORCHESTRATOR_PROMPT,
     tools=[
-        _make_tool(list_templates),
-        _make_tool(describe_template),
-        _make_tool(generate_mermaid_preview),
-        _make_tool(finalize_datamodel),
-        _make_tool(save_datamodel),
-        _make_tool(generate_archimate_diagram),
+        _make_tool(_list_templates_tool),
+        _make_tool(_describe_template_tool),
+        _make_tool(_generate_mermaid_preview_tool),
+        _make_tool(_finalize_datamodel_tool),
+        _make_tool(_save_datamodel_tool),
+        _make_tool(_generate_archimate_diagram_tool),
     ],
 )
 
