@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import warnings
 
-from typing import Any
+import json
+from typing import Any, MutableMapping, cast
 
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
@@ -47,24 +48,51 @@ def list_templates(directory: str = ""):
     return _list_templates(directory or None)
 
 
+SessionState = MutableMapping[str, Any] | None
+
+
+def _coerce_session_state(session_state: Any) -> SessionState:
+    if session_state is None:
+        return None
+    if isinstance(session_state, MutableMapping):
+        return cast(SessionState, session_state)
+    if isinstance(session_state, str):
+        candidate = session_state.strip()
+        if not candidate:
+            return None
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError as exc:
+            raise ValueError("session_state must be JSON when provided as a string") from exc
+        if isinstance(data, MutableMapping):
+            return cast(SessionState, data)
+        raise ValueError("session_state string must decode to a JSON object")
+    raise TypeError(
+        "session_state must be a mapping or None; received "
+        f"{type(session_state).__name__}"
+    )
+
+
 def describe_template(
     template_path: str,
     *,
-    session_state: dict[str, Any] | None = None,
+    session_state: dict = None,
 ):
-    return _describe_template(template_path, session_state=session_state)
+    coerced = _coerce_session_state(session_state)
+    return _describe_template(template_path, session_state=coerced)
 
 
 def generate_mermaid_preview(
     datamodel: str,
     template_path: str = "",
     *,
-    session_state: dict[str, Any] | None = None,
+    session_state: dict = None,
 ):
+    coerced = _coerce_session_state(session_state)
     return _generate_mermaid_preview(
         datamodel,
         template_path=template_path or None,
-        session_state=session_state,
+        session_state=coerced,
     )
 
 
@@ -72,12 +100,13 @@ def finalize_datamodel(
     datamodel: str,
     template_path: str,
     *,
-    session_state: dict[str, Any] | None = None,
+    session_state: dict = None,
 ):
+    coerced = _coerce_session_state(session_state)
     return _finalize_datamodel(
         datamodel,
         template_path,
-        session_state=session_state,
+        session_state=coerced,
     )
 
 

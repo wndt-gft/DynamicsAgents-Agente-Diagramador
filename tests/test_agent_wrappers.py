@@ -91,3 +91,26 @@ def test_generate_mermaid_preview_passes_session_state(sample_payload, session_s
         )
 
     assert preview["view_count"] >= 1
+
+
+def test_wrappers_accept_session_state_json(sample_payload):
+    template_path = str(_sample_template_path())
+    session_state_json = "{}"
+
+    guidance = agent.describe_template(template_path, session_state=session_state_json)
+    assert guidance["model"]["identifier"]
+
+    preview = agent.generate_mermaid_preview(
+        sample_payload,
+        template_path,
+        session_state=session_state_json,
+    )
+
+    assert preview["view_count"] >= 1
+
+
+def test_wrappers_reject_invalid_session_state_json():
+    template_path = str(_sample_template_path())
+
+    with pytest.raises(ValueError):
+        agent.describe_template(template_path, session_state="not-json")
