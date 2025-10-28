@@ -1,0 +1,2 @@
+# Runtime dependencies for the Diagramador agent toolkit
+lxml>=4.9,<6
