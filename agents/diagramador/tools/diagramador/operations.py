@@ -353,8 +353,11 @@ def _finalize_mermaid_lines(lines: Iterable[str]) -> str:
             continue
 
         prefix = stripped.split("(", 1)[0].strip()
-        if prefix in _MERMAID_NO_TERMINATOR_PREFIXES:
-            finalized.append(text)
+        prefixes_to_check = {prefix}
+        if " " in stripped:
+            prefixes_to_check.add(stripped.split(" ", 1)[0].strip())
+        if any(candidate in _MERMAID_NO_TERMINATOR_PREFIXES for candidate in prefixes_to_check):
+            finalized.append(text.rstrip(";"))
             continue
 
         if not stripped.endswith(";"):
@@ -1084,6 +1087,9 @@ def _merge_view_nodes(
     override_nodes: Optional[Iterable[Dict[str, Any]]],
 ) -> List[Dict[str, Any]]:
     template_nodes = [copy.deepcopy(node) for node in template_nodes or []]
+    for node in template_nodes:
+        _standardize_view_tree(node)
+
     overrides = list(override_nodes or [])
     if not template_nodes and not overrides:
         return []
@@ -1092,6 +1098,7 @@ def _merge_view_nodes(
     extras: List[Dict[str, Any]] = []
     for node in overrides:
         clean = _strip_template_keys(node) or {}
+        _standardize_view_tree(clean)
         key = _view_node_key(clean)
         if key:
             override_map[key] = clean
@@ -1104,7 +1111,10 @@ def _merge_view_nodes(
         override = override_map.get(key) if key else None
         merged.append(_merge_view_node(node, override))
 
-    merged.extend(copy.deepcopy(extra) for extra in extras)
+    for extra in extras:
+        extra_copy = copy.deepcopy(extra)
+        _standardize_view_tree(extra_copy)
+        merged.append(extra_copy)
     return merged
 
 
@@ -1115,8 +1125,8 @@ def _merge_view_node(template_node: Dict[str, Any], override_node: Optional[Dict
         _apply_textual_override(merged, clean_override, "label", ("label", "label_hint"))
         _apply_textual_override(merged, clean_override, "documentation", ("documentation", "documentation_hint"))
 
-    template_children = template_node.get("nodes", [])
-    override_children = clean_override.get("nodes") if clean_override else None
+    template_children = _node_children(template_node)
+    override_children = _node_children(clean_override) if clean_override else None
     merged_children = _merge_view_nodes(template_children, override_children)
     if merged_children:
         merged["nodes"] = merged_children
@@ -1424,6 +1434,32 @@ def _build_relationship_lookup(
     return lookup
 
 
+def _node_children(node: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(node, dict):
+        return []
+
+    children = node.get("nodes")
+    if isinstance(children, list):
+        return children
+
+    legacy_children = node.get("children")
+    if isinstance(legacy_children, list):
+        node["nodes"] = legacy_children
+        node.pop("children", None)
+        return legacy_children
+
+    return []
+
+
+def _standardize_view_tree(tree: Dict[str, Any]) -> None:
+    if not isinstance(tree, dict):
+        return
+
+    for child in list(_node_children(tree)):
+        if isinstance(child, dict):
+            _standardize_view_tree(child)
+
+
 def _flatten_view_nodes(nodes: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     flattened: Dict[str, Dict[str, Any]] = {}
 
@@ -1434,7 +1470,7 @@ def _flatten_view_nodes(nodes: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, 
             key = _view_node_key(node)
             if key:
                 flattened[key] = node
-            child_nodes = node.get("nodes")
+            child_nodes = _node_children(node)
             if child_nodes:
                 _walk(child_nodes)
 
@@ -1842,7 +1878,7 @@ def _build_view_mermaid(
         metadata["source"] = (
             "datamodel" if key in datamodel_node_map else "template"
         )
-        metadata["child_count"] = len(node.get("nodes") or [])
+        metadata["child_count"] = len(_node_children(node))
         template_doc = metadata.get("template_documentation")
         if template_doc:
             metadata["template_comments"] = _format_comment_lines(template_doc)
@@ -1868,7 +1904,7 @@ def _build_view_mermaid(
                         lines.append(
                             f"{indent_str}{_MERMAID_COMMENT_PREFIX} {comment_line}"
                         )
-                for child in node.get("nodes") or []:
+                for child in _node_children(node):
                     if isinstance(child, dict):
                         _process_node(child, alias, indent, dict(context))
                 return
@@ -1884,10 +1920,17 @@ def _build_view_mermaid(
                 next_context["external"] = context.get("external", False) or _should_mark_external(
                     boundary_label
                 )
-                for child in node.get("nodes") or []:
+                child_start = len(lines)
+                for child in _node_children(node):
                     if isinstance(child, dict):
                         _process_node(child, alias, indent + 1, next_context)
-                lines.append(f"{indent_str}}}")
+                if len(lines) == child_start:
+                    lines.pop()
+                    lines.append(
+                        f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(boundary_label)}"
+                    )
+                else:
+                    lines.append(f"{indent_str}}}")
                 return
 
             label = metadata.get("title") or metadata.get("template_label") or str(alias)
@@ -1908,7 +1951,7 @@ def _build_view_mermaid(
                 )
             lines.append(f"{indent_str}{macro}({args})")
 
-            for child in node.get("nodes") or []:
+            for child in _node_children(node):
                 if isinstance(child, dict):
                     _process_node(child, alias, indent + 1, dict(context))
             return
@@ -1920,13 +1963,13 @@ def _build_view_mermaid(
         if parent_alias:
             lines.append(f"{parent_alias} --> {alias}")
 
-        for child in node.get("nodes") or []:
+        for child in _node_children(node):
             if isinstance(child, dict):
                 _process_node(child, alias, indent + 1, dict(context))
 
     initial_context: Dict[str, Any] = {"external": False}
 
-    for node in view.get("nodes") or []:
+    for node in _node_children(view):
         if isinstance(node, dict):
             _process_node(node, view_alias if not use_c4 else None, 1, dict(initial_context))
 
@@ -2200,7 +2243,11 @@ def generate_mermaid_preview(
     relation_lookup = _build_relationship_lookup(template, payload)
 
     datamodel_views = _normalize_view_diagrams(payload.get("views"))
+    for view in datamodel_views:
+        _standardize_view_tree(view)
     blueprint_views = _normalize_view_diagrams(template.get("views"))
+    for view in blueprint_views:
+        _standardize_view_tree(view)
 
     datamodel_view_map: Dict[str, Dict[str, Any]] = {}
     datamodel_node_maps: Dict[str, Dict[str, Any]] = {}
