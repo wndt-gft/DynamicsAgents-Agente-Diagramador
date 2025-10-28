@@ -1983,6 +1983,8 @@ def _build_view_mermaid(
     blueprint_connection_map: Dict[str, Dict[str, Any]],
     datamodel_node_map: Dict[str, Dict[str, Any]] | None,
     datamodel_connection_map: Dict[str, Dict[str, Any]] | None,
+    *,
+    prefer_c4: bool = True,
 ) -> Dict[str, Any]:
     used_aliases: set[str] = set()
     alias_map: Dict[str, str] = {}
@@ -2015,7 +2017,7 @@ def _build_view_mermaid(
         else None
     )
 
-    view_kind = _detect_view_kind(view, view_blueprint)
+    view_kind = _detect_view_kind(view, view_blueprint) if prefer_c4 else None
     use_c4 = bool(view_kind)
     view_alias = _unique_alias(
         _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
@@ -2501,6 +2503,50 @@ def generate_mermaid_preview(
     results: List[Dict[str, Any]] = []
     processed_ids: set[str] = set()
 
+    def _render_view_with_fallback(
+        view_payload: Dict[str, Any],
+        template_view: Optional[Dict[str, Any]],
+        blueprint_nodes: Dict[str, Dict[str, Any]],
+        blueprint_connections: Dict[str, Dict[str, Any]],
+        datamodel_nodes: Dict[str, Dict[str, Any]] | None,
+        datamodel_connections: Dict[str, Dict[str, Any]] | None,
+    ) -> Dict[str, Any]:
+        try:
+            return _build_view_mermaid(
+                view_payload,
+                template_view,
+                element_lookup,
+                relation_lookup,
+                blueprint_nodes,
+                blueprint_connections,
+                datamodel_nodes,
+                datamodel_connections,
+            )
+        except ValueError as exc:
+            view_name = (
+                view_payload.get("name")
+                or (template_view or {}).get("name")
+                or view_payload.get("id")
+                or "visão"
+            )
+            logger.warning(
+                "Falha ao validar Mermaid em estilo C4 para a visão '%s'. "
+                "Aplicando fallback para diagrama em fluxo padrão.",
+                view_name,
+                exc_info=exc,
+            )
+            return _build_view_mermaid(
+                view_payload,
+                template_view,
+                element_lookup,
+                relation_lookup,
+                blueprint_nodes,
+                blueprint_connections,
+                datamodel_nodes,
+                datamodel_connections,
+                prefer_c4=False,
+            )
+
     for view in blueprint_views:
         if not isinstance(view, dict):
             continue
@@ -2517,11 +2563,9 @@ def generate_mermaid_preview(
             datamodel_connection_maps.get(str(view_id), {}) if view_id else {}
         )
         results.append(
-            _build_view_mermaid(
+            _render_view_with_fallback(
                 merged_view,
                 view,
-                element_lookup,
-                relation_lookup,
                 blueprint_nodes,
                 blueprint_connections,
                 datamodel_nodes,
@@ -2541,11 +2585,9 @@ def generate_mermaid_preview(
         datamodel_nodes = _flatten_view_nodes(view.get("nodes") or [])
         datamodel_connections = _flatten_view_connections(view.get("connections") or [])
         results.append(
-            _build_view_mermaid(
+            _render_view_with_fallback(
                 view,
                 None,
-                element_lookup,
-                relation_lookup,
                 {},
                 {},
                 datamodel_nodes,

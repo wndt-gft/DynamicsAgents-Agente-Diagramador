@@ -345,7 +345,32 @@ def test_generate_mermaid_preview_validates_each_view(
         str(SAMPLE_TEMPLATE),
         session_state=session_state,
     )
-    assert stub_mermaid_validation.call_count == preview["view_count"]
+    assert stub_mermaid_validation.call_count >= preview["view_count"]
+
+
+def test_generate_mermaid_preview_falls_back_to_flowchart_on_c4_error(
+    sample_payload, session_state, stub_mermaid_validation
+):
+    error_response = mock.Mock()
+    error_response.raise_for_status = mock.Mock()
+    error_response.text = (
+        '<svg aria-roledescription="error"><text>Syntax error</text></svg>'
+    )
+    ok_response = mock.Mock()
+    ok_response.raise_for_status = mock.Mock()
+    ok_response.text = "<svg id='mermaidInkSvg'></svg>"
+
+    responses = [error_response] + [ok_response] * 10
+    stub_mermaid_validation.side_effect = responses
+
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    preview = generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    assert any(view["mermaid"].startswith("flowchart TD") for view in preview["views"])
 
 
 def test_generate_mermaid_preview_appends_statement_terminators():
