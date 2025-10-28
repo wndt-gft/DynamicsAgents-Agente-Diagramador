@@ -16,7 +16,7 @@ from xml.etree import ElementTree as ET
 
 from google.genai import types
 
-from tools.archimate_exchange import xml_exchange
+from ..archimate_exchange import xml_exchange
 
 from .constants import (
     ARCHIMATE_NS,
