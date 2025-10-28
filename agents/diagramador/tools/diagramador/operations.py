@@ -132,7 +132,7 @@ def _build_mermaid_image_payload(
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
     base_url = _kroki_base_url()
-    url = f"{base_url}/"
+    url = f"{base_url}/render"
     mime_type = _mermaid_mime_type(resolved_format)
     request_payload = {
         "diagram_source": mermaid,
@@ -141,7 +141,6 @@ def _build_mermaid_image_payload(
     }
     headers = {
         "Accept": mime_type,
-        "Content-Type": "application/json",
     }
 
     payload: Dict[str, Any] = {
@@ -269,6 +268,43 @@ def _resolve_templates_dir(directory: str | None = None) -> Path:
 _BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)
 _INLINE_WHITESPACE_RE = re.compile(r"[ \t\f\v]+")
 _MERMAID_COMMENT_PREFIX = "%%"
+_MERMAID_NO_TERMINATOR_PREFIXES = (
+    "C4Context",
+    "C4Container",
+    "C4Component",
+    "C4Dynamic",
+    "C4Deployment",
+    "title",
+    "Person",
+    "Person_Ext",
+    "System",
+    "System_Ext",
+    "Container",
+    "Container_Ext",
+    "Component",
+    "Component_Ext",
+    "Boundary",
+    "Enterprise_Boundary",
+    "System_Boundary",
+    "Container_Boundary",
+    "Component_Boundary",
+    "Rel",
+    "Rel_D",
+    "Rel_U",
+    "Rel_R",
+    "Rel_L",
+    "Rel_Back",
+    "BiRel",
+    "UpdateElementStyle",
+    "UpdateRelStyle",
+    "SHOW_LEGEND",
+    "Hide",
+    "IncludeElement",
+    "IncludeRelationship",
+    "Lay",
+    "Lay_D",
+    "Lay_R",
+)
 
 
 def _clean_text(value: Optional[str]) -> str:
@@ -310,6 +346,18 @@ def _finalize_mermaid_lines(lines: Iterable[str]) -> str:
         stripped = text.lstrip()
         if stripped.startswith(_MERMAID_COMMENT_PREFIX):
             finalized.append(text)
+            continue
+
+        if stripped.startswith("}"):
+            finalized.append(text)
+            continue
+
+        prefix = stripped.split("(", 1)[0].strip()
+        prefixes_to_check = {prefix}
+        if " " in stripped:
+            prefixes_to_check.add(stripped.split(" ", 1)[0].strip())
+        if any(candidate in _MERMAID_NO_TERMINATOR_PREFIXES for candidate in prefixes_to_check):
+            finalized.append(text.rstrip(";"))
             continue
 
         if not stripped.endswith(";"):
@@ -1039,6 +1087,9 @@ def _merge_view_nodes(
     override_nodes: Optional[Iterable[Dict[str, Any]]],
 ) -> List[Dict[str, Any]]:
     template_nodes = [copy.deepcopy(node) for node in template_nodes or []]
+    for node in template_nodes:
+        _standardize_view_tree(node)
+
     overrides = list(override_nodes or [])
     if not template_nodes and not overrides:
         return []
@@ -1047,6 +1098,7 @@ def _merge_view_nodes(
     extras: List[Dict[str, Any]] = []
     for node in overrides:
         clean = _strip_template_keys(node) or {}
+        _standardize_view_tree(clean)
         key = _view_node_key(clean)
         if key:
             override_map[key] = clean
@@ -1059,7 +1111,10 @@ def _merge_view_nodes(
         override = override_map.get(key) if key else None
         merged.append(_merge_view_node(node, override))
 
-    merged.extend(copy.deepcopy(extra) for extra in extras)
+    for extra in extras:
+        extra_copy = copy.deepcopy(extra)
+        _standardize_view_tree(extra_copy)
+        merged.append(extra_copy)
     return merged
 
 
@@ -1070,8 +1125,24 @@ def _merge_view_node(template_node: Dict[str, Any], override_node: Optional[Dict
         _apply_textual_override(merged, clean_override, "label", ("label", "label_hint"))
         _apply_textual_override(merged, clean_override, "documentation", ("documentation", "documentation_hint"))
 
-    template_children = template_node.get("nodes", [])
-    override_children = clean_override.get("nodes") if clean_override else None
+        for key in ("type", "elementRef", "relationshipRef", "viewRef"):
+            if clean_override.get(key) is not None:
+                merged[key] = clean_override[key]
+
+        if "refs" in clean_override:
+            merged["refs"] = copy.deepcopy(clean_override.get("refs"))
+
+        if "bounds" in clean_override:
+            merged["bounds"] = copy.deepcopy(clean_override.get("bounds"))
+
+        if "style" in clean_override:
+            merged["style"] = copy.deepcopy(clean_override.get("style"))
+
+        if "child_order" in clean_override:
+            merged["child_order"] = list(clean_override.get("child_order") or [])
+
+    template_children = _node_children(template_node)
+    override_children = _node_children(clean_override) if clean_override else None
     merged_children = _merge_view_nodes(template_children, override_children)
     if merged_children:
         merged["nodes"] = merged_children
@@ -1089,15 +1160,199 @@ def _merge_view_node(template_node: Dict[str, Any], override_node: Optional[Dict
     return merged
 
 
+def _looks_like_view_diagram(candidate: Any) -> bool:
+    """Return ``True`` when the payload resembles a diagram definition."""
+
+    if not isinstance(candidate, dict):
+        return False
+
+    if candidate.get("type") == "Diagram":
+        return True
+
+    for key in ("nodes", "connections", "children"):
+        value = candidate.get(key)
+        if isinstance(value, list) and value:
+            return True
+
+    return False
+
+
+def _deduplicate_views(views: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Remove visão duplicadas preservando a ordem original."""
+
+    unique: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for view in views:
+        if not isinstance(view, dict):
+            continue
+
+        key_parts: List[str] = []
+        identifier = view.get("id") or view.get("identifier")
+        if identifier:
+            key_parts.append(f"id:{identifier}")
+        name = _normalize_text(view.get("name"))
+        if name:
+            key_parts.append(f"name:{name.lower()}")
+
+        dedupe_key = "|".join(key_parts)
+        if dedupe_key and dedupe_key in seen:
+            continue
+        if dedupe_key:
+            seen.add(dedupe_key)
+        unique.append(view)
+
+    return unique
+
+
 def _normalize_view_diagrams(views_payload: Any) -> List[Dict[str, Any]]:
+    """Normalize assorted view payload formats into a list of diagrams."""
+
     if views_payload is None:
         return []
+
+    diagrams: List[Dict[str, Any]] = []
+
+    def _add_candidate(candidate: Any) -> None:
+        if not _looks_like_view_diagram(candidate):
+            return
+        prepared = copy.deepcopy(candidate)
+        identifier = prepared.get("identifier")
+        if identifier and not prepared.get("id"):
+            prepared["id"] = identifier
+        diagrams.append(prepared)
+
     if isinstance(views_payload, dict):
-        diagrams = views_payload.get("diagrams")
-        return diagrams if isinstance(diagrams, list) else []
-    if isinstance(views_payload, list):
-        return views_payload
-    return []
+        explicit = views_payload.get("diagrams")
+        if isinstance(explicit, list):
+            for entry in explicit:
+                _add_candidate(entry)
+        elif isinstance(explicit, dict):
+            _add_candidate(explicit)
+
+        for key, value in views_payload.items():
+            if key in {"diagrams", "viewpoints"}:
+                continue
+            if isinstance(value, dict):
+                _add_candidate(value)
+            elif isinstance(value, list):
+                for item in value:
+                    _add_candidate(item)
+
+        _add_candidate(views_payload)
+    elif isinstance(views_payload, list):
+        for entry in views_payload:
+            _add_candidate(entry)
+    else:
+        _add_candidate(views_payload)
+
+    return _deduplicate_views(diagrams)
+
+
+def _extract_view_selectors(payload: Dict[str, Any]) -> Dict[str, set[str]]:
+    """Coleta identificadores ou nomes de visão informados pelo agente."""
+
+    selectors: Dict[str, set[str]] = {"ids": set(), "names": set()}
+
+    def _register(value: Any, bucket: str) -> None:
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                _register(item, bucket)
+            return
+        if isinstance(value, (int, float)):
+            text = str(value)
+        elif isinstance(value, str):
+            text = value.strip()
+        else:
+            return
+        if not text:
+            return
+        if bucket == "names":
+            selectors[bucket].add(text.lower())
+        else:
+            selectors[bucket].add(text)
+
+    id_keys = (
+        "view_identifier",
+        "view_id",
+        "viewIdentifier",
+        "viewId",
+        "selected_view_identifier",
+        "selected_view_id",
+    )
+    name_keys = (
+        "view_name",
+        "viewName",
+        "view",
+        "selected_view",
+        "selected_view_name",
+        "View-Name",
+    )
+
+    for key in id_keys:
+        _register(payload.get(key), "ids")
+    for key in name_keys:
+        _register(payload.get(key), "names")
+
+    view_metadata_keys = (
+        "view_metadata",
+        "viewMeta",
+        "view_info",
+        "viewInfo",
+        "selected_view_metadata",
+    )
+    for meta_key in view_metadata_keys:
+        meta = payload.get(meta_key)
+        if isinstance(meta, dict):
+            for key in id_keys:
+                _register(meta.get(key), "ids")
+            for key in name_keys:
+                _register(meta.get(key), "names")
+            _register(meta.get("identifier"), "ids")
+            _register(meta.get("id"), "ids")
+            _register(meta.get("name"), "names")
+
+    views_payload = payload.get("views")
+    if isinstance(views_payload, dict):
+        for key in ("selected", "selected_view", "selectedView"):
+            value = views_payload.get(key)
+            if isinstance(value, dict):
+                _register(value.get("identifier"), "ids")
+                _register(value.get("id"), "ids")
+                _register(value.get("name"), "names")
+            else:
+                _register(value, "names")
+
+    return selectors
+
+
+def _filter_views_by_selectors(
+    views: List[Dict[str, Any]], selectors: Dict[str, set[str]]
+) -> List[Dict[str, Any]]:
+    if not selectors.get("ids") and not selectors.get("names"):
+        return views
+
+    filtered: List[Dict[str, Any]] = []
+    target_ids = {str(value) for value in selectors.get("ids", set()) if value}
+    target_names = selectors.get("names", set())
+
+    for view in views:
+        if not isinstance(view, dict):
+            continue
+
+        matches = False
+        identifier = view.get("id") or view.get("identifier")
+        if identifier and str(identifier) in target_ids:
+            matches = True
+        else:
+            name = _normalize_text(view.get("name"))
+            if name and name.lower() in target_names:
+                matches = True
+
+        if matches:
+            filtered.append(view)
+
+    return filtered
 
 
 def _merge_view_diagram(
@@ -1379,6 +1634,32 @@ def _build_relationship_lookup(
     return lookup
 
 
+def _node_children(node: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(node, dict):
+        return []
+
+    children = node.get("nodes")
+    if isinstance(children, list):
+        return children
+
+    legacy_children = node.get("children")
+    if isinstance(legacy_children, list):
+        node["nodes"] = legacy_children
+        node.pop("children", None)
+        return legacy_children
+
+    return []
+
+
+def _standardize_view_tree(tree: Dict[str, Any]) -> None:
+    if not isinstance(tree, dict):
+        return
+
+    for child in list(_node_children(tree)):
+        if isinstance(child, dict):
+            _standardize_view_tree(child)
+
+
 def _flatten_view_nodes(nodes: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     flattened: Dict[str, Dict[str, Any]] = {}
 
@@ -1389,7 +1670,7 @@ def _flatten_view_nodes(nodes: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, 
             key = _view_node_key(node)
             if key:
                 flattened[key] = node
-            child_nodes = node.get("nodes")
+            child_nodes = _node_children(node)
             if child_nodes:
                 _walk(child_nodes)
 
@@ -1575,6 +1856,124 @@ def _gather_connection_metadata(
     return metadata
 
 
+def _detect_view_kind(
+    view: Dict[str, Any], view_blueprint: Optional[Dict[str, Any]]
+) -> Optional[str]:
+    candidates = [
+        _normalize_text(view.get("view_kind")),
+        _normalize_text(view.get("name")),
+    ]
+    if view_blueprint:
+        candidates.extend(
+            [
+                _normalize_text(view_blueprint.get("view_kind")),
+                _normalize_text(view_blueprint.get("name")),
+            ]
+        )
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        normalized = candidate.lower()
+        if "context" in normalized or "contexto" in normalized:
+            return "context"
+        if "container" in normalized:
+            return "container"
+        if "técn" in normalized or "tecn" in normalized:
+            return "technical"
+    return None
+
+
+def _c4_header_for_kind(kind: str) -> str:
+    if kind == "context":
+        return "C4Context"
+    if kind == "container":
+        return "C4Container"
+    if kind == "technical":
+        return "C4Component"
+    return "flowchart TD"
+
+
+def _c4_boundary_macro(kind: str) -> str:
+    if kind == "context":
+        return "System_Boundary"
+    if kind == "container":
+        return "Container_Boundary"
+    if kind == "technical":
+        return "Component_Boundary"
+    return "Boundary"
+
+
+def _c4_element_macro(kind: str, is_external: bool) -> str:
+    suffix = "_Ext" if is_external else ""
+    if kind == "context":
+        return f"System{suffix}"
+    if kind == "container":
+        return f"Container{suffix}"
+    if kind == "technical":
+        return f"Component{suffix}"
+    return f"Container{suffix}" if suffix else "Container"
+
+
+def _c4_element_technology(element_type: Optional[str]) -> Optional[str]:
+    if not element_type:
+        return None
+    mapping = {
+        "ApplicationComponent": "Aplicação",
+        "ApplicationProcess": "Processo",
+        "ApplicationEvent": "Evento",
+        "DataObject": "Dados",
+        "Artifact": "Artefato",
+        "Deliverable": "Entregável",
+        "WorkPackage": "Pacote",
+    }
+    return mapping.get(element_type, element_type)
+
+
+def _c4_description(metadata: Dict[str, Any]) -> Optional[str]:
+    documentation = metadata.get("documentation") or metadata.get(
+        "template_documentation"
+    )
+    if documentation:
+        return _truncate_text(str(documentation), 200)
+    if metadata.get("title") and metadata.get("type"):
+        return f"{metadata['title']} ({metadata['type']})"
+    return None
+
+
+def _c4_format_arguments(alias: str, *args: Optional[str]) -> str:
+    formatted: List[str] = [alias]
+    for arg in args:
+        if arg is None:
+            continue
+        formatted.append(f'"{_mermaid_escape(arg)}"')
+    return ", ".join(formatted)
+
+
+def _c4_format_relation_arguments(
+    source_alias: str,
+    target_alias: str,
+    label: Optional[str],
+    technology: Optional[str],
+    description: Optional[str],
+) -> str:
+    parts: List[str] = [source_alias, target_alias]
+    if label is not None:
+        parts.append(f'"{_mermaid_escape(label)}"')
+    if technology is not None:
+        parts.append(f'"{_mermaid_escape(technology)}"')
+    if description is not None:
+        parts.append(f'"{_mermaid_escape(description)}"')
+    return ", ".join(parts)
+
+
+def _should_mark_external(label: Optional[str]) -> bool:
+    if not label:
+        return False
+    lowered = label.lower()
+    return any(token in lowered for token in ("extern", "parceir", "cliente"))
+
+
 def _build_view_mermaid(
     view: Dict[str, Any],
     view_blueprint: Optional[Dict[str, Any]],
@@ -1593,11 +1992,6 @@ def _build_view_mermaid(
     anonymous_counter = itertools.count(1)
 
     view_id = view.get("id") or (view_blueprint.get("id") if view_blueprint else None)
-    view_alias = _unique_alias(
-        _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
-        used_aliases,
-    )
-
     view_name = _normalize_text(view.get("name")) or (
         _normalize_text(view_blueprint.get("name")) if view_blueprint else None
     )
@@ -1621,8 +2015,20 @@ def _build_view_mermaid(
         else None
     )
 
-    lines: List[str] = ["flowchart TD"]
-    lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
+    view_kind = _detect_view_kind(view, view_blueprint)
+    use_c4 = bool(view_kind)
+    view_alias = _unique_alias(
+        _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
+        used_aliases,
+    )
+
+    if use_c4:
+        header = _c4_header_for_kind(view_kind or "")
+        lines: List[str] = [header]
+        lines.append(f"    title {_mermaid_escape(view_name)}")
+    else:
+        lines = ["flowchart TD"]
+        lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
 
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
@@ -1647,12 +2053,17 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
-        if alias not in defined_nodes:
+        if not use_c4 and alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
         return alias
 
-    def _process_node(node: Dict[str, Any], parent_alias: Optional[str]) -> None:
+    def _process_node(
+        node: Dict[str, Any],
+        parent_alias: Optional[str],
+        indent: int,
+        context: Dict[str, Any],
+    ) -> bool:
         key = _view_node_key(node)
         if not key:
             key = f"anon_{next(anonymous_counter)}"
@@ -1667,7 +2078,7 @@ def _build_view_mermaid(
         metadata["source"] = (
             "datamodel" if key in datamodel_node_map else "template"
         )
-        metadata["child_count"] = len(node.get("nodes") or [])
+        metadata["child_count"] = len(_node_children(node))
         template_doc = metadata.get("template_documentation")
         if template_doc:
             metadata["template_comments"] = _format_comment_lines(template_doc)
@@ -1676,6 +2087,83 @@ def _build_view_mermaid(
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
 
+        if use_c4:
+            indent_str = "    " * indent
+            node_type = (metadata.get("type") or "").lower()
+            title = metadata.get("title") or alias
+            if node_type == "label":
+                comment = metadata.get("title") or metadata.get("template_label")
+                if comment:
+                    lines.append(
+                        f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(comment)}"
+                    )
+                if metadata.get("documentation"):
+                    for comment_line in _format_comment_lines(
+                        metadata.get("documentation") or ""
+                    ):
+                        lines.append(
+                            f"{indent_str}{_MERMAID_COMMENT_PREFIX} {comment_line}"
+                        )
+                produced_child = False
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        produced_child = (
+                            _process_node(child, alias, indent, dict(context))
+                            or produced_child
+                        )
+                return produced_child
+
+            if node_type == "container":
+                boundary_macro = _c4_boundary_macro(view_kind or "")
+                boundary_label = metadata.get("title") or metadata.get("template_label")
+                boundary_label = boundary_label or str(alias)
+                lines.append(
+                    f"{indent_str}{boundary_macro}({alias}, \"{_mermaid_escape(boundary_label)}\") {{"
+                )
+                boundary_index = len(lines) - 1
+                next_context = dict(context)
+                next_context["external"] = context.get("external", False) or _should_mark_external(
+                    boundary_label
+                )
+                produced_child = False
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        produced_child = (
+                            _process_node(child, alias, indent + 1, next_context)
+                            or produced_child
+                        )
+                if not produced_child:
+                    lines[boundary_index] = (
+                        f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(boundary_label)}"
+                    )
+                    return False
+
+                lines.append(f"{indent_str}}}")
+                return True
+
+            label = metadata.get("title") or metadata.get("template_label") or str(alias)
+            is_external = context.get("external", False) or _should_mark_external(label)
+            macro = _c4_element_macro(view_kind or "", is_external)
+            technology = _c4_element_technology(
+                metadata.get("element_type") or metadata.get("type")
+            )
+            description = _c4_description(metadata)
+            if (view_kind or "") == "context":
+                args = _c4_format_arguments(alias, label, description or "")
+            else:
+                args = _c4_format_arguments(
+                    alias,
+                    label,
+                    technology or "",
+                    description or "",
+                )
+            lines.append(f"{indent_str}{macro}({args})")
+
+            for child in _node_children(node):
+                if isinstance(child, dict):
+                    _process_node(child, alias, indent + 1, dict(context))
+            return True
+
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
@@ -1683,13 +2171,17 @@ def _build_view_mermaid(
         if parent_alias:
             lines.append(f"{parent_alias} --> {alias}")
 
-        for child in node.get("nodes") or []:
+        for child in _node_children(node):
             if isinstance(child, dict):
-                _process_node(child, alias)
+                _process_node(child, alias, indent + 1, dict(context))
 
-    for node in view.get("nodes") or []:
+        return True
+
+    initial_context: Dict[str, Any] = {"external": False}
+
+    for node in _node_children(view):
         if isinstance(node, dict):
-            _process_node(node, view_alias)
+            _process_node(node, view_alias if not use_c4 else None, 1, dict(initial_context))
 
     for connection in view.get("connections") or []:
         if not isinstance(connection, dict):
@@ -1724,13 +2216,37 @@ def _build_view_mermaid(
         if not source_alias or not target_alias:
             continue
 
-        label = metadata.get("label")
-        if label:
-            lines.append(
-                f"{source_alias} -->|{_mermaid_escape(label)}| {target_alias}"
+        if use_c4:
+            relation_label = (
+                metadata.get("label")
+                or metadata.get("type")
+                or "Relacionamento"
             )
+            relation_doc_raw = metadata.get("documentation") or metadata.get(
+                "template_documentation"
+            )
+            relation_doc = (
+                _truncate_text(relation_doc_raw, 160)
+                if relation_doc_raw
+                else None
+            )
+            relation_type = metadata.get("type") or None
+            args = _c4_format_relation_arguments(
+                source_alias,
+                target_alias,
+                relation_label,
+                relation_type,
+                relation_doc,
+            )
+            lines.append(f"    Rel({args})")
         else:
-            lines.append(f"{source_alias} --> {target_alias}")
+            label = metadata.get("label")
+            if label:
+                lines.append(
+                    f"{source_alias} -->|{_mermaid_escape(label)}| {target_alias}"
+                )
+            else:
+                lines.append(f"{source_alias} --> {target_alias}")
 
 
     mermaid_source = _finalize_mermaid_lines(lines)
@@ -1937,7 +2453,36 @@ def generate_mermaid_preview(
     relation_lookup = _build_relationship_lookup(template, payload)
 
     datamodel_views = _normalize_view_diagrams(payload.get("views"))
+    if not datamodel_views:
+        for extra_key in (
+            "view",
+            "diagram",
+            "view_diagram",
+            "diagram_view",
+            "selected_view_data",
+            "selectedViewData",
+        ):
+            extra_payload = payload.get(extra_key)
+            if extra_payload:
+                datamodel_views.extend(_normalize_view_diagrams(extra_payload))
+        datamodel_views = _deduplicate_views(datamodel_views)
+    for view in datamodel_views:
+        _standardize_view_tree(view)
     blueprint_views = _normalize_view_diagrams(template.get("views"))
+    for view in blueprint_views:
+        _standardize_view_tree(view)
+
+    selectors = _extract_view_selectors(payload)
+    filtered_blueprint = _filter_views_by_selectors(blueprint_views, selectors)
+    filtered_datamodel = _filter_views_by_selectors(datamodel_views, selectors)
+    if selectors.get("ids") or selectors.get("names"):
+        if filtered_blueprint or filtered_datamodel:
+            blueprint_views = filtered_blueprint or blueprint_views
+            datamodel_views = filtered_datamodel
+        else:
+            raise ValueError(
+                "A visão selecionada não foi encontrada no datamodel nem no template informado."
+            )
 
     datamodel_view_map: Dict[str, Dict[str, Any]] = {}
     datamodel_node_maps: Dict[str, Dict[str, Any]] = {}
