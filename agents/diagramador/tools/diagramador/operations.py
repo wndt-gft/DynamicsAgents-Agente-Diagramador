@@ -36,6 +36,27 @@ warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 logger = logging.getLogger(__name__)
 
 
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _resolve_package_path(path: Path) -> Path:
+    """Resolve a resource path relative to the package when needed."""
+
+    if path.is_absolute():
+        return path
+
+    cwd_candidate = Path.cwd() / path
+    package_candidate = PACKAGE_ROOT / path
+
+    if cwd_candidate.exists():
+        return cwd_candidate
+
+    if package_candidate.exists():
+        return package_candidate
+
+    return cwd_candidate
+
+
 def _ensure_output_dir() -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     return OUTPUT_DIR
@@ -45,9 +66,7 @@ def _resolve_templates_dir(directory: str | None = None) -> Path:
     """Resolves the directory that stores template XML files."""
 
     base = Path(directory) if directory else DEFAULT_TEMPLATES_DIR
-    if not base.is_absolute():
-        base = Path.cwd() / base
-    return base
+    return _resolve_package_path(base)
 
 
 def _clean_text(value: Optional[str]) -> str:
@@ -1767,6 +1786,7 @@ def generate_archimate_diagram(
         )
 
     template = Path(template_path) if template_path else DEFAULT_TEMPLATE
+    template = _resolve_package_path(template)
     if not template.exists():
         raise FileNotFoundError(f"Template ArchiMate não encontrado: {template}")
 
@@ -1786,8 +1806,7 @@ def generate_archimate_diagram(
     validation: Dict[str, Any] | None = None
     if validate:
         xsd_dir_path = Path(xsd_dir) if xsd_dir else DEFAULT_XSD_DIR
-        if not xsd_dir_path.is_absolute():
-            xsd_dir_path = Path.cwd() / xsd_dir_path
+        xsd_dir_path = _resolve_package_path(xsd_dir_path)
         if not xsd_dir_path.exists():
             raise FileNotFoundError(
                 f"Diretório de XSDs não encontrado: {xsd_dir_path}"
