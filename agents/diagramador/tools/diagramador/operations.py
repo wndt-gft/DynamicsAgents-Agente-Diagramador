@@ -4,17 +4,22 @@ from __future__ import annotations
 
 """Operações principais do agente Diagramador."""
 
+import base64
 import copy
+import hashlib
 import itertools
 import json
 import logging
 import textwrap
 import warnings
+import zlib
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
 from xml.etree import ElementTree as ET
 
 from google.genai import types
+
+import requests
 
 from ..archimate_exchange import xml_exchange
 
@@ -25,6 +30,8 @@ from .constants import (
     DEFAULT_TEMPLATE,
     DEFAULT_TEMPLATES_DIR,
     DEFAULT_XSD_DIR,
+    DEFAULT_KROKI_URL,
+    FETCH_MERMAID_IMAGES,
     OUTPUT_DIR,
     XML_LANG_ATTR,
     XSI_ATTR,
@@ -80,6 +87,65 @@ def _resolve_package_path(path: Path) -> Path:
 def _ensure_output_dir() -> Path:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     return OUTPUT_DIR
+
+
+def _kroki_base_url() -> str:
+    return DEFAULT_KROKI_URL.rstrip("/")
+
+
+def _encode_mermaid_for_url(mermaid: str) -> str:
+    compressed = zlib.compress(mermaid.encode("utf-8"), level=9)
+    # Kroki expects raw deflate encoding without zlib headers/footers.
+    raw = compressed[2:-4]
+    return base64.urlsafe_b64encode(raw).decode("ascii")
+
+
+def _build_mermaid_image_payload(
+    mermaid: str,
+    *,
+    alias: str,
+    title: str,
+    fmt: str = "svg",
+) -> Dict[str, Any]:
+    encoded = _encode_mermaid_for_url(mermaid)
+    base_url = _kroki_base_url()
+    url = f"{base_url}/mermaid/{fmt}/{encoded}"
+    payload: Dict[str, Any] = {
+        "format": fmt,
+        "url": url,
+        "source": "kroki",
+        "alt_text": title,
+        "status": "url",
+    }
+
+    if not FETCH_MERMAID_IMAGES:
+        return payload
+
+    try:
+        response = requests.get(url, timeout=15)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("Falha ao baixar imagem Mermaid", exc_info=exc)
+        return payload
+
+    content = response.content
+    mime_type = "image/svg+xml" if fmt == "svg" else "image/png"
+    payload["status"] = "cached"
+    payload["data_uri"] = (
+        f"data:{mime_type};base64,{base64.b64encode(content).decode('ascii')}"
+    )
+
+    try:
+        output_dir = _ensure_output_dir()
+        digest = hashlib.sha256(mermaid.encode("utf-8")).hexdigest()[:12]
+        filename = f"{alias}_{digest}.{fmt}"
+        image_path = output_dir / filename
+        image_path.write_bytes(content)
+        payload["path"] = str(image_path.resolve())
+    except OSError as exc:
+        logger.warning("Falha ao salvar imagem Mermaid", exc_info=exc)
+
+    return payload
 
 
 def _resolve_templates_dir(directory: str | None = None) -> Path:
@@ -1496,12 +1562,20 @@ def _build_view_mermaid(
             for comment in _format_comment_lines(metadata["documentation"]):
                 lines.append(f"%% rel {metadata.get('id') or ''}: {comment}")
 
+    mermaid_source = "\n".join(lines)
+    image_payload = _build_mermaid_image_payload(
+        mermaid_source,
+        alias=view_alias,
+        title=view_name,
+    )
+
     return {
         "id": view_id,
         "name": view_name,
         "documentation": view_documentation,
         "template_documentation": template_view_documentation,
-        "mermaid": "\n".join(lines),
+        "mermaid": mermaid_source,
+        "image": image_payload,
         "nodes": node_details,
         "connections": connection_details,
     }
