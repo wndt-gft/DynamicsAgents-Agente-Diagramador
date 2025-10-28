@@ -7,7 +7,12 @@ import warnings
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
 
-from .prompt import ORCHESTRATOR_PROMPT
+from .prompt import (
+    ORCHESTRATOR_PROMPT,
+    CONTEXT_VIEW_PROMPT,
+    CONTAINER_VIEW_PROMPT,
+    TECHNICAL_VIEW_PROMPT,
+)
 from .tools.diagramador import (
     DEFAULT_DATAMODEL_FILENAME,
     DEFAULT_DIAGRAM_FILENAME,
@@ -25,7 +30,8 @@ warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 diagramador_description = (
     "Agente orquestrador responsável por interpretar histórias de usuário, "
-    "gerar datamodels no padrão ArchiMate e exportar diagramas XML validados."
+    "coordenar especialistas de visão, gerar datamodels ArchiMate e exportar "
+    "diagramas XML validados."
 )
 
 
@@ -86,12 +92,8 @@ def generate_archimate_diagram(
     )
 
 
-diagramador_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="diagramador",
-    description=diagramador_description,
-    instruction=ORCHESTRATOR_PROMPT,
-    tools=[
+def _agent_tools():
+    return [
         _make_tool(list_templates, name="list_templates"),
         _make_tool(describe_template, name="describe_template"),
         _make_tool(generate_mermaid_preview, name="generate_mermaid_preview"),
@@ -101,6 +103,46 @@ diagramador_agent = Agent(
             generate_archimate_diagram,
             name="generate_archimate_diagram",
         ),
+    ]
+
+
+context_view_agent = Agent(
+    model=DEFAULT_MODEL,
+    name="visao_contexto",
+    description="Especialista na Visão de Contexto, responsável por cenários externos e fronteiras.",
+    instruction=CONTEXT_VIEW_PROMPT,
+    tools=_agent_tools(),
+)
+
+
+container_view_agent = Agent(
+    model=DEFAULT_MODEL,
+    name="visao_container",
+    description="Especialista na Visão de Container, focado em containers, responsabilidades e fluxos.",
+    instruction=CONTAINER_VIEW_PROMPT,
+    tools=_agent_tools(),
+)
+
+
+technical_view_agent = Agent(
+    model=DEFAULT_MODEL,
+    name="visao_tecnica",
+    description="Especialista na Visão Técnica (VT), dedicado a componentes e decisões tecnológicas.",
+    instruction=TECHNICAL_VIEW_PROMPT,
+    tools=_agent_tools(),
+)
+
+
+diagramador_agent = Agent(
+    model=DEFAULT_MODEL,
+    name="diagramador",
+    description=diagramador_description,
+    instruction=ORCHESTRATOR_PROMPT,
+    tools=_agent_tools(),
+    sub_agents=[
+        context_view_agent,
+        container_view_agent,
+        technical_view_agent,
     ],
 )
 
@@ -119,4 +161,11 @@ def get_root_agent() -> Agent:
 root_agent: Agent = diagramador_agent
 
 
-__all__ = ["diagramador_agent", "get_root_agent", "root_agent"]
+__all__ = [
+    "diagramador_agent",
+    "get_root_agent",
+    "root_agent",
+    "context_view_agent",
+    "container_view_agent",
+    "technical_view_agent",
+]
