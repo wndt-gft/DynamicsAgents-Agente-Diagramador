@@ -8,6 +8,7 @@ from typing import Any, Dict, MutableMapping, Optional
 
 SESSION_STATE_ROOT = "diagramador"
 BLUEPRINT_CACHE_KEY = "template_blueprints"
+PREVIEW_CACHE_KEY = "mermaid_previews"
 
 __all__ = [
     "SESSION_STATE_ROOT",
@@ -15,6 +16,9 @@ __all__ = [
     "get_session_bucket",
     "get_cached_blueprint",
     "store_blueprint",
+    "PREVIEW_CACHE_KEY",
+    "store_preview",
+    "get_cached_preview",
 ]
 
 
@@ -69,3 +73,39 @@ def store_blueprint(
         bucket[BLUEPRINT_CACHE_KEY] = cache
     normalized = _normalize_template_path(template_path)
     cache[normalized] = copy.deepcopy(blueprint)
+
+
+def store_preview(
+    session_state: Optional[MutableMapping[str, Any]],
+    preview_id: str,
+    payload: Dict[str, Any],
+) -> None:
+    """Armazena o resultado bruto de um preview Mermaid no estado da sessão."""
+
+    if session_state is None:
+        return
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.setdefault(PREVIEW_CACHE_KEY, {})
+    if not isinstance(cache, MutableMapping):
+        cache = {}
+        bucket[PREVIEW_CACHE_KEY] = cache
+
+    cache[preview_id] = copy.deepcopy(payload)
+
+
+def get_cached_preview(
+    session_state: Optional[MutableMapping[str, Any]], preview_id: str
+) -> Optional[Dict[str, Any]]:
+    """Recupera um preview Mermaid previamente armazenado no estado da sessão."""
+
+    if not preview_id:
+        return None
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.get(PREVIEW_CACHE_KEY)
+    if not isinstance(cache, MutableMapping):
+        return None
+
+    preview = cache.get(preview_id)
+    return copy.deepcopy(preview) if isinstance(preview, dict) else None

@@ -14,7 +14,7 @@ templates e controle de versões em JSON/XML.
 
 ## Ferramentas e responsabilidades
 - Utilize as ferramentas **compartilhadas** com os especialistas: `describe_template`,
-  `generate_mermaid_preview` e `finalize_datamodel`.
+  `generate_mermaid_preview`, `get_mermaid_preview` e `finalize_datamodel`.
 - As ferramentas `list_templates` e `save_datamodel` são de uso **exclusivo** do Diagramador;
   coordene seu uso evitando sobreposição com os sub-agentes.
 - A geração do XML (`generate_archimate_diagram`) deve ser delegada ao especialista da visão após a
@@ -38,6 +38,8 @@ templates e controle de versões em JSON/XML.
    - Compartilhe com cada sub-agente o entendimento consolidado da história, requisitos e template.
    - Peça a cada especialista que produza uma **prévia** (detalhamento textual + diagrama Mermaid)
      respeitando regras e documentação do template.
+   - Após a geração, utilize `get_mermaid_preview` para recuperar o conteúdo completo salvo em
+     sessão, evitando respostas extensas das ferramentas.
    - Reforce que o especialista informe `view_name`/`view_identifier` ao chamar `generate_mermaid_preview`
      para que apenas a visão sob sua responsabilidade seja gerada.
    - Exija que cada diagrama Mermaid seja gerado no estilo **C4** apropriado à visão (C4Context,
@@ -81,7 +83,8 @@ Atue de forma colaborativa com o agente Diagramador, mantendo comunicação obje
 registrando descobertas relevantes no estado da sessão.
 
 ### Ferramentas disponíveis
-- Ferramentas compartilhadas: `describe_template`, `generate_mermaid_preview` e `finalize_datamodel`.
+- Ferramentas compartilhadas: `describe_template`, `generate_mermaid_preview`, `get_mermaid_preview`
+  e `finalize_datamodel`.
 - Ferramenta exclusiva desta visão: `generate_archimate_diagram` para emissão do XML aprovado.
 
 ### Responsabilidades centrais
@@ -92,6 +95,8 @@ registrando descobertas relevantes no estado da sessão.
      restrições) alinhado à história do usuário.
    - Produza um datamodel parcial contendo apenas as seções relevantes e gere o diagrama com
      `generate_mermaid_preview`, respeitando a hierarquia do template.
+   - Recupere o conteúdo detalhado com `get_mermaid_preview`, utilizando o identificador retornado
+     para acessar Mermaid, imagem e metadados diretamente do estado da sessão.
    - Ao chamar `generate_mermaid_preview`, informe `view_name` (e `view_identifier`, se disponível)
      correspondente à visão do template para limitar o preview apenas ao seu escopo.
    - Garanta que o Mermaid utilize o estilo **C4** correspondente (C4Context, C4Container ou

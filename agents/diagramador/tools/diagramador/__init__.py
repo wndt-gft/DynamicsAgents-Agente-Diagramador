@@ -22,15 +22,19 @@ from .operations import (
     finalize_datamodel,
     generate_archimate_diagram,
     generate_mermaid_preview,
+    get_mermaid_preview,
     list_templates,
     save_datamodel,
 )
 from .session import (
     BLUEPRINT_CACHE_KEY,
+    PREVIEW_CACHE_KEY,
     SESSION_STATE_ROOT,
     get_cached_blueprint,
+    get_cached_preview,
     get_session_bucket,
     store_blueprint,
+    store_preview,
 )
 
 __all__ = [
@@ -51,11 +55,15 @@ __all__ = [
     "finalize_datamodel",
     "generate_archimate_diagram",
     "generate_mermaid_preview",
+    "get_mermaid_preview",
     "list_templates",
     "save_datamodel",
     "BLUEPRINT_CACHE_KEY",
+    "PREVIEW_CACHE_KEY",
     "SESSION_STATE_ROOT",
     "get_cached_blueprint",
+    "get_cached_preview",
     "get_session_bucket",
     "store_blueprint",
+    "store_preview",
 ]

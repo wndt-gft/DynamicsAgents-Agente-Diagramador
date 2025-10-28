@@ -12,6 +12,7 @@ import json
 import logging
 import re
 import textwrap
+import uuid
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
@@ -38,11 +39,28 @@ from .constants import (
     XML_LANG_ATTR,
     XSI_ATTR,
 )
-from .session import get_cached_blueprint, store_blueprint
+from .session import (
+    get_cached_blueprint,
+    get_cached_preview,
+    store_blueprint,
+    store_preview,
+)
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 logger = logging.getLogger(__name__)
+
+
+_GLOBAL_PREVIEW_CACHE: Dict[str, Dict[str, Any]] = {}
+
+
+def _store_preview_fallback(preview_id: str, payload: Dict[str, Any]) -> None:
+    _GLOBAL_PREVIEW_CACHE[preview_id] = copy.deepcopy(payload)
+
+
+def _get_preview_fallback(preview_id: str) -> Optional[Dict[str, Any]]:
+    preview = _GLOBAL_PREVIEW_CACHE.get(preview_id)
+    return copy.deepcopy(preview) if isinstance(preview, dict) else None
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -2730,20 +2748,102 @@ def generate_mermaid_preview(
             "Não foi possível identificar visões no datamodel ou no template informado."
         )
 
-    response: Dict[str, Any] = {
+    stored_views = [copy.deepcopy(view) for view in results]
+
+    preview_id = uuid.uuid4().hex
+    stored_payload: Dict[str, Any] = {
+        "preview_id": preview_id,
         "model_identifier": payload.get("model_identifier"),
         "model_name": payload.get("model_name"),
         "model_documentation": payload.get("model_documentation"),
         "element_count": len(payload.get("elements") or []),
         "relationship_count": len(payload.get("relations") or []),
-        "view_count": len(results),
-        "views": results,
+        "view_count": len(stored_views),
+        "views": stored_views,
+    }
+    if template_metadata:
+        stored_payload["template"] = copy.deepcopy(template_metadata)
+
+    store_preview(session_state, preview_id, stored_payload)
+    _store_preview_fallback(preview_id, stored_payload)
+
+    def _summarize_sources(
+        items: Optional[Iterable[Dict[str, Any]]]
+    ) -> Dict[str, int]:
+        summary = {"datamodel": 0, "template": 0}
+        if not items:
+            summary["total"] = 0
+            return summary
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            source = item.get("source")
+            if source == "datamodel":
+                summary["datamodel"] += 1
+            else:
+                summary["template"] += 1
+        summary["total"] = summary["datamodel"] + summary["template"]
+        return summary
+
+    response_views: List[Dict[str, Any]] = []
+    for index, view in enumerate(results):
+        nodes_summary = _summarize_sources(view.get("nodes"))
+        connections_summary = _summarize_sources(view.get("connections"))
+        response_views.append(
+            {
+                "id": view.get("id"),
+                "name": view.get("name"),
+                "sources": {
+                    "nodes": nodes_summary,
+                    "connections": connections_summary,
+                },
+                "index": index,
+                "has_mermaid": bool(view.get("mermaid")),
+                "has_image": bool(view.get("image")),
+            }
+        )
+
+    response: Dict[str, Any] = {
+        "status": "ok",
+        "preview_id": preview_id,
+        "model_identifier": payload.get("model_identifier"),
+        "model_name": payload.get("model_name"),
+        "model_documentation": payload.get("model_documentation"),
+        "element_count": len(payload.get("elements") or []),
+        "relationship_count": len(payload.get("relations") or []),
+        "view_count": len(response_views),
+        "views": response_views,
     }
 
     if template_metadata:
         response["template"] = template_metadata
 
     return response
+
+
+def get_mermaid_preview(
+    preview_id: str,
+    *,
+    include_image: bool = False,
+    session_state: Optional[MutableMapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Recupera um preview Mermaid armazenado previamente."""
+
+    if not preview_id:
+        raise ValueError("Identificador de preview não informado.")
+
+    preview = get_cached_preview(session_state, preview_id)
+    if preview is None:
+        preview = _get_preview_fallback(preview_id)
+    if preview is None:
+        raise ValueError("Preview Mermaid não encontrado para o identificador informado.")
+
+    result = copy.deepcopy(preview)
+    if not include_image:
+        for view in result.get("views", []):
+            if isinstance(view, dict):
+                view.pop("image", None)
+    return result
 
 
 def generate_archimate_diagram(
@@ -2864,6 +2964,7 @@ __all__ = [
     "list_templates",
     "describe_template",
     "generate_mermaid_preview",
+    "get_mermaid_preview",
     "finalize_datamodel",
     "save_datamodel",
     "generate_archimate_diagram",

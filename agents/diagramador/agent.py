@@ -23,6 +23,7 @@ from .tools.diagramador import (
     finalize_datamodel as _finalize_datamodel,
     generate_archimate_diagram as _generate_archimate_diagram,
     generate_mermaid_preview as _generate_mermaid_preview,
+    get_mermaid_preview as _get_mermaid_preview,
     list_templates as _list_templates,
     save_datamodel as _save_datamodel,
 )
@@ -53,8 +54,8 @@ def list_templates(directory: str = ""):
     return _list_templates(directory or None)
 
 
-def describe_template(template_path: str):
-    return _describe_template(template_path, session_state=None)
+def describe_template(template_path: str, *, session_state: Dict[str, Any] | None = None):
+    return _describe_template(template_path, session_state=session_state)
 
 
 def generate_mermaid_preview(
@@ -64,6 +65,7 @@ def generate_mermaid_preview(
     view_identifier: str = "",
     view_name: str = "",
     view_metadata: Dict[str, Any] | None = None,
+    session_state: Dict[str, Any] | None = None,
 ):
     return _generate_mermaid_preview(
         datamodel,
@@ -71,12 +73,30 @@ def generate_mermaid_preview(
         view_identifier=view_identifier or None,
         view_name=view_name or None,
         view_metadata=view_metadata,
-        session_state=None,
+        session_state=session_state,
     )
 
 
-def finalize_datamodel(datamodel: str, template_path: str):
-    return _finalize_datamodel(datamodel, template_path, session_state=None)
+def get_mermaid_preview(
+    preview_id: str,
+    *,
+    include_image: bool = False,
+    session_state: Dict[str, Any] | None = None,
+):
+    return _get_mermaid_preview(
+        preview_id,
+        include_image=include_image,
+        session_state=session_state,
+    )
+
+
+def finalize_datamodel(
+    datamodel: str,
+    template_path: str,
+    *,
+    session_state: Dict[str, Any] | None = None,
+):
+    return _finalize_datamodel(datamodel, template_path, session_state=session_state)
 
 
 def save_datamodel(
@@ -108,6 +128,7 @@ def _shared_tools():
     return [
         _make_tool(describe_template, name="describe_template"),
         _make_tool(generate_mermaid_preview, name="generate_mermaid_preview"),
+        _make_tool(get_mermaid_preview, name="get_mermaid_preview"),
         _make_tool(finalize_datamodel, name="finalize_datamodel"),
     ]
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import sys
+from typing import Any, Dict, Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -50,6 +51,21 @@ def stub_mermaid_validation(monkeypatch):
     validator = mock.Mock(return_value=response)
     monkeypatch.setattr(operations, "_mermaid_validation_request", validator)
     return validator
+
+
+def _load_full_preview(
+    preview_result: Dict[str, Any],
+    *,
+    session_state: Optional[Dict[str, Any]] = None,
+    include_image: bool = False,
+) -> Dict[str, Any]:
+    preview_id = preview_result.get("preview_id")
+    assert preview_id, "preview should include an identifier stored em sessão"
+    return operations.get_mermaid_preview(
+        preview_id,
+        session_state=session_state,
+        include_image=include_image,
+    )
 
 
 def test_list_templates_returns_entries():
@@ -101,14 +117,20 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
             str(SAMPLE_TEMPLATE),
             session_state=session_state,
         )
+    assert preview["status"] == "ok"
     assert preview["view_count"] >= 1
-    mermaid_blocks = [view["mermaid"] for view in preview["views"]]
+    stored_preview = _load_full_preview(
+        preview,
+        session_state=session_state,
+        include_image=True,
+    )
+    mermaid_blocks = [view["mermaid"] for view in stored_preview["views"]]
     assert all(
         block.startswith("C4") or block.startswith("flowchart TD")
         for block in mermaid_blocks
     )
     assert any(block.startswith("C4") for block in mermaid_blocks)
-    image_payloads = [view["image"] for view in preview["views"]]
+    image_payloads = [view["image"] for view in stored_preview["views"]]
     assert all(payload["url"].startswith("https://") for payload in image_payloads)
     assert all(
         payload["format"] == operations.DEFAULT_MERMAID_IMAGE_FORMAT
@@ -127,7 +149,9 @@ def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
         ALTERNATIVE_TEMPLATE_PATH,
         session_state=None,
     )
-    assert preview["view_count"] >= 1
+    assert preview["status"] == "ok"
+    stored_preview = _load_full_preview(preview, session_state=None)
+    assert stored_preview["view_count"] >= 1
 
 
 def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
@@ -186,7 +210,8 @@ def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
     }
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
-    mermaid_lines = preview["views"][0]["mermaid"].split("\n")
+    stored_preview = _load_full_preview(preview)
+    mermaid_lines = stored_preview["views"][0]["mermaid"].split("\n")
 
     node_line = next(line for line in mermaid_lines if "node_1" in line and "[")
     assert "&#91;" in node_line
@@ -227,7 +252,8 @@ def test_generate_mermaid_preview_converts_html_line_breaks():
     }
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
-    mermaid_source = preview["views"][0]["mermaid"]
+    stored_preview = _load_full_preview(preview)
+    mermaid_source = stored_preview["views"][0]["mermaid"]
 
     assert "</BR>" not in mermaid_source.upper()
 
@@ -303,8 +329,13 @@ def test_generate_mermaid_preview_accepts_named_view_mapping():
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
 
+    assert preview["status"] == "ok"
     assert preview["view_count"] == 1
-    assert preview["views"][0]["name"] == "Visão Técnica (VT)"
+    view_summary = preview["views"][0]
+    assert view_summary["name"] == "Visão Técnica (VT)"
+    assert view_summary["sources"]["nodes"]["total"] == 2
+    assert view_summary["sources"]["connections"]["total"] == 1
+    assert view_summary["has_mermaid"] is True
 
 
 def test_generate_mermaid_preview_accepts_top_level_view_payload():
@@ -318,6 +349,7 @@ def test_generate_mermaid_preview_accepts_top_level_view_payload():
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
 
+    assert preview["status"] == "ok"
     assert preview["view_count"] == 1
     assert preview["views"][0]["name"] == "Visão de Container"
 
@@ -339,6 +371,7 @@ def test_generate_mermaid_preview_filters_by_selected_view_name():
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
 
+    assert preview["status"] == "ok"
     assert preview["view_count"] == 1
     assert preview["views"][0]["name"] == "Visão B"
 
@@ -362,6 +395,7 @@ def test_generate_mermaid_preview_honors_view_name_argument():
         view_name="Visão de Container",
     )
 
+    assert preview["status"] == "ok"
     assert preview["view_count"] == 1
     assert preview["views"][0]["name"] == "Visão de Container"
 
@@ -399,8 +433,12 @@ def test_generate_mermaid_preview_falls_back_to_flowchart_on_c4_error(
         str(SAMPLE_TEMPLATE),
         session_state=session_state,
     )
+    stored_preview = _load_full_preview(preview, session_state=session_state)
 
-    assert any(view["mermaid"].startswith("flowchart TD") for view in preview["views"])
+    assert any(
+        view["mermaid"].startswith("flowchart TD")
+        for view in stored_preview["views"]
+    )
 
 
 def test_generate_mermaid_preview_ignores_template_only_nodes(sample_payload):
@@ -430,7 +468,8 @@ def test_generate_mermaid_preview_ignores_template_only_nodes(sample_payload):
         str(SAMPLE_TEMPLATE),
     )
 
-    rendered_view = preview["views"][0]
+    stored_preview = _load_full_preview(preview)
+    rendered_view = stored_preview["views"][0]
     rendered_ids = {
         str(node.get("id"))
         for node in rendered_view["nodes"]
@@ -462,7 +501,8 @@ def test_generate_mermaid_preview_appends_statement_terminators():
     }
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
-    mermaid_lines = preview["views"][0]["mermaid"].split("\n")
+    stored_preview = _load_full_preview(preview)
+    mermaid_lines = stored_preview["views"][0]["mermaid"].split("\n")
 
     for line in mermaid_lines:
         stripped = line.strip()
@@ -507,7 +547,9 @@ def test_generate_mermaid_preview_fetches_image_with_post(monkeypatch, tmp_path)
     monkeypatch.setattr(operations.requests, "post", post)
 
     preview = generate_mermaid_preview(json.dumps(datamodel))
-    view = preview["views"][0]
+    assert preview["views"][0]["has_image"] is True
+    stored_preview = _load_full_preview(preview, include_image=True)
+    view = stored_preview["views"][0]
 
     assert post.called
     called_url = post.call_args[0][0]
