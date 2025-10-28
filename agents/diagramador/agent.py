@@ -7,8 +7,8 @@ import warnings
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
 
-from prompt import ORCHESTRATOR_PROMPT
-from tools.diagramador import (
+from .prompt import ORCHESTRATOR_PROMPT
+from .tools.diagramador import (
     DEFAULT_MODEL,
     describe_template,
     finalize_datamodel,
