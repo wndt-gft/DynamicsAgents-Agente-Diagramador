@@ -132,7 +132,7 @@ def _build_mermaid_image_payload(
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
     base_url = _kroki_base_url()
-    url = f"{base_url}/"
+    url = f"{base_url}/render"
     mime_type = _mermaid_mime_type(resolved_format)
     request_payload = {
         "diagram_source": mermaid,
@@ -141,7 +141,6 @@ def _build_mermaid_image_payload(
     }
     headers = {
         "Accept": mime_type,
-        "Content-Type": "application/json",
     }
 
     payload: Dict[str, Any] = {
