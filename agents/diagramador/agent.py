@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from typing import Any
 
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
@@ -53,13 +54,19 @@ def generate_mermaid_preview(
     datamodel: str,
     template_path: str = "",
     *,
-    view_filter: str | list[str] | None = None,
+    view_filter: str = "",
 ):
+    filter_payload: Any | None
+    if not view_filter:
+        filter_payload = None
+    else:
+        filter_payload = view_filter
+
     return _generate_mermaid_preview(
         datamodel,
         template_path=template_path or None,
         session_state=None,
-        view_filter=view_filter,
+        view_filter=filter_payload,
     )
 
 

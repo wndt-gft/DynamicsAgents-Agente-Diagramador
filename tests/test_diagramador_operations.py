@@ -137,6 +137,18 @@ def test_generate_mermaid_preview_filters_views(sample_payload, session_state):
     assert preview["views"][0]["id"] == "id-154903"
 
 
+def test_generate_mermaid_preview_filters_views_with_string(sample_payload, session_state):
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    preview = generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_filter="id-154903,  id-12345",  # extra token ensures splitting works
+    )
+    assert preview["view_count"] == 1
+    assert preview["views"][0]["id"] == "id-154903"
+
+
 def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
     datamodel = {
         "model_identifier": "demo",

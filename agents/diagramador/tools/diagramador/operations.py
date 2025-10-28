@@ -2050,32 +2050,61 @@ def _normalize_view_filter(view_filter: Any) -> set[str]:
     if not view_filter:
         return set()
 
-    candidates: List[str] = []
+    normalized: set[str] = set()
+
+    def _register(value: Any) -> None:
+        if value is None:
+            return
+        if isinstance(value, (str, bytes)):
+            text = value.decode("utf-8") if isinstance(value, bytes) else value
+        else:
+            text = str(value)
+        text = text.strip()
+        if not text:
+            return
+        normalized.add(text.casefold())
 
     if isinstance(view_filter, (str, bytes)):
-        candidates.append(view_filter.decode("utf-8") if isinstance(view_filter, bytes) else view_filter)
-    elif isinstance(view_filter, Iterable):
-        for item in view_filter:
-            if item is None:
-                continue
-            if isinstance(item, (str, bytes)):
-                candidates.append(item.decode("utf-8") if isinstance(item, bytes) else item)
-            elif isinstance(item, MutableMapping):
-                for key in ("id", "identifier", "name", "alias"):
-                    value = item.get(key)
-                    if isinstance(value, (str, bytes)):
-                        candidates.append(value.decode("utf-8") if isinstance(value, bytes) else value)
-            else:
-                candidates.append(str(item))
-    else:
-        candidates.append(str(view_filter))
+        raw_text = view_filter.decode("utf-8") if isinstance(view_filter, bytes) else view_filter
+        stripped = raw_text.strip()
+        if not stripped:
+            return set()
+        try:
+            parsed = json.loads(stripped)
+        except (TypeError, json.JSONDecodeError):
+            parsed = None
+        if isinstance(parsed, (list, tuple, set)):
+            for item in parsed:
+                if isinstance(item, MutableMapping):
+                    for key in ("id", "identifier", "name", "alias"):
+                        _register(item.get(key))
+                else:
+                    _register(item)
+            return normalized
+        if isinstance(parsed, MutableMapping):
+            for key in ("id", "identifier", "name", "alias"):
+                _register(parsed.get(key))
+            if normalized:
+                return normalized
+        for token in re.split(r"[\s,;\n]+", stripped):
+            _register(token)
+        return normalized
 
-    normalized: set[str] = set()
-    for candidate in candidates:
-        value = str(candidate).strip()
-        if not value:
-            continue
-        normalized.add(value.casefold())
+    if isinstance(view_filter, Iterable) and not isinstance(view_filter, (str, bytes, MutableMapping)):
+        for item in view_filter:
+            if isinstance(item, MutableMapping):
+                for key in ("id", "identifier", "name", "alias"):
+                    _register(item.get(key))
+            else:
+                _register(item)
+        return normalized
+
+    if isinstance(view_filter, MutableMapping):
+        for key in ("id", "identifier", "name", "alias"):
+            _register(view_filter.get(key))
+    else:
+        _register(view_filter)
+
     return normalized
 
 
@@ -2104,7 +2133,7 @@ def generate_mermaid_preview(
     datamodel: types.Content | str | bytes,
     template_path: str | None = None,
     session_state: Optional[MutableMapping[str, Any]] = None,
-    view_filter: Any | None = None,
+    view_filter: Optional[Any] = None,
 ) -> Dict[str, Any]:
     raw_text = _content_to_text(datamodel)
     try:
