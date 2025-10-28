@@ -10,9 +10,9 @@ import hashlib
 import itertools
 import json
 import logging
+import re
 import textwrap
 import warnings
-import zlib
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
 from xml.etree import ElementTree as ET
@@ -32,6 +32,7 @@ from .constants import (
     DEFAULT_XSD_DIR,
     DEFAULT_KROKI_URL,
     DEFAULT_MERMAID_IMAGE_FORMAT,
+    DEFAULT_MERMAID_VALIDATION_URL,
     FETCH_MERMAID_IMAGES,
     OUTPUT_DIR,
     XML_LANG_ATTR,
@@ -94,15 +95,13 @@ def _kroki_base_url() -> str:
     return DEFAULT_KROKI_URL.rstrip("/")
 
 
-def _encode_mermaid_for_url(mermaid: str) -> str:
-    """Encode Mermaid source into the URL-safe payload Kroki expects."""
+def _mermaid_validator_base_url() -> str:
+    return DEFAULT_MERMAID_VALIDATION_URL.rstrip("/")
 
-    compressor = zlib.compressobj(level=9, wbits=-zlib.MAX_WBITS)
-    raw = compressor.compress(mermaid.encode("utf-8")) + compressor.flush()
-    # Kroki accepts standard base64url strings and gracefully handles inputs
-    # without padding. Removing the padding keeps the URL shorter and avoids
-    # edge cases with servers that don't like '=' in the path portion.
-    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+def _encode_mermaid_for_validator(mermaid: str) -> str:
+    encoded = base64.urlsafe_b64encode(mermaid.encode("utf-8")).decode("ascii")
+    return encoded.rstrip("=")
 
 
 def _resolve_mermaid_format(fmt: Optional[str]) -> str:
@@ -132,10 +131,16 @@ def _build_mermaid_image_payload(
     fmt: Optional[str] = None,
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
-    encoded = _encode_mermaid_for_url(mermaid)
     base_url = _kroki_base_url()
-    url = f"{base_url}/mermaid/{resolved_format}/{encoded}"
+    url = f"{base_url}/render"
     mime_type = _mermaid_mime_type(resolved_format)
+    request_payload = {
+        "diagram_source": mermaid,
+        "diagram_type": "mermaid",
+        "output_format": resolved_format,
+    }
+    headers = {"Accept": mime_type}
+
     payload: Dict[str, Any] = {
         "format": resolved_format,
         "mime_type": mime_type,
@@ -143,19 +148,26 @@ def _build_mermaid_image_payload(
         "source": "kroki",
         "alt_text": title,
         "status": "url",
+        "method": "POST",
+        "body": request_payload,
+        "headers": headers,
     }
 
     if not FETCH_MERMAID_IMAGES:
         return payload
 
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.post(url, json=request_payload, headers=headers, timeout=30)
         response.raise_for_status()
     except requests.RequestException as exc:
         logger.warning("Falha ao baixar imagem Mermaid", exc_info=exc)
         return payload
 
     content = response.content
+    if not content:
+        logger.warning("Resposta vazia ao solicitar imagem Mermaid via Kroki")
+        return payload
+
     payload["status"] = "cached"
     payload["data_uri"] = (
         f"data:{mime_type};base64,{base64.b64encode(content).decode('ascii')}"
@@ -174,6 +186,50 @@ def _build_mermaid_image_payload(
     return payload
 
 
+def _mermaid_validation_request(url: str) -> requests.Response:
+    return requests.get(url, timeout=10)
+
+
+def _extract_mermaid_error_message(svg_payload: str) -> Optional[str]:
+    if not svg_payload:
+        return None
+
+    if "Syntax error" in svg_payload:
+        match = re.search(r"Syntax error[^<]*", svg_payload, re.IGNORECASE)
+        if match:
+            return match.group(0).strip()
+        return "Syntax error"
+
+    if "Parse error" in svg_payload:
+        match = re.search(r"Parse error[^<]*", svg_payload, re.IGNORECASE)
+        if match:
+            return match.group(0).strip()
+        return "Parse error"
+
+    return None
+
+
+def _validate_mermaid_syntax(mermaid: str) -> None:
+    if not mermaid.strip():
+        return
+
+    encoded = _encode_mermaid_for_validator(mermaid)
+    base_url = _mermaid_validator_base_url()
+    url = f"{base_url}/svg/{encoded}"
+
+    try:
+        response = _mermaid_validation_request(url)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("Não foi possível validar o Mermaid gerado", exc_info=exc)
+        return
+
+    payload = response.text or ""
+    if 'aria-roledescription="error"' in payload or "Syntax error" in payload or "Parse error" in payload:
+        message = _extract_mermaid_error_message(payload) or "Erro de sintaxe Mermaid detectado"
+        raise ValueError(message)
+
+
 def _resolve_templates_dir(directory: str | None = None) -> Path:
     """Resolves the directory that stores template XML files."""
 
@@ -181,10 +237,58 @@ def _resolve_templates_dir(directory: str | None = None) -> Path:
     return _resolve_package_path(base)
 
 
+_BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)
+_INLINE_WHITESPACE_RE = re.compile(r"[ \t\f\v]+")
+_MERMAID_COMMENT_PREFIX = "%%"
+
+
 def _clean_text(value: Optional[str]) -> str:
     if value is None:
         return ""
-    return " ".join(value.replace("\r", "\n").split())
+
+    # Normaliza quebras de linha vindas de HTML e sequências de espaços.
+    normalized = _BREAK_TAG_PATTERN.sub("\n", value)
+    normalized = normalized.replace("\r", "\n")
+    normalized = _INLINE_WHITESPACE_RE.sub(" ", normalized)
+    normalized = normalized.replace(" \n", "\n").replace("\n ", "\n")
+    # Evita múltiplas quebras consecutivas que não agregam informação.
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
+
+    return normalized.strip()
+
+
+def _finalize_mermaid_lines(lines: Iterable[str]) -> str:
+    """Normaliza linhas Mermaid garantindo separadores explícitos.
+
+    Alguns consumidores removem quebras de linha ao serializar a saída. O Mermaid
+    permite utilizar ponto e vírgula como delimitador explícito entre comandos,
+    por isso garantimos o caractere ao final de todas as instruções não
+    comentadas. Comentários (`%%`) e linhas vazias são preservados exatamente
+    como foram construídos.
+    """
+
+    finalized: List[str] = []
+
+    for original in lines:
+        if original is None:
+            continue
+
+        text = original.rstrip()
+        if not text:
+            finalized.append("")
+            continue
+
+        stripped = text.lstrip()
+        if stripped.startswith(_MERMAID_COMMENT_PREFIX):
+            finalized.append(text)
+            continue
+
+        if not stripped.endswith(";"):
+            text = f"{text};"
+
+        finalized.append(text)
+
+    return "\n".join(finalized)
 
 
 def _text_payload(element: Optional[ET.Element]) -> Optional[Dict[str, str]]:
@@ -237,18 +341,17 @@ def _local_name(tag: Any) -> str:
 def _mermaid_escape(value: str) -> str:
     """Escape strings for safe embedding inside Mermaid diagrams."""
 
-    sanitized = (
-        value.replace("\\", "\\\\")
-        .replace("\n", " ")
-        .replace("\r", " ")
-        .replace("\"", "\\\"")
-    )
+    sanitized = value.replace("\\", "\\\\").replace("\r", "\n")
+    sanitized = sanitized.replace("\"", "\\\"")
 
-    # Mermaid interprets pipes as delimiters for edge labels and square brackets as
-    # part of the node syntax. Converting these characters to HTML entities keeps
-    # the rendered output intact while preventing syntax errors.
+    # Mermaid interpreta pipes como delimitadores de rótulos de arestas e colchetes
+    # como parte da sintaxe de nós. Convertê-los em entidades HTML evita erros de
+    # sintaxe mantendo a renderização correta.
     sanitized = sanitized.replace("|", "&#124;")
     sanitized = sanitized.replace("[", "&#91;").replace("]", "&#93;")
+
+    # Converte quebras de linha explícitas para o formato aceito pelo Mermaid.
+    sanitized = sanitized.replace("\n", "<br/>")
 
     return sanitized
 
@@ -269,7 +372,15 @@ def _format_comment_lines(text: str, width: int = 100) -> List[str]:
     normalized = _clean_text(text)
     if not normalized:
         return []
-    return textwrap.wrap(normalized, width=width)
+
+    wrapped: List[str] = []
+    for paragraph in normalized.split("\n"):
+        stripped = paragraph.strip()
+        if not stripped:
+            continue
+        wrapped.extend(textwrap.wrap(stripped, width=width))
+
+    return wrapped
 
 
 def _coerce_number(value: Optional[str]) -> Optional[float | int | str]:
@@ -1470,16 +1581,19 @@ def _build_view_mermaid(
         if view_blueprint
         else None
     )
+    template_view_comments = (
+        _format_comment_lines(template_view_documentation)
+        if template_view_documentation
+        else None
+    )
+    view_comments = (
+        _format_comment_lines(view_documentation)
+        if view_documentation and view_documentation != template_view_documentation
+        else None
+    )
 
     lines: List[str] = ["flowchart TD"]
     lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
-
-    if template_view_documentation:
-        for comment in _format_comment_lines(template_view_documentation):
-            lines.append(f"%% {view_alias} (template): {comment}")
-    if view_documentation and view_documentation != template_view_documentation:
-        for comment in _format_comment_lines(view_documentation):
-            lines.append(f"%% {view_alias}: {comment}")
 
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
@@ -1497,17 +1611,15 @@ def _build_view_mermaid(
         metadata = _gather_node_metadata(blueprint_node, element_lookup, blueprint_node)
         metadata["alias"] = alias
         metadata["source"] = "template"
+        template_doc = metadata.get("template_documentation")
+        if template_doc:
+            metadata["template_comments"] = _format_comment_lines(template_doc)
+        node_doc = metadata.get("documentation")
+        if node_doc and node_doc != template_doc:
+            metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
-            if metadata.get("template_documentation"):
-                for comment in _format_comment_lines(metadata["template_documentation"]):
-                    lines.append(f"%% {alias} (template): {comment}")
-            if metadata.get("documentation") and metadata["documentation"] != metadata.get(
-                "template_documentation"
-            ):
-                for comment in _format_comment_lines(metadata["documentation"]):
-                    lines.append(f"%% {alias}: {comment}")
             defined_nodes.add(alias)
         return alias
 
@@ -1527,18 +1639,16 @@ def _build_view_mermaid(
             "datamodel" if key in datamodel_node_map else "template"
         )
         metadata["child_count"] = len(node.get("nodes") or [])
+        template_doc = metadata.get("template_documentation")
+        if template_doc:
+            metadata["template_comments"] = _format_comment_lines(template_doc)
+        node_doc = metadata.get("documentation")
+        if node_doc and node_doc != template_doc:
+            metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
 
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
-            if metadata.get("template_documentation"):
-                for comment in _format_comment_lines(metadata["template_documentation"]):
-                    lines.append(f"%% {alias} (template): {comment}")
-            if metadata.get("documentation") and metadata["documentation"] != metadata.get(
-                "template_documentation"
-            ):
-                for comment in _format_comment_lines(metadata["documentation"]):
-                    lines.append(f"%% {alias}: {comment}")
             defined_nodes.add(alias)
 
         if parent_alias:
@@ -1567,6 +1677,12 @@ def _build_view_mermaid(
         metadata["source"] = (
             "datamodel" if key and key in datamodel_connection_map else "template"
         )
+        template_doc = metadata.get("template_documentation")
+        if template_doc:
+            metadata["template_comments"] = _format_comment_lines(template_doc)
+        conn_doc = metadata.get("documentation")
+        if conn_doc and conn_doc != template_doc:
+            metadata["comments"] = _format_comment_lines(conn_doc)
         connection_details.append(metadata)
 
         source_alias = _ensure_alias_for_key(connection.get("source"))
@@ -1587,18 +1703,9 @@ def _build_view_mermaid(
         else:
             lines.append(f"{source_alias} --> {target_alias}")
 
-        if metadata.get("template_documentation"):
-            for comment in _format_comment_lines(metadata["template_documentation"]):
-                lines.append(
-                    f"%% rel {metadata.get('id') or ''} (template): {comment}"
-                )
-        if metadata.get("documentation") and metadata["documentation"] != metadata.get(
-            "template_documentation"
-        ):
-            for comment in _format_comment_lines(metadata["documentation"]):
-                lines.append(f"%% rel {metadata.get('id') or ''}: {comment}")
 
-    mermaid_source = "\n".join(lines)
+    mermaid_source = _finalize_mermaid_lines(lines)
+    _validate_mermaid_syntax(mermaid_source)
     image_payload = _build_mermaid_image_payload(
         mermaid_source,
         alias=view_alias,
@@ -1610,6 +1717,8 @@ def _build_view_mermaid(
         "name": view_name,
         "documentation": view_documentation,
         "template_documentation": template_view_documentation,
+        "comments": view_comments,
+        "template_comments": template_view_comments,
         "mermaid": mermaid_source,
         "image": image_payload,
         "nodes": node_details,
