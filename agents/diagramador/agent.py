@@ -76,7 +76,7 @@ def _coerce_session_state(session_state: Any) -> SessionState:
 def describe_template(
     template_path: str,
     *,
-    session_state: dict = None,
+    session_state: str = "",
 ):
     coerced = _coerce_session_state(session_state)
     return _describe_template(template_path, session_state=coerced)
@@ -86,7 +86,7 @@ def generate_mermaid_preview(
     datamodel: str,
     template_path: str = "",
     *,
-    session_state: dict = None,
+    session_state: str = "",
 ):
     coerced = _coerce_session_state(session_state)
     return _generate_mermaid_preview(
@@ -100,7 +100,7 @@ def finalize_datamodel(
     datamodel: str,
     template_path: str,
     *,
-    session_state: dict = None,
+    session_state: str = "",
 ):
     coerced = _coerce_session_state(session_state)
     return _finalize_datamodel(
