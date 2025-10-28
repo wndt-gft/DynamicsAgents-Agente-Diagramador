@@ -9,6 +9,7 @@ from typing import Any, Dict, MutableMapping, Optional
 SESSION_STATE_ROOT = "diagramador"
 BLUEPRINT_CACHE_KEY = "template_blueprints"
 PREVIEW_CACHE_KEY = "mermaid_previews"
+DATAMODEL_CACHE_KEY = "datamodel_snapshots"
 
 __all__ = [
     "SESSION_STATE_ROOT",
@@ -17,8 +18,11 @@ __all__ = [
     "get_cached_blueprint",
     "store_blueprint",
     "PREVIEW_CACHE_KEY",
+    "DATAMODEL_CACHE_KEY",
     "store_preview",
     "get_cached_preview",
+    "store_datamodel_snapshot",
+    "get_cached_datamodel_snapshot",
 ]
 
 
@@ -109,3 +113,39 @@ def get_cached_preview(
 
     preview = cache.get(preview_id)
     return copy.deepcopy(preview) if isinstance(preview, dict) else None
+
+
+def store_datamodel_snapshot(
+    session_state: Optional[MutableMapping[str, Any]],
+    key: str,
+    payload: Dict[str, Any],
+) -> None:
+    """Persiste uma cópia do datamodel associado a um identificador lógico."""
+
+    if session_state is None or not key:
+        return
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.setdefault(DATAMODEL_CACHE_KEY, {})
+    if not isinstance(cache, MutableMapping):
+        cache = {}
+        bucket[DATAMODEL_CACHE_KEY] = cache
+
+    cache[key] = copy.deepcopy(payload)
+
+
+def get_cached_datamodel_snapshot(
+    session_state: Optional[MutableMapping[str, Any]], key: str
+) -> Optional[Dict[str, Any]]:
+    """Recupera um datamodel previamente armazenado no estado da sessão."""
+
+    if not key:
+        return None
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.get(DATAMODEL_CACHE_KEY)
+    if not isinstance(cache, MutableMapping):
+        return None
+
+    payload = cache.get(key)
+    return copy.deepcopy(payload) if isinstance(payload, dict) else None

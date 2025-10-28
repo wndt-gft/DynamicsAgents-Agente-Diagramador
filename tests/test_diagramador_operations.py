@@ -124,6 +124,8 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
         session_state=session_state,
         include_image=True,
     )
+    assert "datamodel" in stored_preview
+    assert set(stored_preview["selectors"].keys()) == {"ids", "names"}
     mermaid_blocks = [view["mermaid"] for view in stored_preview["views"]]
     assert all(block.startswith("flowchart") for block in mermaid_blocks)
     image_payloads = [view["image"] for view in stored_preview["views"]]
@@ -137,6 +139,40 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
         payload.get("body", {}).get("diagram_type") == "mermaid"
         for payload in image_payloads
     )
+
+
+def test_generate_mermaid_preview_uses_cached_reference(sample_payload, session_state):
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    first = generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+    ref_payload = json.dumps({"preview_id": first["preview_id"]})
+    second = generate_mermaid_preview(
+        ref_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+    assert second["status"] == "ok"
+    assert second["view_count"] == first["view_count"]
+
+
+def test_generate_mermaid_preview_reuses_latest_snapshot(sample_payload, session_state):
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_name="Visão de Container",
+    )
+    follow_up = generate_mermaid_preview(
+        "status: ok",
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_name="Visao de Container",
+    )
+    assert follow_up["status"] == "ok"
 
 
 def test_generate_mermaid_preview_resolves_agent_relative_path(sample_payload):
@@ -215,6 +251,16 @@ def test_generate_mermaid_preview_escapes_mermaid_sensitive_characters():
 
     edge_line = next(line for line in mermaid_lines if "node_1 -->" in line)
     assert "&#124;" in edge_line
+
+
+def test_filter_views_by_selectors_handles_accents():
+    selectors = operations._extract_view_selectors({"view_name": "Visao de Container"})
+    views = [
+        {"id": "context", "name": "Visão de Contexto"},
+        {"id": "container", "name": "Visão de Container"},
+    ]
+    filtered = operations._filter_views_by_selectors(views, selectors)
+    assert [view["id"] for view in filtered] == ["container"]
 
 
 def test_generate_mermaid_preview_converts_html_line_breaks():

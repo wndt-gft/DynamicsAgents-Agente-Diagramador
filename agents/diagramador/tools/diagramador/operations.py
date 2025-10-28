@@ -12,10 +12,11 @@ import json
 import logging
 import re
 import textwrap
+import unicodedata
 import uuid
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Set, Tuple
 from xml.etree import ElementTree as ET
 
 from google.genai import types
@@ -41,8 +42,10 @@ from .constants import (
 )
 from .session import (
     get_cached_blueprint,
+    get_cached_datamodel_snapshot,
     get_cached_preview,
     store_blueprint,
+    store_datamodel_snapshot,
     store_preview,
 )
 
@@ -509,6 +512,17 @@ def _normalize_text(value: Any) -> Optional[str]:
         text = value.decode("utf-8") if isinstance(value, bytes) else value
         return _clean_text(text)
     return None
+
+
+def _fingerprint_text(value: Any) -> Optional[str]:
+    text = _normalize_text(value)
+    if not text:
+        return None
+    normalized = unicodedata.normalize("NFKD", text)
+    tokens = "".join(ch for ch in normalized if ch.isalnum())
+    if not tokens:
+        return None
+    return tokens.lower()
 
 
 def _truncate_text(text: str, limit: int = 160) -> str:
@@ -1358,6 +1372,34 @@ def _normalize_view_diagrams(views_payload: Any) -> List[Dict[str, Any]]:
     return _deduplicate_views(diagrams)
 
 
+def _merge_selector_sets(*selector_sets: Optional[Dict[str, Set[str]]]) -> Dict[str, Set[str]]:
+    merged: Dict[str, Set[str]] = {"ids": set(), "names": set()}
+    for selectors in selector_sets:
+        if not selectors:
+            continue
+        for bucket in ("ids", "names"):
+            values = selectors.get(bucket)
+            if not values:
+                continue
+            merged[bucket].update(value for value in values if value)
+    return merged
+
+
+def _selectors_from_metadata(
+    view_identifier: Optional[str],
+    view_name: Optional[str],
+    view_metadata: Optional[Dict[str, Any]],
+) -> Dict[str, Set[str]]:
+    payload: Dict[str, Any] = {}
+    if view_identifier:
+        payload["view_identifier"] = view_identifier
+    if view_name:
+        payload["view_name"] = view_name
+    if view_metadata:
+        payload["view_metadata"] = view_metadata
+    return _extract_view_selectors(payload)
+
+
 def _extract_view_selectors(payload: Dict[str, Any]) -> Dict[str, set[str]]:
     """Coleta identificadores ou nomes de visão informados pelo agente."""
 
@@ -1368,16 +1410,24 @@ def _extract_view_selectors(payload: Dict[str, Any]) -> Dict[str, set[str]]:
             for item in value:
                 _register(item, bucket)
             return
+        text_candidate: Optional[str]
         if isinstance(value, (int, float)):
-            text = str(value)
+            text_candidate = str(value)
         elif isinstance(value, str):
-            text = value.strip()
+            text_candidate = value
         else:
+            text_candidate = _normalize_text(value)
+        if not text_candidate:
             return
+        text = text_candidate.strip()
         if not text:
             return
         if bucket == "names":
-            selectors[bucket].add(text.lower())
+            normalized = _normalize_text(text) or text
+            selectors[bucket].add(normalized.lower())
+            fingerprint = _fingerprint_text(normalized)
+            if fingerprint:
+                selectors[bucket].add(fingerprint)
         else:
             selectors[bucket].add(text)
 
@@ -1435,6 +1485,132 @@ def _extract_view_selectors(payload: Dict[str, Any]) -> Dict[str, set[str]]:
     return selectors
 
 
+def _selector_cache_keys(selectors: Dict[str, Set[str]]) -> List[str]:
+    keys: List[str] = []
+    for identifier in sorted(selectors.get("ids", set())):
+        if identifier:
+            keys.append(f"id::{identifier}")
+    for name in sorted(selectors.get("names", set())):
+        if name:
+            keys.append(f"name::{name}")
+    keys.append("latest")
+    return keys
+
+
+def _template_cache_identifier(metadata: Optional[Dict[str, Any]]) -> str:
+    if not metadata:
+        return "__template__:default"
+    path = metadata.get("path") if isinstance(metadata, dict) else None
+    if not path:
+        return "__template__:default"
+    try:
+        resolved = Path(path)
+        if not resolved.is_absolute():
+            resolved = (Path.cwd() / resolved).resolve()
+    except Exception:
+        return f"__template__:{path}"
+    return f"__template__:{resolved}".strip()
+
+
+def _normalize_datamodel_cache_key(template_key: str, key: str) -> str:
+    return f"{template_key}::{key.strip()}" if key else template_key
+
+
+def _cache_datamodel_snapshots(
+    session_state: Optional[MutableMapping[str, Any]],
+    template_metadata: Optional[Dict[str, Any]],
+    selectors: Dict[str, Set[str]],
+    payload: Dict[str, Any],
+    preview_id: Optional[str],
+) -> None:
+    if session_state is None:
+        return
+
+    template_key = _template_cache_identifier(template_metadata)
+    selector_keys = _selector_cache_keys(selectors)
+    if preview_id:
+        selector_keys.append(f"preview::{preview_id}")
+
+    normalized_keys = {
+        _normalize_datamodel_cache_key(template_key, key)
+        for key in selector_keys
+        if key
+    }
+
+    for cache_key in normalized_keys:
+        store_datamodel_snapshot(session_state, cache_key, payload)
+
+
+def _is_datamodel_payload(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    if isinstance(payload.get("elements"), list):
+        return True
+    if isinstance(payload.get("relations"), list):
+        return True
+    views = payload.get("views")
+    if isinstance(views, dict):
+        diagrams = views.get("diagrams")
+        if isinstance(diagrams, list) and diagrams:
+            return True
+    if isinstance(views, list) and views:
+        return True
+    return False
+
+
+def _load_cached_datamodel_payload(
+    session_state: Optional[MutableMapping[str, Any]],
+    template_metadata: Optional[Dict[str, Any]],
+    selectors: Dict[str, Set[str]],
+    reference_payload: Optional[Dict[str, Any]],
+    raw_reference: Optional[str],
+) -> Optional[Dict[str, Any]]:
+    template_key = _template_cache_identifier(template_metadata)
+    candidate_keys: List[str] = []
+
+    if isinstance(reference_payload, dict):
+        hint_keys = (
+            "datamodel_ref",
+            "datamodelRef",
+            "ref",
+            "reference",
+            "preview_id",
+            "previewId",
+            "preview",
+            "id",
+        )
+        for hint in hint_keys:
+            value = reference_payload.get(hint)
+            if isinstance(value, str) and value.strip():
+                candidate_keys.append(value.strip())
+
+    if isinstance(raw_reference, str) and raw_reference.strip():
+        candidate_keys.append(raw_reference.strip())
+
+    candidate_keys.extend(_selector_cache_keys(selectors))
+
+    tried: Set[str] = set()
+    for key in candidate_keys:
+        normalized_key = _normalize_datamodel_cache_key(template_key, key)
+        if normalized_key in tried:
+            continue
+        tried.add(normalized_key)
+        cached = get_cached_datamodel_snapshot(session_state, normalized_key)
+        if cached is not None:
+            return cached
+
+    for key in candidate_keys:
+        if not key:
+            continue
+        preview = get_cached_preview(session_state, key) or _get_preview_fallback(key)
+        if isinstance(preview, dict):
+            payload = preview.get("datamodel")
+            if _is_datamodel_payload(payload):
+                return copy.deepcopy(payload)
+
+    return None
+
+
 def _filter_views_by_selectors(
     views: List[Dict[str, Any]], selectors: Dict[str, set[str]]
 ) -> List[Dict[str, Any]]:
@@ -1455,11 +1631,36 @@ def _filter_views_by_selectors(
             matches = True
         else:
             name = _normalize_text(view.get("name"))
-            if name and name.lower() in target_names:
+            fingerprint = _fingerprint_text(view.get("name"))
+            lowered = name.lower() if name else None
+            if (
+                lowered and lowered in target_names
+            ) or (
+                fingerprint and fingerprint in target_names
+            ):
                 matches = True
 
         if matches:
             filtered.append(view)
+
+    if not filtered and target_names:
+        for view in views:
+            if not isinstance(view, dict):
+                continue
+            name = _normalize_text(view.get("name"))
+            fingerprint = _fingerprint_text(view.get("name"))
+            lowered = name.lower() if name else None
+            if any(
+                candidate
+                and (
+                    (lowered and candidate in lowered)
+                    or (fingerprint and candidate in fingerprint)
+                )
+                for candidate in target_names
+            ):
+                filtered.append(view)
+        if filtered:
+            return filtered
 
     return filtered
 
@@ -2691,11 +2892,13 @@ def generate_mermaid_preview(
     session_state: Optional[MutableMapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     raw_text = _content_to_text(datamodel)
-    try:
-        payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        logger.error("Datamodel inválido para pré-visualização Mermaid", exc_info=exc)
-        raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
+    stripped_payload = raw_text.strip()
+    parsed_payload: Optional[Dict[str, Any]] = None
+    if stripped_payload:
+        try:
+            parsed_payload = json.loads(stripped_payload)
+        except json.JSONDecodeError:
+            parsed_payload = None
 
     template: Dict[str, Any] = {}
     template_metadata: Dict[str, Any] = {}
@@ -2708,6 +2911,33 @@ def generate_mermaid_preview(
         )
         store_blueprint(session_state, template_file, template)
         template_metadata["path"] = str(template_file.resolve())
+
+    selectors = _selectors_from_metadata(view_identifier, view_name, view_metadata)
+    payload: Optional[Dict[str, Any]] = None
+
+    if _is_datamodel_payload(parsed_payload):
+        payload = parsed_payload
+        selectors = _merge_selector_sets(selectors, _extract_view_selectors(payload))
+    else:
+        reference_payload = parsed_payload if isinstance(parsed_payload, dict) else None
+        if reference_payload:
+            selectors = _merge_selector_sets(
+                selectors,
+                _extract_view_selectors(reference_payload),
+            )
+        payload = _load_cached_datamodel_payload(
+            session_state,
+            template_metadata,
+            selectors,
+            reference_payload,
+            stripped_payload,
+        )
+        if payload is None:
+            logger.error("Datamodel inválido para pré-visualização Mermaid")
+            raise ValueError("O conteúdo enviado não é um JSON válido.")
+        selectors = _merge_selector_sets(selectors, _extract_view_selectors(payload))
+
+    assert payload is not None
 
     element_lookup = _build_element_lookup(template, payload)
     relation_lookup = _build_relationship_lookup(template, payload)
@@ -2732,24 +2962,6 @@ def generate_mermaid_preview(
     for view in blueprint_views:
         _standardize_view_tree(view)
 
-    selectors = _extract_view_selectors(payload)
-
-    if view_identifier:
-        selectors.setdefault("ids", set()).add(str(view_identifier))
-    if view_name:
-        normalized_name = _normalize_text(view_name)
-        if normalized_name:
-            selectors.setdefault("names", set()).add(normalized_name.lower())
-    if view_metadata and isinstance(view_metadata, dict):
-        meta_identifier = view_metadata.get("identifier") or view_metadata.get("id")
-        if meta_identifier:
-            selectors.setdefault("ids", set()).add(str(meta_identifier))
-        meta_name = (
-            _normalize_text(view_metadata.get("name"))
-            or _normalize_text(view_metadata.get("View-Name"))
-        )
-        if meta_name:
-            selectors.setdefault("names", set()).add(meta_name.lower())
     filtered_blueprint = _filter_views_by_selectors(blueprint_views, selectors)
     filtered_datamodel = _filter_views_by_selectors(datamodel_views, selectors)
     if selectors.get("ids") or selectors.get("names"):
@@ -2908,11 +3120,24 @@ def generate_mermaid_preview(
         "view_count": len(stored_views),
         "views": stored_views,
     }
+    stored_payload["datamodel"] = copy.deepcopy(payload)
+    stored_payload["selectors"] = {
+        "ids": sorted(selectors.get("ids", set())),
+        "names": sorted(selectors.get("names", set())),
+    }
     if template_metadata:
         stored_payload["template"] = copy.deepcopy(template_metadata)
 
     store_preview(session_state, preview_id, stored_payload)
     _store_preview_fallback(preview_id, stored_payload)
+
+    _cache_datamodel_snapshots(
+        session_state,
+        template_metadata or stored_payload.get("template"),
+        selectors,
+        payload,
+        preview_id,
+    )
 
     def _summarize_sources(
         items: Optional[Iterable[Dict[str, Any]]]
