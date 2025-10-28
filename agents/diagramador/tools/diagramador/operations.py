@@ -268,6 +268,43 @@ def _resolve_templates_dir(directory: str | None = None) -> Path:
 _BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)
 _INLINE_WHITESPACE_RE = re.compile(r"[ \t\f\v]+")
 _MERMAID_COMMENT_PREFIX = "%%"
+_MERMAID_NO_TERMINATOR_PREFIXES = (
+    "C4Context",
+    "C4Container",
+    "C4Component",
+    "C4Dynamic",
+    "C4Deployment",
+    "title",
+    "Person",
+    "Person_Ext",
+    "System",
+    "System_Ext",
+    "Container",
+    "Container_Ext",
+    "Component",
+    "Component_Ext",
+    "Boundary",
+    "Enterprise_Boundary",
+    "System_Boundary",
+    "Container_Boundary",
+    "Component_Boundary",
+    "Rel",
+    "Rel_D",
+    "Rel_U",
+    "Rel_R",
+    "Rel_L",
+    "Rel_Back",
+    "BiRel",
+    "UpdateElementStyle",
+    "UpdateRelStyle",
+    "SHOW_LEGEND",
+    "Hide",
+    "IncludeElement",
+    "IncludeRelationship",
+    "Lay",
+    "Lay_D",
+    "Lay_R",
+)
 
 
 def _clean_text(value: Optional[str]) -> str:
@@ -308,6 +345,15 @@ def _finalize_mermaid_lines(lines: Iterable[str]) -> str:
 
         stripped = text.lstrip()
         if stripped.startswith(_MERMAID_COMMENT_PREFIX):
+            finalized.append(text)
+            continue
+
+        if stripped.startswith("}"):
+            finalized.append(text)
+            continue
+
+        prefix = stripped.split("(", 1)[0].strip()
+        if prefix in _MERMAID_NO_TERMINATOR_PREFIXES:
             finalized.append(text)
             continue
 
@@ -1574,6 +1620,124 @@ def _gather_connection_metadata(
     return metadata
 
 
+def _detect_view_kind(
+    view: Dict[str, Any], view_blueprint: Optional[Dict[str, Any]]
+) -> Optional[str]:
+    candidates = [
+        _normalize_text(view.get("view_kind")),
+        _normalize_text(view.get("name")),
+    ]
+    if view_blueprint:
+        candidates.extend(
+            [
+                _normalize_text(view_blueprint.get("view_kind")),
+                _normalize_text(view_blueprint.get("name")),
+            ]
+        )
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        normalized = candidate.lower()
+        if "context" in normalized or "contexto" in normalized:
+            return "context"
+        if "container" in normalized:
+            return "container"
+        if "técn" in normalized or "tecn" in normalized:
+            return "technical"
+    return None
+
+
+def _c4_header_for_kind(kind: str) -> str:
+    if kind == "context":
+        return "C4Context"
+    if kind == "container":
+        return "C4Container"
+    if kind == "technical":
+        return "C4Component"
+    return "flowchart TD"
+
+
+def _c4_boundary_macro(kind: str) -> str:
+    if kind == "context":
+        return "System_Boundary"
+    if kind == "container":
+        return "Container_Boundary"
+    if kind == "technical":
+        return "Component_Boundary"
+    return "Boundary"
+
+
+def _c4_element_macro(kind: str, is_external: bool) -> str:
+    suffix = "_Ext" if is_external else ""
+    if kind == "context":
+        return f"System{suffix}"
+    if kind == "container":
+        return f"Container{suffix}"
+    if kind == "technical":
+        return f"Component{suffix}"
+    return f"Container{suffix}" if suffix else "Container"
+
+
+def _c4_element_technology(element_type: Optional[str]) -> Optional[str]:
+    if not element_type:
+        return None
+    mapping = {
+        "ApplicationComponent": "Aplicação",
+        "ApplicationProcess": "Processo",
+        "ApplicationEvent": "Evento",
+        "DataObject": "Dados",
+        "Artifact": "Artefato",
+        "Deliverable": "Entregável",
+        "WorkPackage": "Pacote",
+    }
+    return mapping.get(element_type, element_type)
+
+
+def _c4_description(metadata: Dict[str, Any]) -> Optional[str]:
+    documentation = metadata.get("documentation") or metadata.get(
+        "template_documentation"
+    )
+    if documentation:
+        return _truncate_text(str(documentation), 200)
+    if metadata.get("title") and metadata.get("type"):
+        return f"{metadata['title']} ({metadata['type']})"
+    return None
+
+
+def _c4_format_arguments(alias: str, *args: Optional[str]) -> str:
+    formatted: List[str] = [alias]
+    for arg in args:
+        if arg is None:
+            continue
+        formatted.append(f'"{_mermaid_escape(arg)}"')
+    return ", ".join(formatted)
+
+
+def _c4_format_relation_arguments(
+    source_alias: str,
+    target_alias: str,
+    label: Optional[str],
+    technology: Optional[str],
+    description: Optional[str],
+) -> str:
+    parts: List[str] = [source_alias, target_alias]
+    if label is not None:
+        parts.append(f'"{_mermaid_escape(label)}"')
+    if technology is not None:
+        parts.append(f'"{_mermaid_escape(technology)}"')
+    if description is not None:
+        parts.append(f'"{_mermaid_escape(description)}"')
+    return ", ".join(parts)
+
+
+def _should_mark_external(label: Optional[str]) -> bool:
+    if not label:
+        return False
+    lowered = label.lower()
+    return any(token in lowered for token in ("extern", "parceir", "cliente"))
+
+
 def _build_view_mermaid(
     view: Dict[str, Any],
     view_blueprint: Optional[Dict[str, Any]],
@@ -1592,11 +1756,6 @@ def _build_view_mermaid(
     anonymous_counter = itertools.count(1)
 
     view_id = view.get("id") or (view_blueprint.get("id") if view_blueprint else None)
-    view_alias = _unique_alias(
-        _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
-        used_aliases,
-    )
-
     view_name = _normalize_text(view.get("name")) or (
         _normalize_text(view_blueprint.get("name")) if view_blueprint else None
     )
@@ -1620,8 +1779,20 @@ def _build_view_mermaid(
         else None
     )
 
-    lines: List[str] = ["flowchart TD"]
-    lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
+    view_kind = _detect_view_kind(view, view_blueprint)
+    use_c4 = bool(view_kind)
+    view_alias = _unique_alias(
+        _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
+        used_aliases,
+    )
+
+    if use_c4:
+        header = _c4_header_for_kind(view_kind or "")
+        lines: List[str] = [header]
+        lines.append(f"    title {_mermaid_escape(view_name)}")
+    else:
+        lines = ["flowchart TD"]
+        lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
 
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
@@ -1646,12 +1817,17 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
-        if alias not in defined_nodes:
+        if not use_c4 and alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
         return alias
 
-    def _process_node(node: Dict[str, Any], parent_alias: Optional[str]) -> None:
+    def _process_node(
+        node: Dict[str, Any],
+        parent_alias: Optional[str],
+        indent: int,
+        context: Dict[str, Any],
+    ) -> None:
         key = _view_node_key(node)
         if not key:
             key = f"anon_{next(anonymous_counter)}"
@@ -1675,6 +1851,68 @@ def _build_view_mermaid(
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
 
+        if use_c4:
+            indent_str = "    " * indent
+            node_type = (metadata.get("type") or "").lower()
+            title = metadata.get("title") or alias
+            if node_type == "label":
+                comment = metadata.get("title") or metadata.get("template_label")
+                if comment:
+                    lines.append(
+                        f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(comment)}"
+                    )
+                if metadata.get("documentation"):
+                    for comment_line in _format_comment_lines(
+                        metadata.get("documentation") or ""
+                    ):
+                        lines.append(
+                            f"{indent_str}{_MERMAID_COMMENT_PREFIX} {comment_line}"
+                        )
+                for child in node.get("nodes") or []:
+                    if isinstance(child, dict):
+                        _process_node(child, alias, indent, dict(context))
+                return
+
+            if node_type == "container":
+                boundary_macro = _c4_boundary_macro(view_kind or "")
+                boundary_label = metadata.get("title") or metadata.get("template_label")
+                boundary_label = boundary_label or str(alias)
+                lines.append(
+                    f"{indent_str}{boundary_macro}({alias}, \"{_mermaid_escape(boundary_label)}\") {{"
+                )
+                next_context = dict(context)
+                next_context["external"] = context.get("external", False) or _should_mark_external(
+                    boundary_label
+                )
+                for child in node.get("nodes") or []:
+                    if isinstance(child, dict):
+                        _process_node(child, alias, indent + 1, next_context)
+                lines.append(f"{indent_str}}}")
+                return
+
+            label = metadata.get("title") or metadata.get("template_label") or str(alias)
+            is_external = context.get("external", False) or _should_mark_external(label)
+            macro = _c4_element_macro(view_kind or "", is_external)
+            technology = _c4_element_technology(
+                metadata.get("element_type") or metadata.get("type")
+            )
+            description = _c4_description(metadata)
+            if (view_kind or "") == "context":
+                args = _c4_format_arguments(alias, label, description or "")
+            else:
+                args = _c4_format_arguments(
+                    alias,
+                    label,
+                    technology or "",
+                    description or "",
+                )
+            lines.append(f"{indent_str}{macro}({args})")
+
+            for child in node.get("nodes") or []:
+                if isinstance(child, dict):
+                    _process_node(child, alias, indent + 1, dict(context))
+            return
+
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
@@ -1684,11 +1922,13 @@ def _build_view_mermaid(
 
         for child in node.get("nodes") or []:
             if isinstance(child, dict):
-                _process_node(child, alias)
+                _process_node(child, alias, indent + 1, dict(context))
+
+    initial_context: Dict[str, Any] = {"external": False}
 
     for node in view.get("nodes") or []:
         if isinstance(node, dict):
-            _process_node(node, view_alias)
+            _process_node(node, view_alias if not use_c4 else None, 1, dict(initial_context))
 
     for connection in view.get("connections") or []:
         if not isinstance(connection, dict):
@@ -1723,13 +1963,37 @@ def _build_view_mermaid(
         if not source_alias or not target_alias:
             continue
 
-        label = metadata.get("label")
-        if label:
-            lines.append(
-                f"{source_alias} -->|{_mermaid_escape(label)}| {target_alias}"
+        if use_c4:
+            relation_label = (
+                metadata.get("label")
+                or metadata.get("type")
+                or "Relacionamento"
             )
+            relation_doc_raw = metadata.get("documentation") or metadata.get(
+                "template_documentation"
+            )
+            relation_doc = (
+                _truncate_text(relation_doc_raw, 160)
+                if relation_doc_raw
+                else None
+            )
+            relation_type = metadata.get("type") or None
+            args = _c4_format_relation_arguments(
+                source_alias,
+                target_alias,
+                relation_label,
+                relation_type,
+                relation_doc,
+            )
+            lines.append(f"    Rel({args})")
         else:
-            lines.append(f"{source_alias} --> {target_alias}")
+            label = metadata.get("label")
+            if label:
+                lines.append(
+                    f"{source_alias} -->|{_mermaid_escape(label)}| {target_alias}"
+                )
+            else:
+                lines.append(f"{source_alias} --> {target_alias}")
 
 
     mermaid_source = _finalize_mermaid_lines(lines)

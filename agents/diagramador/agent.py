@@ -92,13 +92,23 @@ def generate_archimate_diagram(
     )
 
 
-def _agent_tools():
+def _shared_tools():
     return [
-        _make_tool(list_templates, name="list_templates"),
         _make_tool(describe_template, name="describe_template"),
         _make_tool(generate_mermaid_preview, name="generate_mermaid_preview"),
         _make_tool(finalize_datamodel, name="finalize_datamodel"),
+    ]
+
+
+def _diagramador_exclusive_tools():
+    return [
+        _make_tool(list_templates, name="list_templates"),
         _make_tool(save_datamodel, name="save_datamodel"),
+    ]
+
+
+def _vision_specialist_exclusive_tools():
+    return [
         _make_tool(
             generate_archimate_diagram,
             name="generate_archimate_diagram",
@@ -106,12 +116,20 @@ def _agent_tools():
     ]
 
 
+def _diagramador_tools():
+    return _shared_tools() + _diagramador_exclusive_tools()
+
+
+def _vision_specialist_tools():
+    return _shared_tools() + _vision_specialist_exclusive_tools()
+
+
 context_view_agent = Agent(
     model=DEFAULT_MODEL,
     name="visao_contexto",
     description="Especialista na Visão de Contexto, responsável por cenários externos e fronteiras.",
     instruction=CONTEXT_VIEW_PROMPT,
-    tools=_agent_tools(),
+    tools=_vision_specialist_tools(),
 )
 
 
@@ -120,7 +138,7 @@ container_view_agent = Agent(
     name="visao_container",
     description="Especialista na Visão de Container, focado em containers, responsabilidades e fluxos.",
     instruction=CONTAINER_VIEW_PROMPT,
-    tools=_agent_tools(),
+    tools=_vision_specialist_tools(),
 )
 
 
@@ -129,7 +147,7 @@ technical_view_agent = Agent(
     name="visao_tecnica",
     description="Especialista na Visão Técnica (VT), dedicado a componentes e decisões tecnológicas.",
     instruction=TECHNICAL_VIEW_PROMPT,
-    tools=_agent_tools(),
+    tools=_vision_specialist_tools(),
 )
 
 
@@ -138,7 +156,7 @@ diagramador_agent = Agent(
     name="diagramador",
     description=diagramador_description,
     instruction=ORCHESTRATOR_PROMPT,
-    tools=_agent_tools(),
+    tools=_diagramador_tools(),
     sub_agents=[
         context_view_agent,
         container_view_agent,

@@ -96,7 +96,11 @@ def test_generate_mermaid_preview_reuses_cache(sample_payload, session_state):
         )
     assert preview["view_count"] >= 1
     mermaid_blocks = [view["mermaid"] for view in preview["views"]]
-    assert all(block.startswith("flowchart TD") for block in mermaid_blocks)
+    assert all(
+        block.startswith("C4") or block.startswith("flowchart TD")
+        for block in mermaid_blocks
+    )
+    assert any(block.startswith("C4") for block in mermaid_blocks)
     image_payloads = [view["image"] for view in preview["views"]]
     assert all(payload["url"].startswith("https://") for payload in image_payloads)
     assert all(
