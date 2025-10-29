@@ -26,6 +26,7 @@ from tools.diagramador import (
     finalize_datamodel,
     generate_archimate_diagram,
     generate_layout_preview,
+    load_layout_preview,
     get_cached_artifact,
     get_view_focus,
     list_templates,
@@ -101,18 +102,16 @@ def test_describe_template_filters_views(session_state):
     assert focus_tokens == ["id-154903".casefold()]
 
 
-def test_agent_wrapper_describe_template_uses_session_state():
-    response = diagramador_agent_module.describe_template(str(SAMPLE_TEMPLATE))
+def test_agent_wrapper_describe_template_uses_session_state(session_state):
+    response = diagramador_agent_module.describe_template(
+        str(SAMPLE_TEMPLATE), session_state=session_state
+    )
     assert response["status"] == "ok"
     assert response["artifact"] == SESSION_ARTIFACT_TEMPLATE_GUIDANCE
-    assert "session_state" in response
-
-    serialized_state = response["session_state"]
-    assert isinstance(serialized_state, str)
-    restored_state = json.loads(serialized_state)
+    assert "session_state" not in response
 
     guidance = get_cached_artifact(
-        restored_state, SESSION_ARTIFACT_TEMPLATE_GUIDANCE
+        session_state, SESSION_ARTIFACT_TEMPLATE_GUIDANCE
     )
     assert guidance["model"]["identifier"]
     assert guidance.get("views", {}).get("diagrams")
@@ -203,6 +202,16 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert "primary_preview" not in result
     assert "artifacts" not in result
 
+    load_result = load_layout_preview(session_state=session_state)
+    assert load_result["status"] == "ok"
+    assert load_result["view_count"] == datamodel_view_count
+    primary_loaded = load_result["primary_preview"]
+    assert primary_loaded["inline_markdown"].startswith("![")
+    if "data:image/png;base64," not in primary_loaded["inline_markdown"]:
+        pytest.skip("Pré-visualização requer conversão para PNG (cairosvg) para exibir inline.")
+    assert primary_loaded["download_markdown"].startswith("[Abrir diagrama em SVG]")
+    assert primary_loaded["download_uri"].startswith("data:image/svg+xml;base64,")
+
 
 def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
     preview = generate_layout_preview(
@@ -271,6 +280,21 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
     assert "previews" not in result
     assert "primary_preview" not in result
 
+    load_result = load_layout_preview(
+        view_filter="id-154903, id-12345", session_state=session_state
+    )
+    assert load_result["view_count"] == 1
+    preview_entry = load_result["previews"][0]
+    assert preview_entry["view_id"] == "id-154903"
+
+    load_result = load_layout_preview(
+        view_filter="id-154903", session_state=session_state
+    )
+    assert load_result["view_count"] == 1
+    preview_entry = load_result["previews"][0]
+    assert preview_entry["view_id"] == "id-154903"
+    assert preview_entry["download_markdown"].startswith("[Abrir diagrama em SVG]")
+
 
 def test_generate_layout_preview_filters_views_with_string(sample_payload, session_state):
     describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
@@ -335,6 +359,12 @@ def test_finalize_generates_preview_with_view_focus(sample_payload, session_stat
     )
     assert updated_preview["view_count"] == 1
     assert updated_preview["views"][0]["id"] == "id-154903"
+    if updated_preview["views"][0].get("layout_preview") is None:
+        pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
+
+    load_result = load_layout_preview(session_state=session_state)
+    assert load_result["view_count"] == 1
+    assert load_result["previews"][0]["view_id"] == "id-154903"
 
 
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload, session_state):

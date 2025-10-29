@@ -20,6 +20,7 @@ from .tools.diagramador import (
     finalize_datamodel as _finalize_datamodel,
     generate_archimate_diagram as _generate_archimate_diagram,
     generate_layout_preview as _generate_layout_preview,
+    load_layout_preview as _load_layout_preview,
     list_templates as _list_templates,
     save_datamodel as _save_datamodel,
 )
@@ -36,73 +37,37 @@ diagramador_description = (
 logger = logging.getLogger(__name__)
 
 
-def _coerce_session_state(
-    session_state: Any,
-) -> tuple[MutableMapping[str, Any] | None, bool]:
-    """Normalize session state payloads for tool execution.
-
-    Returns a tuple with the coerced mapping (or ``None``) and a flag indicating
-    whether the state should be serialized back in the tool response.
-    """
+def _coerce_session_state(session_state: Any) -> MutableMapping[str, Any] | None:
+    """Normaliza o estado de sessão recebido pela ADK."""
 
     if session_state is None:
-        # Cria um bucket vazio para garantir que as tools possam armazenar
-        # resultados no estado de sessão mesmo quando o chamador não forneceu
-        # explicitamente um dicionário. Isso mantém as respostas concisas,
-        # pois os dados volumosos serão persistidos no estado e não retornados
-        # diretamente ao LLM.
-        return {}, True
+        return None
 
     if isinstance(session_state, MutableMapping):
-        return session_state, False
+        return session_state
 
     if isinstance(session_state, str):
         payload = session_state.strip()
         if not payload:
-            return {}, True
+            return None
         try:
             decoded = json.loads(payload)
         except json.JSONDecodeError:
             logger.warning("Falha ao decodificar session_state fornecido como string.")
-            return {}, True
+            return None
         if isinstance(decoded, MutableMapping):
-            return decoded, True
+            return decoded
         logger.warning(
             "session_state string decodificada não representa um mapeamento: %s",
             type(decoded).__name__,
         )
-        return {}, True
+        return None
 
     logger.warning(
         "Tipo de session_state não suportado recebido (%s); será ignorado.",
         type(session_state).__name__,
     )
-    return None, True
-
-
-def _attach_session_state(
-    result: Any,
-    session_state: MutableMapping[str, Any] | None,
-    should_serialize: bool,
-) -> Any:
-    """Embed the (possibly updated) session state in the tool response."""
-
-    if not should_serialize or session_state is None:
-        return result
-
-    try:
-        serialized = json.dumps(session_state)
-    except TypeError:
-        logger.warning(
-            "Não foi possível serializar o session_state para retorno; ignorando."
-        )
-        return result
-
-    if isinstance(result, dict):
-        result = dict(result)
-        result.setdefault("session_state", serialized)
-
-    return result
+    return None
 
 
 def _make_tool(function, *, name: str | None = None):
@@ -118,9 +83,8 @@ def _make_tool(function, *, name: str | None = None):
 def list_templates(directory: str = "", session_state: str = ""):
     """Wrapper to keep the public signature simple for automatic calling."""
 
-    coerced_state, should_serialize = _coerce_session_state(session_state)
-    result = _list_templates(directory or None, session_state=coerced_state)
-    return _attach_session_state(result, coerced_state, should_serialize)
+    coerced_state = _coerce_session_state(session_state)
+    return _list_templates(directory or None, session_state=coerced_state)
 
 
 def describe_template(
@@ -128,14 +92,13 @@ def describe_template(
     view_filter: str = "",
     session_state: str = "",
 ):
-    coerced_state, should_serialize = _coerce_session_state(session_state)
+    coerced_state = _coerce_session_state(session_state)
     filter_payload = view_filter or None
-    result = _describe_template(
+    return _describe_template(
         template_path,
         view_filter=filter_payload,
         session_state=coerced_state,
     )
-    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 def generate_layout_preview(
@@ -145,20 +108,36 @@ def generate_layout_preview(
     view_filter: str = "",
     session_state: str = "",
 ):
-    coerced_state, should_serialize = _coerce_session_state(session_state)
+    coerced_state = _coerce_session_state(session_state)
     filter_payload: Any | None
     if not view_filter:
         filter_payload = None
     else:
         filter_payload = view_filter
 
-    result = _generate_layout_preview(
+    return _generate_layout_preview(
         datamodel or None,
         template_path=template_path or None,
         session_state=coerced_state,
         view_filter=filter_payload,
     )
-    return _attach_session_state(result, coerced_state, should_serialize)
+
+
+def load_layout_preview(
+    view_filter: str = "",
+    session_state: str = "",
+):
+    coerced_state = _coerce_session_state(session_state)
+    if coerced_state is None:
+        raise ValueError(
+            "session_state é obrigatório para recuperar a pré-visualização armazenada."
+        )
+
+    filter_payload: Any | None = view_filter or None
+    return _load_layout_preview(
+        view_filter=filter_payload,
+        session_state=coerced_state,
+    )
 
 
 def finalize_datamodel(
@@ -166,13 +145,12 @@ def finalize_datamodel(
     template_path: str,
     session_state: str = "",
 ):
-    coerced_state, should_serialize = _coerce_session_state(session_state)
-    result = _finalize_datamodel(
+    coerced_state = _coerce_session_state(session_state)
+    return _finalize_datamodel(
         datamodel,
         template_path,
         session_state=coerced_state,
     )
-    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 def save_datamodel(
@@ -182,9 +160,8 @@ def save_datamodel(
 ):
     target = filename or DEFAULT_DATAMODEL_FILENAME
     payload: Any | None = datamodel or None
-    coerced_state, should_serialize = _coerce_session_state(session_state)
-    result = _save_datamodel(payload, target, session_state=coerced_state)
-    return _attach_session_state(result, coerced_state, should_serialize)
+    coerced_state = _coerce_session_state(session_state)
+    return _save_datamodel(payload, target, session_state=coerced_state)
 
 
 def generate_archimate_diagram(
@@ -196,8 +173,8 @@ def generate_archimate_diagram(
     session_state: str = "",
 ):
     target_output = output_filename or DEFAULT_DIAGRAM_FILENAME
-    coerced_state, should_serialize = _coerce_session_state(session_state)
-    result = _generate_archimate_diagram(
+    coerced_state = _coerce_session_state(session_state)
+    return _generate_archimate_diagram(
         model_json_path or None,
         output_filename=target_output,
         template_path=template_path or None,
@@ -205,7 +182,6 @@ def generate_archimate_diagram(
         xsd_dir=xsd_dir or None,
         session_state=coerced_state,
     )
-    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 diagramador_agent = Agent(
@@ -217,6 +193,7 @@ diagramador_agent = Agent(
         _make_tool(list_templates, name="list_templates"),
         _make_tool(describe_template, name="describe_template"),
         _make_tool(generate_layout_preview, name="generate_layout_preview"),
+        _make_tool(load_layout_preview, name="load_layout_preview"),
         _make_tool(finalize_datamodel, name="finalize_datamodel"),
         _make_tool(save_datamodel, name="save_datamodel"),
         _make_tool(

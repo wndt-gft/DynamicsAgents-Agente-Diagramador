@@ -25,6 +25,7 @@ from .operations import (
     finalize_datamodel,
     generate_archimate_diagram,
     generate_layout_preview,
+    load_layout_preview,
     list_templates,
     save_datamodel,
 )
@@ -62,6 +63,7 @@ __all__ = [
     "finalize_datamodel",
     "generate_archimate_diagram",
     "generate_layout_preview",
+    "load_layout_preview",
     "list_templates",
     "save_datamodel",
     "BLUEPRINT_CACHE_KEY",

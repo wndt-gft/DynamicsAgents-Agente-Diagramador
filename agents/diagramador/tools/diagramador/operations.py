@@ -1990,6 +1990,27 @@ def _view_matches_filter(
     return bool(tokens & view_filter)
 
 
+def _view_summary_matches_filter(
+    summary: MutableMapping[str, Any] | None,
+    view_filter: set[str],
+) -> bool:
+    if not view_filter:
+        return True
+
+    if not isinstance(summary, MutableMapping):
+        return False
+
+    candidates: Dict[str, Any] = {}
+    for key in ("id", "identifier"):
+        if key not in candidates:
+            candidates[key] = summary.get("view_id")
+    if "name" not in candidates:
+        candidates["name"] = summary.get("view_name")
+
+    tokens = _view_token_candidates(candidates)
+    return bool(tokens & view_filter)
+
+
 def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
     if not isinstance(payload, MutableMapping):
         return None
@@ -2368,6 +2389,117 @@ def generate_layout_preview(
     return response
 
 
+def load_layout_preview(
+    view_filter: str | Sequence | None = None,
+    session_state: MutableMapping | None = None,
+) -> Dict[str, Any]:
+    """Recupera pré-visualizações armazenadas no estado de sessão."""
+
+    if session_state is None:
+        raise ValueError(
+            "session_state é obrigatório para recuperar a pré-visualização armazenada."
+        )
+
+    cached = get_cached_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW)
+    if not isinstance(cached, MutableMapping):
+        raise ValueError(
+            "Nenhuma pré-visualização foi armazenada anteriormente neste estado de sessão."
+        )
+
+    filter_tokens = _normalize_view_filter(view_filter)
+    if filter_tokens:
+        set_view_focus(session_state, sorted(filter_tokens))
+    else:
+        filter_tokens = _session_view_filter(session_state)
+
+    artifacts_payload: list[Dict[str, Any]] = []
+    artifacts = cached.get("artifacts")
+    if isinstance(artifacts, Sequence):
+        for artifact in artifacts:
+            if isinstance(artifact, MutableMapping):
+                artifacts_payload.append(dict(artifact))
+
+    summaries = cached.get("preview_summaries")
+    if not isinstance(summaries, Sequence):
+        cached_views = cached.get("views")
+        if isinstance(cached_views, Sequence):
+            summaries, artifacts_fallback = _summarize_layout_previews(
+                [view for view in cached_views if isinstance(view, MutableMapping)]
+            )
+            if artifacts_fallback and not artifacts_payload:
+                artifacts_payload = [dict(item) for item in artifacts_fallback]
+        else:
+            raise ValueError(
+                "A pré-visualização armazenada não contém resumos para apresentação."
+            )
+
+    filtered_summaries: list[Dict[str, Any]] = []
+    for summary in summaries:
+        if not isinstance(summary, MutableMapping):
+            continue
+        if not _view_summary_matches_filter(summary, filter_tokens):
+            continue
+        filtered_summaries.append(dict(summary))
+
+    if not filtered_summaries:
+        raise ValueError(
+            "Nenhuma pré-visualização corresponde ao filtro informado ou ao foco armazenado."
+        )
+
+    response: Dict[str, Any] = {
+        "status": "ok",
+        "view_count": len(filtered_summaries),
+        "previews": [],
+    }
+
+    preview_messages: list[str] = []
+
+    for summary in filtered_summaries:
+        inline_markdown = summary.get("inline_markdown")
+        download_markdown = summary.get("download_markdown")
+        download_uri = summary.get("download_uri")
+
+        normalized_download_md: str | None
+        if isinstance(download_markdown, str) and download_markdown.strip():
+            normalized_download_md = download_markdown.strip()
+        elif isinstance(download_uri, str) and download_uri.strip():
+            normalized_download_md = (
+                f"[Abrir diagrama em SVG]({download_uri.strip()})"
+            )
+        else:
+            normalized_download_md = None
+
+        preview_entry: Dict[str, Any] = {
+            "view_id": summary.get("view_id"),
+            "view_name": summary.get("view_name"),
+        }
+
+        if isinstance(inline_markdown, str) and inline_markdown.strip():
+            preview_entry["inline_markdown"] = inline_markdown.strip()
+        if normalized_download_md:
+            preview_entry["download_markdown"] = normalized_download_md
+        if isinstance(download_uri, str) and download_uri.strip():
+            preview_entry["download_uri"] = download_uri.strip()
+
+        response["previews"].append(preview_entry)
+
+        markdown_message = _preview_summary_markdown(summary)
+        if markdown_message:
+            preview_messages.append(markdown_message)
+
+    if artifacts_payload:
+        response["artifacts"] = artifacts_payload
+
+    if preview_messages:
+        response["messages"] = preview_messages
+        response["message"] = "\n\n".join(preview_messages)
+
+    primary_preview = dict(response["previews"][0])
+    response["primary_preview"] = primary_preview
+
+    return response
+
+
 def generate_archimate_diagram(
     model_json_path: str | None,
     output_filename: str = DEFAULT_DIAGRAM_FILENAME,
@@ -2631,6 +2763,7 @@ __all__ = [
     "list_templates",
     "describe_template",
     "generate_layout_preview",
+    "load_layout_preview",
     "finalize_datamodel",
     "save_datamodel",
     "generate_archimate_diagram",
