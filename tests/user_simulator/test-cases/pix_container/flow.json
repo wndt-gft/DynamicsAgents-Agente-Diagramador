@@ -7,13 +7,19 @@
     {
       "name": "enviar_historia_pix",
       "type": "user_history",
-      "prompt_template": "Você é um especialista de arquitetura. Utilize o template container padrão do agente Diagramador para atender à história a seguir, gerando o datamodel final, pré-visualização em SVG/PNG e diagrama XML prontos para download.\n\nHistória:\n{user_history}\n\nConfirme quando concluir cada etapa e armazene os artefatos no estado de sessão.",
-      "expect": "O agente deve selecionar a visão correta do template, finalizar o datamodel e gerar a pré-visualização com a visão de container alinhada à história."
+      "prompt_template": "{user_history}",
+      "expect": "O agente deve reconhecer o contexto PIX, solicitar (se necessário) a visão desejada e iniciar o trabalho com base apenas na história enviada."
+    },
+    {
+      "name": "responder_visao",
+      "type": "follow_up",
+      "message": "Por favor, gere a visão de container.",
+      "expect": "Caso o agente solicite confirmação de visão, o usuário reforça que deseja apenas a visão de container."
     },
     {
       "name": "detalhamento_final",
       "type": "follow_up",
-      "message": "Liste, em formato estruturado (tópicos e subitens), o fluxo completo seguido para atender a história e apresente sugestões adicionais da própria LLM para validar o diagrama gerado e garantir que os resultados esperados sejam alcançados."
+      "message": "Liste, em formato estruturado (tópicos e subitens), o fluxo completo seguido para atender a história e apresente sugestões adicionais da própria LLM para validar o diagrama gerado e garantir que os resultados esperados sejam alcançados antes do XML final."
     }
   ],
   "expected_outcomes": [
