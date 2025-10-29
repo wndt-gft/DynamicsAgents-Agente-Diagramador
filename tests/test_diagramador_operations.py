@@ -148,7 +148,9 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     if any(payload is None for payload in layout_payloads):
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
     assert all(payload["format"] == "svg" for payload in layout_payloads)
-    assert all(Path(payload["path"]).exists() for payload in layout_payloads)
+    assert all(Path(payload["local_path"]).exists() for payload in layout_payloads)
+    assert all(payload["data_uri"].startswith("data:image/svg+xml;base64,") for payload in layout_payloads)
+    assert all(payload["inline_markdown"].startswith("![") for payload in layout_payloads)
 
 
 def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
@@ -161,6 +163,11 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
     if any(view.get("layout_preview") is None for view in preview["views"]):
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
     assert all("layout_preview" in view for view in preview["views"])
+    assert all(
+        view["layout_preview"]["data_uri"].startswith("data:image/svg+xml;base64,")
+        for view in preview["views"]
+        if view.get("layout_preview")
+    )
 
 
 def test_generate_layout_preview_filters_views(sample_payload, session_state):

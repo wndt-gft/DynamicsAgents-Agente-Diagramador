@@ -34,10 +34,11 @@ validação XSD concluída.
      `relations`, `organizations`, `views`) e utilize `generate_layout_preview`, informando o
      `template_path`, para gerar pré-visualizações SVG que reaproveitam o layout original do template
      com os elementos do contexto da história do usuário.
-   - Compartilhe as pré-visualizações como imagens estáticas (por exemplo, `![Visão](arquivo.svg)`),
-     acompanhadas dos detalhes textuais de cada visão, e solicite aprovação explícita antes de gravar
-     o datamodel. Se o usuário pedir mudanças, atualize o conteúdo e a pré-visualização até obter o
-     aval final.
+   - Compartilhe as pré-visualizações utilizando os campos `data_uri` ou `inline_markdown`
+     disponibilizados pela tool (ex.: `![Visão](data:image/svg+xml;base64,...)`), evitando links para
+     caminhos locais. Acompanhe cada imagem com os detalhes textuais da visão e solicite aprovação
+     explícita antes de gravar o datamodel. Se o usuário pedir mudanças, atualize o conteúdo e a
+     pré-visualização até obter o aval final.
 5. **Construção do datamodel base** (após aprovação):
    - Com a aprovação formal, consolide o datamodel base sem atributos de layout, mantendo os
      identificadores originais do template e assegurando coerência entre elementos, relações e
