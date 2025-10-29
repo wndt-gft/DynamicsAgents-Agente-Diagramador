@@ -8,35 +8,88 @@ import asyncio
 import json
 import re
 import sys
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-try:
-    from google.adk.runners import InMemoryRunner  # type: ignore[attr-defined]
-    from google.adk.agents.run_config import RunConfig  # type: ignore[attr-defined]
-except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
-    raise SystemExit(
-        "Este script exige os pacotes oficiais 'google-adk' e 'google-genai'. "
-        "Instale-os com 'pip install -r tests/user_simulator/requirements.txt'."
-    ) from exc
-except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
-    raise SystemExit(
-        "Falha ao carregar Google ADK. Verifique a instalação e as dependências."
-    ) from exc
-
-try:
-    from google.genai import types  # type: ignore[attr-defined]
-except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
-    raise SystemExit(
-        "O pacote 'google-genai' é obrigatório. Instale-o com 'pip install -r "
-        "tests/user_simulator/requirements.txt'."
-    ) from exc
-except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
-    raise SystemExit("Falha ao carregar google-genai. Verifique a instalação.") from exc
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+@contextmanager
+def _without_repo_google_package():
+    """Temporariamente remove o pacote local ``google`` do ``sys.path``.
+
+    O repositório contém stubs mínimos para ``google.adk`` e ``google.genai``
+    que são úteis nos testes offline, mas atrapalham quando queremos carregar
+    os pacotes oficiais instalados via ``pip``. Para garantir que as versões
+    reais sejam utilizadas, removemos entradas que apontam para o repositório
+    (incluindo ``''``) e limpamos módulos previamente importados antes de
+    executar os imports críticos. Ao final, restauramos ``sys.path`` sem
+    efeitos colaterais.
+    """
+
+    original_sys_path = list(sys.path)
+
+    filtered_sys_path = []
+    for entry in original_sys_path:
+        try:
+            resolved = Path(entry or ".").resolve()
+        except Exception:
+            filtered_sys_path.append(entry)
+            continue
+        if resolved == REPO_ROOT:
+            continue
+        filtered_sys_path.append(entry)
+
+    sys.path[:] = filtered_sys_path
+
+    # Remove módulos carregados a partir do repositório para permitir que os
+    # pacotes oficiais sejam importados em seguida.
+    for name, module in list(sys.modules.items()):
+        if not (name == "google" or name.startswith("google.")):
+            continue
+        module_file = getattr(module, "__file__", None)
+        if not module_file:
+            continue
+        try:
+            module_path = Path(module_file).resolve()
+        except Exception:
+            continue
+        if REPO_ROOT in module_path.parents or module_path == REPO_ROOT:
+            sys.modules.pop(name, None)
+
+    try:
+        yield
+    finally:
+        sys.path[:] = original_sys_path
+
+with _without_repo_google_package():
+    try:
+        from google.adk.runners import InMemoryRunner  # type: ignore[attr-defined]
+        from google.adk.agents.run_config import RunConfig  # type: ignore[attr-defined]
+    except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
+        raise SystemExit(
+            "Este script exige os pacotes oficiais 'google-adk' e 'google-genai'. "
+            "Instale-os com 'pip install -r tests/user_simulator/requirements.txt'."
+        ) from exc
+    except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
+        raise SystemExit(
+            "Falha ao carregar Google ADK. Verifique a instalação e as dependências."
+        ) from exc
+
+with _without_repo_google_package():
+    try:
+        from google.genai import types  # type: ignore[attr-defined]
+    except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
+        raise SystemExit(
+            "O pacote 'google-genai' é obrigatório. Instale-o com 'pip install -r "
+            "tests/user_simulator/requirements.txt'."
+        ) from exc
+    except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
+        raise SystemExit("Falha ao carregar google-genai. Verifique a instalação.") from exc
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
