@@ -89,6 +89,7 @@ with _without_repo_google_package():
 
 with _without_repo_google_package():
     try:
+        from google.genai import errors as genai_errors  # type: ignore[attr-defined]
         from google.genai import types  # type: ignore[attr-defined]
     except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
         raise SystemExit(
@@ -331,6 +332,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
 
     events: list[EventRecord] = []
     final_agent_text: list[str] = []
+    model_error: dict[str, Any] | None = None
 
     with session_log_path.open("w", encoding="utf-8") as session_log:
         for step in flow.steps:
@@ -352,64 +354,86 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                 + "\n"
             )
 
-            for event in runner.run(
-                user_id=session.user_id,
-                session_id=session.id,
-                new_message=content,
-                run_config=run_config,
-            ):
-                event_payload = event.model_dump(mode="json")
+            try:
+                for event in runner.run(
+                    user_id=session.user_id,
+                    session_id=session.id,
+                    new_message=content,
+                    run_config=run_config,
+                ):
+                    event_payload = event.model_dump(mode="json")
+                    session_log.write(
+                        json.dumps(
+                            {
+                                "timestamp": _utcnow().isoformat(),
+                                "step": step.name,
+                                "event_type": "agent_event",
+                                "payload": event_payload,
+                            },
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+
+                    snapshot = asyncio.run(
+                        _fetch_session_snapshot(
+                            runner, user_id=session.user_id, session_id=session.id
+                        )
+                    )
+                    state_filename = _make_state_filename(
+                        event_index=len(events) + 1, event=event
+                    )
+                    state_path = run_dir / state_filename
+
+                    artifacts_records = _persist_artifacts(
+                        runner,
+                        artefacts_dir,
+                        event,
+                        user_id=session.user_id,
+                        session_id=session.id,
+                    )
+
+                    record = EventRecord(
+                        index=len(events) + 1,
+                        step=step.name,
+                        author=event.author,
+                        summary=_extract_text_from_event(event_payload),
+                        event_payload=event_payload,
+                        session_state_path=state_path,
+                        artifacts=artifacts_records,
+                    )
+                    events.append(record)
+
+                    _write_session_state_snapshot(
+                        state_path=state_path,
+                        snapshot=snapshot,
+                        event_payload=event_payload,
+                        artifacts=artifacts_records,
+                    )
+
+                    if event.author != "user":
+                        text = _extract_text_from_event(event_payload)
+                        if text:
+                            final_agent_text.append(text)
+            except genai_errors.ClientError as exc:  # pragma: no cover - requer ambiente real
+                model_error = _serialize_model_error(exc)
                 session_log.write(
                     json.dumps(
                         {
                             "timestamp": _utcnow().isoformat(),
                             "step": step.name,
-                            "event_type": "agent_event",
-                            "payload": event_payload,
+                            "event_type": "model_error",
+                            "payload": model_error,
                         },
                         ensure_ascii=False,
                     )
                     + "\n"
                 )
+                session_log.flush()
+                break
 
-                snapshot = asyncio.run(
-                    _fetch_session_snapshot(
-                        runner, user_id=session.user_id, session_id=session.id
-                    )
-                )
-                state_filename = _make_state_filename(event_index=len(events) + 1, event=event)
-                state_path = run_dir / state_filename
-
-                artifacts_records = _persist_artifacts(
-                    runner,
-                    artefacts_dir,
-                    event,
-                    user_id=session.user_id,
-                    session_id=session.id,
-                )
-
-                record = EventRecord(
-                    index=len(events) + 1,
-                    step=step.name,
-                    author=event.author,
-                    summary=_extract_text_from_event(event_payload),
-                    event_payload=event_payload,
-                    session_state_path=state_path,
-                    artifacts=artifacts_records,
-                )
-                events.append(record)
-
-                _write_session_state_snapshot(
-                    state_path=state_path,
-                    snapshot=snapshot,
-                    event_payload=event_payload,
-                    artifacts=artifacts_records,
-                )
-
-                if event.author != "user":
-                    text = _extract_text_from_event(event_payload)
-                    if text:
-                        final_agent_text.append(text)
+        if model_error:
+            break
 
     flow_result = {
         "case_id": flow.case_id,
@@ -427,6 +451,9 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
         ],
     }
 
+    if model_error:
+        flow_result["model_error"] = model_error
+
     flow_result_path.write_text(
         json.dumps(flow_result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -434,6 +461,21 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     if final_agent_text:
         summary_body = "\n\n".join(final_agent_text[-2:])
         summary_text = f"# Detalhamento estruturado e sugestões\n\n{summary_body}"
+    elif model_error:
+        code = model_error.get("status_code", "desconhecido")
+        message = model_error.get("message", "Sem detalhes fornecidos pelo provedor.")
+        suggestion = model_error.get("suggestion")
+        summary_lines = [
+            "# Detalhamento estruturado e sugestões",
+            "",
+            "A simulação foi interrompida devido a um erro ao acionar a LLM.",
+            "",
+            f"- Código: {code}",
+            f"- Mensagem: {message}",
+        ]
+        if suggestion:
+            summary_lines.extend(["", f"Sugestão: {suggestion}"])
+        summary_text = "\n".join(summary_lines)
     else:
         summary_text = (
             "# Detalhamento estruturado e sugestões\n\n"
@@ -492,7 +534,7 @@ def _write_session_state_snapshot(
     artifacts: Iterable[ArtifactRecord],
 ) -> None:
     payload = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": _utcnow().isoformat(),
         "session": snapshot.model_dump(mode="json") if hasattr(snapshot, "model_dump") else {},
         "event": event_payload,
         "artifacts": [
@@ -611,6 +653,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Não aciona a LLM; apenas prepara a estrutura de diretórios e arquivos.",
     )
     return parser.parse_args(argv)
+
+
+def _serialize_model_error(exc: Exception) -> dict[str, Any]:
+    """Converte erros do modelo em um dicionário serializável."""
+
+    payload: dict[str, Any] = {
+        "type": type(exc).__name__,
+        "message": str(exc),
+    }
+
+    status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    if status_code is not None:
+        payload["status_code"] = status_code
+
+    reason = getattr(exc, "reason", None)
+    if reason:
+        payload["reason"] = reason
+
+    if status_code == 429:
+        payload["suggestion"] = (
+            "A chamada foi recusada por limite de uso (código 429). Aguarde alguns minutos "
+            "e tente novamente ou reduza o volume de requisições simultâneas."
+        )
+
+    return payload
 
 
 def main(argv: list[str] | None = None) -> int:
