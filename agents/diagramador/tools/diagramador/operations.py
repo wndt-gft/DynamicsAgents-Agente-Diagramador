@@ -12,7 +12,7 @@ import re
 import textwrap
 import warnings
 from pathlib import Path
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable, MutableMapping, Sequence
 from typing import Any, Dict, List, Optional, Tuple
 from xml.etree import ElementTree as ET
 
@@ -1887,7 +1887,7 @@ def finalize_datamodel(
     return artifact
 
 
-def _normalize_view_filter(view_filter: Any) -> set[str]:
+def _normalize_view_filter(view_filter: object) -> set[str]:
     """Normaliza diferentes formatos de filtro de visão para um conjunto comparável."""
 
     if not view_filter:
@@ -1976,7 +1976,7 @@ def generate_layout_preview(
     datamodel: types.Content | str | bytes | None,
     template_path: str | None = None,
     session_state: MutableMapping | None = None,
-    view_filter: Optional[Any] = None,
+    view_filter: str | Sequence | None = None,
 ) -> Dict[str, Any]:
     payload: Optional[Dict[str, Any]] = None
 
