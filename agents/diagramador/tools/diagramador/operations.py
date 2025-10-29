@@ -4,9 +4,7 @@ from __future__ import annotations
 
 """Operações principais do agente Diagramador."""
 
-import base64
 import copy
-import hashlib
 import itertools
 import json
 import logging
@@ -14,12 +12,11 @@ import re
 import textwrap
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
+from collections.abc import Iterable, MutableMapping, Sequence
+from typing import Any, Dict, List, Optional, Tuple
 from xml.etree import ElementTree as ET
 
 from google.genai import types
-
-import requests
 
 from ..archimate_exchange import xml_exchange
 
@@ -30,15 +27,19 @@ from .constants import (
     DEFAULT_TEMPLATE,
     DEFAULT_TEMPLATES_DIR,
     DEFAULT_XSD_DIR,
-    DEFAULT_KROKI_URL,
-    DEFAULT_MERMAID_IMAGE_FORMAT,
-    DEFAULT_MERMAID_VALIDATION_URL,
-    FETCH_MERMAID_IMAGES,
     OUTPUT_DIR,
     XML_LANG_ATTR,
     XSI_ATTR,
 )
-from .session import get_cached_blueprint, store_blueprint
+from .rendering import render_view_layout
+from .session import (
+    get_cached_artifact,
+    get_cached_blueprint,
+    get_view_focus,
+    set_view_focus,
+    store_artifact,
+    store_blueprint,
+)
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
@@ -46,6 +47,23 @@ logger = logging.getLogger(__name__)
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+
+
+SESSION_ARTIFACT_TEMPLATE_LISTING = "template_listing"
+SESSION_ARTIFACT_TEMPLATE_GUIDANCE = "template_guidance"
+SESSION_ARTIFACT_FINAL_DATAMODEL = "final_datamodel"
+SESSION_ARTIFACT_LAYOUT_PREVIEW = "layout_preview"
+SESSION_ARTIFACT_SAVED_DATAMODEL = "saved_datamodel"
+SESSION_ARTIFACT_ARCHIMATE_XML = "archimate_xml"
+
+
+def _error_response(message: str, *, code: str | None = None) -> Dict[str, Any]:
+    """Padroniza respostas de erro para tools."""
+
+    payload: Dict[str, Any] = {"status": "error", "message": message}
+    if code:
+        payload["code"] = code
+    return payload
 
 
 def _resolve_package_path(path: Path) -> Path:
@@ -91,172 +109,23 @@ def _ensure_output_dir() -> Path:
     return OUTPUT_DIR
 
 
-def _kroki_base_url() -> str:
-    return DEFAULT_KROKI_URL.rstrip("/")
+def _escape_label_text(value: str) -> str:
+    """Normaliza rótulos multiline para consumo em metadados e pré-visualizações."""
+
+    sanitized = value.replace("\\", "\\\\").replace("\r", "\n")
+    sanitized = sanitized.replace("\"", "\\\"")
+    sanitized = sanitized.replace("\n", "<br/>")
+    return sanitized
 
 
-def _mermaid_validator_base_url() -> str:
-    return DEFAULT_MERMAID_VALIDATION_URL.rstrip("/")
-
-
-def _encode_mermaid_for_validator(mermaid: str) -> str:
-    encoded = base64.urlsafe_b64encode(mermaid.encode("utf-8")).decode("ascii")
-    return encoded.rstrip("=")
-
-
-def _resolve_mermaid_format(fmt: Optional[str]) -> str:
-    candidate = (fmt or DEFAULT_MERMAID_IMAGE_FORMAT or "png").lower()
-    if candidate not in {"png", "svg"}:
-        logger.warning(
-            "Formato Mermaid '%s' não suportado, utilizando 'png' como fallback.",
-            candidate,
-        )
-        return "png"
-    return candidate
-
-
-def _mermaid_mime_type(fmt: str) -> str:
-    if fmt == "svg":
-        return "image/svg+xml"
-    if fmt == "png":
-        return "image/png"
-    return "application/octet-stream"
-
-
-def _build_mermaid_image_payload(
-    mermaid: str,
-    *,
-    alias: str,
-    title: str,
-    fmt: Optional[str] = None,
-) -> Dict[str, Any]:
-    resolved_format = _resolve_mermaid_format(fmt)
-    base_url = _kroki_base_url()
-    url = f"{base_url}/"
-    mime_type = _mermaid_mime_type(resolved_format)
-    request_payload = {
-        "diagram_source": mermaid,
-        "diagram_type": "mermaid",
-        "output_format": resolved_format,
-    }
-    headers = {
-        "Accept": mime_type,
-        "Content-Type": "application/json",
-    }
-
-    payload: Dict[str, Any] = {
-        "format": resolved_format,
-        "mime_type": mime_type,
-        "url": url,
-        "source": "kroki",
-        "alt_text": title,
-        "status": "url",
-        "method": "POST",
-        "body": request_payload,
-        "headers": headers,
-    }
-
-    if not FETCH_MERMAID_IMAGES:
-        return payload
-
-    try:
-        response = requests.post(url, json=request_payload, headers=headers, timeout=30)
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        logger.warning("Falha ao baixar imagem Mermaid", exc_info=exc)
-        return payload
-
-    content_type = response.headers.get("Content-Type", "") or ""
-    content: bytes | None = None
-
-    if "application/json" in content_type.lower():
-        try:
-            data = response.json()
-        except ValueError:
-            data = None
-        if isinstance(data, dict):
-            raw_content = data.get("content") or data.get("data")
-            if isinstance(raw_content, str):
-                if raw_content.startswith("data:"):
-                    payload["data_uri"] = raw_content
-                    try:
-                        encoded = raw_content.split(",", 1)[1]
-                    except IndexError:
-                        encoded = ""
-                else:
-                    encoded = raw_content
-                if encoded:
-                    try:
-                        content = base64.b64decode(encoded)
-                    except (ValueError, TypeError):
-                        content = None
-    else:
-        content = response.content
-
-    if not content:
-        logger.warning("Resposta vazia ao solicitar imagem Mermaid via Kroki")
-        return payload
-
-    payload["status"] = "cached"
-    payload["data_uri"] = (
-        f"data:{mime_type};base64,{base64.b64encode(content).decode('ascii')}"
-    )
-
-    try:
-        output_dir = _ensure_output_dir()
-        digest = hashlib.sha256(mermaid.encode("utf-8")).hexdigest()[:12]
-        filename = f"{alias}_{digest}.{resolved_format}"
-        image_path = output_dir / filename
-        image_path.write_bytes(content)
-        payload["path"] = str(image_path.resolve())
-    except OSError as exc:
-        logger.warning("Falha ao salvar imagem Mermaid", exc_info=exc)
-
-    return payload
-
-
-def _mermaid_validation_request(url: str) -> requests.Response:
-    return requests.get(url, timeout=10)
-
-
-def _extract_mermaid_error_message(svg_payload: str) -> Optional[str]:
-    if not svg_payload:
-        return None
-
-    if "Syntax error" in svg_payload:
-        match = re.search(r"Syntax error[^<]*", svg_payload, re.IGNORECASE)
-        if match:
-            return match.group(0).strip()
-        return "Syntax error"
-
-    if "Parse error" in svg_payload:
-        match = re.search(r"Parse error[^<]*", svg_payload, re.IGNORECASE)
-        if match:
-            return match.group(0).strip()
-        return "Parse error"
-
-    return None
-
-
-def _validate_mermaid_syntax(mermaid: str) -> None:
-    if not mermaid.strip():
-        return
-
-    encoded = _encode_mermaid_for_validator(mermaid)
-    base_url = _mermaid_validator_base_url()
-    url = f"{base_url}/svg/{encoded}"
-
-    try:
-        response = _mermaid_validation_request(url)
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        logger.warning("Não foi possível validar o Mermaid gerado", exc_info=exc)
-        return
-
-    payload = response.text or ""
-    if 'aria-roledescription="error"' in payload or "Syntax error" in payload or "Parse error" in payload:
-        message = _extract_mermaid_error_message(payload) or "Erro de sintaxe Mermaid detectado"
-        raise ValueError(message)
+def _sanitize_identifier(identifier: str, fallback: str = "node") -> str:
+    cleaned = "".join(ch if ch.isalnum() else "_" for ch in identifier)
+    cleaned = cleaned.strip("_")
+    if not cleaned:
+        cleaned = fallback
+    if cleaned[0].isdigit():
+        cleaned = f"n_{cleaned}"
+    return cleaned
 
 
 def _resolve_templates_dir(directory: str | None = None) -> Path:
@@ -268,9 +137,6 @@ def _resolve_templates_dir(directory: str | None = None) -> Path:
 
 _BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)
 _INLINE_WHITESPACE_RE = re.compile(r"[ \t\f\v]+")
-_MERMAID_COMMENT_PREFIX = "%%"
-
-
 def _clean_text(value: Optional[str]) -> str:
     if value is None:
         return ""
@@ -286,38 +152,6 @@ def _clean_text(value: Optional[str]) -> str:
     return normalized.strip()
 
 
-def _finalize_mermaid_lines(lines: Iterable[str]) -> str:
-    """Normaliza linhas Mermaid garantindo separadores explícitos.
-
-    Alguns consumidores removem quebras de linha ao serializar a saída. O Mermaid
-    permite utilizar ponto e vírgula como delimitador explícito entre comandos,
-    por isso garantimos o caractere ao final de todas as instruções não
-    comentadas. Comentários (`%%`) e linhas vazias são preservados exatamente
-    como foram construídos.
-    """
-
-    finalized: List[str] = []
-
-    for original in lines:
-        if original is None:
-            continue
-
-        text = original.rstrip()
-        if not text:
-            finalized.append("")
-            continue
-
-        stripped = text.lstrip()
-        if stripped.startswith(_MERMAID_COMMENT_PREFIX):
-            finalized.append(text)
-            continue
-
-        if not stripped.endswith(";"):
-            text = f"{text};"
-
-        finalized.append(text)
-
-    return "\n".join(finalized)
 
 
 def _text_payload(element: Optional[ET.Element]) -> Optional[Dict[str, str]]:
@@ -367,25 +201,14 @@ def _local_name(tag: Any) -> str:
     return text
 
 
-def _mermaid_escape(value: str) -> str:
-    """Escape strings for safe embedding inside Mermaid diagrams."""
-
+def _escape_label_text(value: str) -> str:
     sanitized = value.replace("\\", "\\\\").replace("\r", "\n")
     sanitized = sanitized.replace("\"", "\\\"")
-
-    # Mermaid interpreta pipes como delimitadores de rótulos de arestas e colchetes
-    # como parte da sintaxe de nós. Convertê-los em entidades HTML evita erros de
-    # sintaxe mantendo a renderização correta.
-    sanitized = sanitized.replace("|", "&#124;")
-    sanitized = sanitized.replace("[", "&#91;").replace("]", "&#93;")
-
-    # Converte quebras de linha explícitas para o formato aceito pelo Mermaid.
     sanitized = sanitized.replace("\n", "<br/>")
-
     return sanitized
 
 
-def _sanitize_mermaid_identifier(identifier: str, fallback: str = "node") -> str:
+def _sanitize_identifier(identifier: str, fallback: str = "node") -> str:
     cleaned = "".join(ch if ch.isalnum() else "_" for ch in identifier)
     cleaned = cleaned.strip("_")
     if not cleaned:
@@ -1421,6 +1244,59 @@ def _merge_node_documentation(
     return node_doc, blueprint_doc
 
 
+def _merge_styles(
+    base: Optional[Dict[str, Any]],
+    override: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    if not base and not override:
+        return None
+
+    merged: Dict[str, Any] = {}
+
+    if isinstance(base, dict):
+        for key, value in base.items():
+            merged[key] = copy.deepcopy(value)
+
+    if isinstance(override, dict):
+        for key, value in override.items():
+            if isinstance(value, dict):
+                existing = merged.get(key)
+                nested_base = existing if isinstance(existing, dict) else None
+                nested_merged = _merge_styles(nested_base, value)
+                if nested_merged is not None:
+                    merged[key] = nested_merged
+            elif value is not None:
+                merged[key] = value
+
+    return merged or None
+
+
+def _resolve_bounds(
+    node: Optional[Dict[str, Any]],
+    blueprint_node: Optional[Dict[str, Any]],
+) -> Optional[Dict[str, float]]:
+    candidates: List[Dict[str, Any]] = []
+    if isinstance(node, dict):
+        candidates.append(node)
+    if isinstance(blueprint_node, dict):
+        candidates.append(blueprint_node)
+
+    for candidate in candidates:
+        bounds = candidate.get("bounds")
+        if not isinstance(bounds, dict):
+            continue
+        try:
+            x = float(bounds["x"])
+            y = float(bounds["y"])
+            w = float(bounds["w"])
+            h = float(bounds["h"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        return {"x": x, "y": y, "w": w, "h": h}
+
+    return None
+
+
 def _unique_alias(base: str, used: set[str]) -> str:
     candidate = base
     index = 1
@@ -1469,11 +1345,11 @@ def _gather_node_metadata(
         _truncate_text(doc_snippet_source, 120) if doc_snippet_source else None
     )
 
-    label_parts = [_mermaid_escape(title)]
+    label_parts = [_escape_label_text(title)]
     if node_type:
-        label_parts.append(_mermaid_escape(f"Tipo: {node_type}"))
+        label_parts.append(_escape_label_text(f"Tipo: {node_type}"))
     if doc_snippet:
-        label_parts.append(_mermaid_escape(f"Nota: {doc_snippet}"))
+        label_parts.append(_escape_label_text(f"Nota: {doc_snippet}"))
 
     metadata: Dict[str, Any] = {
         "id": identifier,
@@ -1553,11 +1429,11 @@ def _gather_connection_metadata(
     if doc_snippet:
         label_parts.append(doc_snippet)
 
-    mermaid_label = " - ".join(part for part in label_parts if part)
+    relation_label = " - ".join(part for part in label_parts if part)
 
     metadata: Dict[str, Any] = {
         "id": identifier,
-        "label": mermaid_label,
+        "label": relation_label,
         "relationship_ref": relation_ref,
         "type": relation_type,
         "documentation": documentation,
@@ -1575,7 +1451,7 @@ def _gather_connection_metadata(
     return metadata
 
 
-def _build_view_mermaid(
+def _build_view_preview(
     view: Dict[str, Any],
     view_blueprint: Optional[Dict[str, Any]],
     element_lookup: Dict[str, Dict[str, Any]],
@@ -1587,14 +1463,15 @@ def _build_view_mermaid(
 ) -> Dict[str, Any]:
     used_aliases: set[str] = set()
     alias_map: Dict[str, str] = {}
-    defined_nodes: set[str] = set()
     node_details: List[Dict[str, Any]] = []
     connection_details: List[Dict[str, Any]] = []
+    layout_nodes: Dict[str, Dict[str, Any]] = {}
+    layout_connections: Dict[str, Dict[str, Any]] = {}
     anonymous_counter = itertools.count(1)
 
     view_id = view.get("id") or (view_blueprint.get("id") if view_blueprint else None)
     view_alias = _unique_alias(
-        _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
+        _sanitize_identifier(str(view_id) if view_id else "view"),
         used_aliases,
     )
 
@@ -1621,11 +1498,55 @@ def _build_view_mermaid(
         else None
     )
 
-    lines: List[str] = ["flowchart TD"]
-    lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
-
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
+
+    def _register_layout_node(
+        metadata: Dict[str, Any],
+        *,
+        node_data: Optional[Dict[str, Any]],
+        blueprint_node: Optional[Dict[str, Any]],
+    ) -> None:
+        bounds = _resolve_bounds(node_data, blueprint_node)
+        if bounds:
+            metadata["bounds"] = bounds
+        style = _merge_styles(
+            blueprint_node.get("style") if isinstance(blueprint_node, dict) else None,
+            node_data.get("style") if isinstance(node_data, dict) else None,
+        )
+        if style:
+            metadata["style"] = style
+        node_key = metadata.get("key")
+        if not node_key and isinstance(node_data, dict):
+            node_key = _view_node_key(node_data)
+        if not node_key and isinstance(blueprint_node, dict):
+            node_key = _view_node_key(blueprint_node)
+        if node_key:
+            metadata.setdefault("key", node_key)
+        alias = metadata.get("alias")
+        entry_key = metadata.get("id") or metadata.get("key") or alias
+        entry = {
+            "id": metadata.get("id") or metadata.get("key") or alias,
+            "alias": alias,
+            "key": metadata.get("key"),
+            "title": metadata.get("title"),
+            "label": metadata.get("label"),
+            "type": metadata.get("type"),
+            "element_type": metadata.get("element_type"),
+            "element_name": metadata.get("element_name"),
+            "bounds": bounds,
+            "style": style,
+            "element_ref": metadata.get("element_ref"),
+            "relationship_ref": metadata.get("relationship_ref"),
+            "view_ref": metadata.get("view_ref"),
+            "source": metadata.get("source"),
+            "documentation": metadata.get("documentation"),
+            "template_documentation": metadata.get("template_documentation"),
+        }
+        if entry_key:
+            layout_nodes[str(entry_key)] = entry
+        elif alias:
+            layout_nodes[str(alias)] = entry
 
     def _ensure_alias_for_key(key: Optional[str]) -> Optional[str]:
         if not key:
@@ -1635,7 +1556,7 @@ def _build_view_mermaid(
         blueprint_node = blueprint_node_map.get(key)
         if not blueprint_node:
             return None
-        alias = _unique_alias(_sanitize_mermaid_identifier(str(key)), used_aliases)
+        alias = _unique_alias(_sanitize_identifier(str(key)), used_aliases)
         alias_map[key] = alias
         metadata = _gather_node_metadata(blueprint_node, element_lookup, blueprint_node)
         metadata["alias"] = alias
@@ -1647,9 +1568,7 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
-        if alias not in defined_nodes:
-            lines.append(f"{alias}[\"{metadata['label']}\"]")
-            defined_nodes.add(alias)
+        _register_layout_node(metadata, node_data=None, blueprint_node=blueprint_node)
         return alias
 
     def _process_node(node: Dict[str, Any], parent_alias: Optional[str]) -> None:
@@ -1658,7 +1577,7 @@ def _build_view_mermaid(
             key = f"anon_{next(anonymous_counter)}"
         alias = alias_map.get(key)
         if not alias:
-            alias = _unique_alias(_sanitize_mermaid_identifier(str(key)), used_aliases)
+            alias = _unique_alias(_sanitize_identifier(str(key)), used_aliases)
             alias_map[key] = alias
 
         blueprint_node = blueprint_node_map.get(key)
@@ -1675,13 +1594,7 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
-
-        if alias not in defined_nodes:
-            lines.append(f"{alias}[\"{metadata['label']}\"]")
-            defined_nodes.add(alias)
-
-        if parent_alias:
-            lines.append(f"{parent_alias} --> {alias}")
+        _register_layout_node(metadata, node_data=node, blueprint_node=blueprint_node)
 
         for child in node.get("nodes") or []:
             if isinstance(child, dict):
@@ -1724,22 +1637,31 @@ def _build_view_mermaid(
         if not source_alias or not target_alias:
             continue
 
-        label = metadata.get("label")
-        if label:
-            lines.append(
-                f"{source_alias} -->|{_mermaid_escape(label)}| {target_alias}"
-            )
-        else:
-            lines.append(f"{source_alias} --> {target_alias}")
-
-
-    mermaid_source = _finalize_mermaid_lines(lines)
-    _validate_mermaid_syntax(mermaid_source)
-    image_payload = _build_mermaid_image_payload(
-        mermaid_source,
-        alias=view_alias,
-        title=view_name,
-    )
+        connection_style = _merge_styles(
+            blueprint_connection.get("style") if isinstance(blueprint_connection, dict) else None,
+            connection.get("style") if isinstance(connection.get("style"), dict) else None,
+        )
+        if connection_style:
+            metadata["style"] = connection_style
+        points = connection.get("points") or (
+            blueprint_connection.get("points") if isinstance(blueprint_connection, dict) else None
+        )
+        if points:
+            metadata["points"] = points
+        layout_key = metadata.get("id") or key or f"conn_{len(layout_connections) + 1}"
+        layout_connections[str(layout_key)] = {
+            "id": metadata.get("id") or key,
+            "label": metadata.get("label"),
+            "relationship_ref": metadata.get("relationship_ref"),
+            "source": connection.get("source") or metadata.get("source"),
+            "target": connection.get("target") or metadata.get("target"),
+            "source_alias": source_alias,
+            "target_alias": target_alias,
+            "style": metadata.get("style"),
+            "points": metadata.get("points"),
+            "documentation": metadata.get("documentation"),
+            "template_documentation": metadata.get("template_documentation"),
+        }
 
     return {
         "id": view_id,
@@ -1748,11 +1670,15 @@ def _build_view_mermaid(
         "template_documentation": template_view_documentation,
         "comments": view_comments,
         "template_comments": template_view_comments,
-        "mermaid": mermaid_source,
-        "image": image_payload,
+        "alias": view_alias,
         "nodes": node_details,
         "connections": connection_details,
+        "layout": {
+            "nodes": list(layout_nodes.values()),
+            "connections": list(layout_connections.values()),
+        },
     }
+
 
 
 def _content_to_text(content: types.Content | str | bytes) -> str:
@@ -1772,8 +1698,9 @@ def _content_to_text(content: types.Content | str | bytes) -> str:
 
 
 def save_datamodel(
-    datamodel: types.Content | str | bytes,
+    datamodel: types.Content | str | bytes | None,
     filename: str = DEFAULT_DATAMODEL_FILENAME,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Persiste o datamodel JSON formatado no diretório `outputs/`.
 
@@ -1786,12 +1713,42 @@ def save_datamodel(
         os identificadores do modelo.
     """
 
-    raw_text = _content_to_text(datamodel)
-    try:
-        payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        logger.error("Falha ao converter datamodel para JSON", exc_info=exc)
-        raise ValueError("O conteúdo enviado para `save_datamodel` não é um JSON válido.") from exc
+    raw_text: Optional[str] = None
+    payload: Optional[Dict[str, Any]] = None
+
+    if datamodel is not None:
+        raw_text = _content_to_text(datamodel)
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError as exc:
+            logger.error("Falha ao converter datamodel para JSON", exc_info=exc)
+            raise ValueError(
+                "O conteúdo enviado para `save_datamodel` não é um JSON válido."
+            ) from exc
+    elif session_state is not None:
+        cached = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
+        if isinstance(cached, MutableMapping):
+            source_payload = cached.get("source")
+            if isinstance(source_payload, MutableMapping):
+                payload = copy.deepcopy(source_payload)
+                source_json = cached.get("source_json")
+                raw_text = source_json if isinstance(source_json, str) else None
+                if raw_text is None:
+                    raw_text = json.dumps(payload, indent=2, ensure_ascii=False)
+            else:
+                payload = copy.deepcopy(cached.get("datamodel"))
+                if payload is None and cached.get("json"):
+                    try:
+                        payload = json.loads(str(cached["json"]))
+                    except (TypeError, json.JSONDecodeError):
+                        payload = None
+                if payload is not None:
+                    raw_text = json.dumps(payload, indent=2, ensure_ascii=False)
+
+    if payload is None or raw_text is None:
+        raise ValueError(
+            "Não foi possível localizar um datamodel válido para salvar; informe o conteúdo ou utilize `finalize_datamodel` antes."
+        )
 
     output_dir = _ensure_output_dir()
     target_path = output_dir / filename
@@ -1811,7 +1768,7 @@ def save_datamodel(
         }
     )
 
-    return {
+    artifact = {
         "path": str(target_path.resolve()),
         "element_count": len(elements),
         "relationship_count": len(relations),
@@ -1819,11 +1776,25 @@ def save_datamodel(
         "model_name": payload.get("model_name"),
     }
 
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_SAVED_DATAMODEL,
+            artifact,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_SAVED_DATAMODEL,
+            "path": artifact["path"],
+        }
+
+    return artifact
+
 
 def finalize_datamodel(
     datamodel: types.Content | str | bytes,
     template_path: str,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Aplica os atributos completos do template a um datamodel aprovado pelo usuário."""
 
@@ -1895,7 +1866,7 @@ def finalize_datamodel(
             final_payload[key] = value
 
     final_json = json.dumps(final_payload, indent=2, ensure_ascii=False)
-    return {
+    artifact = {
         "datamodel": copy.deepcopy(final_payload),
         "json": final_json,
         "element_count": len(final_payload.get("elements", [])),
@@ -1906,20 +1877,319 @@ def finalize_datamodel(
             else []
         ),
         "template": str(template.resolve()),
+        "source": copy.deepcopy(base_payload),
+        "source_json": raw_text,
     }
 
+    if session_state is not None:
+        generate_layout_preview(
+            final_json,
+            str(template),
+            session_state=session_state,
+        )
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_FINAL_DATAMODEL,
+            artifact,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_FINAL_DATAMODEL,
+            "element_count": artifact["element_count"],
+            "relationship_count": artifact["relationship_count"],
+            "view_count": artifact["view_count"],
+        }
 
-def generate_mermaid_preview(
-    datamodel: types.Content | str | bytes,
+    return artifact
+
+
+def _normalize_view_filter(view_filter: object) -> set[str]:
+    """Normaliza diferentes formatos de filtro de visão para um conjunto comparável."""
+
+    if not view_filter:
+        return set()
+
+    normalized: set[str] = set()
+
+    def _register(value: Any) -> None:
+        if value is None:
+            return
+        if isinstance(value, (str, bytes)):
+            text = value.decode("utf-8") if isinstance(value, bytes) else value
+        else:
+            text = str(value)
+        text = text.strip()
+        if not text:
+            return
+        normalized.add(text.casefold())
+
+    if isinstance(view_filter, (str, bytes)):
+        raw_text = view_filter.decode("utf-8") if isinstance(view_filter, bytes) else view_filter
+        stripped = raw_text.strip()
+        if not stripped:
+            return set()
+        try:
+            parsed = json.loads(stripped)
+        except (TypeError, json.JSONDecodeError):
+            parsed = None
+        if isinstance(parsed, (list, tuple, set)):
+            for item in parsed:
+                if isinstance(item, MutableMapping):
+                    for key in ("id", "identifier", "name", "alias"):
+                        _register(item.get(key))
+                else:
+                    _register(item)
+            return normalized
+        if isinstance(parsed, MutableMapping):
+            for key in ("id", "identifier", "name", "alias"):
+                _register(parsed.get(key))
+            if normalized:
+                return normalized
+        for token in re.split(r"[\s,;\n]+", stripped):
+            _register(token)
+        return normalized
+
+    if isinstance(view_filter, Iterable) and not isinstance(view_filter, (str, bytes, MutableMapping)):
+        for item in view_filter:
+            if isinstance(item, MutableMapping):
+                for key in ("id", "identifier", "name", "alias"):
+                    _register(item.get(key))
+            else:
+                _register(item)
+        return normalized
+
+    if isinstance(view_filter, MutableMapping):
+        for key in ("id", "identifier", "name", "alias"):
+            _register(view_filter.get(key))
+    else:
+        _register(view_filter)
+
+    return normalized
+
+
+def _view_token_candidates(source: Optional[Dict[str, Any]]) -> set[str]:
+    tokens: set[str] = set()
+    if not isinstance(source, dict):
+        return tokens
+    for key in ("id", "identifier", "name", "alias"):
+        value = source.get(key)
+        if isinstance(value, str):
+            candidate = value.strip()
+            if candidate:
+                tokens.add(candidate.casefold())
+    return tokens
+
+
+def _session_view_filter(session_state: MutableMapping | None) -> set[str]:
+    return {token for token in get_view_focus(session_state) if token}
+
+
+def _view_matches_filter(
+    view: Optional[Dict[str, Any]],
+    blueprint_view: Optional[Dict[str, Any]],
+    view_filter: set[str],
+) -> bool:
+    if not view_filter:
+        return True
+
+    tokens = _view_token_candidates(view)
+    tokens.update(_view_token_candidates(blueprint_view))
+    return bool(tokens & view_filter)
+
+
+def _view_summary_matches_filter(
+    summary: MutableMapping[str, Any] | None,
+    view_filter: set[str],
+) -> bool:
+    if not view_filter:
+        return True
+
+    if not isinstance(summary, MutableMapping):
+        return False
+
+    candidates: Dict[str, Any] = {}
+    for key in ("id", "identifier"):
+        if key not in candidates:
+            candidates[key] = summary.get("view_id")
+    if "name" not in candidates:
+        candidates["name"] = summary.get("view_name")
+
+    tokens = _view_token_candidates(candidates)
+    return bool(tokens & view_filter)
+
+
+def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(payload, MutableMapping):
+        return None
+
+    variant: Dict[str, Any] = {}
+    format_hint = payload.get("format")
+    if isinstance(format_hint, str):
+        variant["format"] = format_hint
+
+    inline_markdown = payload.get("inline_markdown")
+    if isinstance(inline_markdown, str) and inline_markdown.strip():
+        variant["inline_markdown"] = inline_markdown
+
+    download_uri = payload.get("download_uri") or payload.get("data_uri")
+    if isinstance(download_uri, str) and download_uri.strip():
+        variant["download_uri"] = download_uri
+        download_markdown = payload.get("download_markdown")
+        if not isinstance(download_markdown, str) or not download_markdown.strip():
+            label = payload.get("format")
+            label_text = str(label).upper() if label else "PREVIEW"
+            download_markdown = f"[Baixar {label_text}]({download_uri})"
+        variant["download_markdown"] = download_markdown
+
+    artifact_payload = payload.get("artifact")
+    if isinstance(artifact_payload, MutableMapping):
+        variant["artifact"] = dict(artifact_payload)
+
+    if not variant.get("inline_markdown") and not variant.get("download_uri"):
+        return None
+
+    return variant
+
+
+def _preview_heading(summary: Dict[str, Any]) -> str:
+    name = summary.get("view_name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    identifier = summary.get("view_id")
+    if isinstance(identifier, str) and identifier.strip():
+        return identifier.strip()
+    return "Visão"
+
+
+def _preview_summary_markdown(summary: Dict[str, Any]) -> Optional[str]:
+    inline = summary.get("inline_markdown")
+    download_md = summary.get("download_markdown")
+    download_uri = summary.get("download_uri")
+
+    if not inline and not download_md and not download_uri:
+        return None
+
+    blocks: List[str] = []
+
+    heading = _preview_heading(summary)
+    if heading:
+        blocks.append(f"### {heading}")
+
+    if isinstance(inline, str) and inline.strip():
+        blocks.append(inline.strip())
+
+    if isinstance(download_md, str) and download_md.strip():
+        blocks.append(download_md.strip())
+    elif isinstance(download_uri, str) and download_uri.strip():
+        blocks.append(f"[Baixar pré-visualização]({download_uri.strip()})")
+
+    return "\n\n".join(blocks)
+
+
+def _summarize_layout_previews(
+    views: Sequence[Dict[str, Any]]
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    summaries: List[Dict[str, Any]] = []
+    artifacts: List[Dict[str, Any]] = []
+    seen_artifacts: set[tuple[Any, Any, Any]] = set()
+
+    for view_payload in views:
+        if not isinstance(view_payload, MutableMapping):
+            continue
+        preview_payload = view_payload.get("layout_preview")
+        if not isinstance(preview_payload, MutableMapping):
+            continue
+
+        variants: List[Dict[str, Any]] = []
+        png_variant: Dict[str, Any] | None = None
+        svg_variant: Dict[str, Any] | None = None
+        for candidate in (preview_payload, preview_payload.get("png")):
+            variant = _build_preview_variant(candidate)
+            if not variant:
+                continue
+            artifact_payload = variant.get("artifact")
+            if isinstance(artifact_payload, MutableMapping):
+                key = (
+                    artifact_payload.get("filename"),
+                    artifact_payload.get("mime_type"),
+                    artifact_payload.get("encoding"),
+                )
+                if key not in seen_artifacts:
+                    seen_artifacts.add(key)
+                    artifacts.append(dict(artifact_payload))
+            variants.append(variant)
+            format_hint = str(variant.get("format") or "").lower()
+            if format_hint == "png" and png_variant is None:
+                png_variant = variant
+            if format_hint == "svg" and svg_variant is None:
+                svg_variant = variant
+
+        if not variants:
+            continue
+
+        summary: Dict[str, Any] = {
+            "view_id": view_payload.get("id") or view_payload.get("identifier"),
+            "view_name": view_payload.get("name"),
+            "variants": variants,
+        }
+
+        primary_inline = png_variant or variants[0]
+        if "inline_markdown" in primary_inline:
+            summary["inline_markdown"] = primary_inline["inline_markdown"]
+
+        primary_download = svg_variant or variants[0]
+        if "download_markdown" in primary_download:
+            summary["download_markdown"] = primary_download["download_markdown"]
+        if "download_uri" in primary_download:
+            summary["download_uri"] = primary_download["download_uri"]
+
+        summaries.append(summary)
+
+    return summaries, artifacts
+
+
+def _aggregate_preview_messages(
+    summaries: Sequence[Dict[str, Any]]
+) -> List[str]:
+    messages: List[str] = []
+    for summary in summaries:
+        if not isinstance(summary, MutableMapping):
+            continue
+        markdown = _preview_summary_markdown(summary)
+        if markdown:
+            messages.append(markdown)
+    return messages
+
+
+def generate_layout_preview(
+    datamodel: types.Content | str | bytes | None,
     template_path: str | None = None,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
+    view_filter: str | Sequence | None = None,
 ) -> Dict[str, Any]:
-    raw_text = _content_to_text(datamodel)
-    try:
-        payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        logger.error("Datamodel inválido para pré-visualização Mermaid", exc_info=exc)
-        raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
+    payload: Optional[Dict[str, Any]] = None
+
+    if datamodel is not None:
+        raw_text = _content_to_text(datamodel)
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError as exc:
+            logger.error("Datamodel inválido para pré-visualização de layout", exc_info=exc)
+            raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
+    else:
+        cached = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
+        if isinstance(cached, MutableMapping):
+            payload = copy.deepcopy(cached.get("datamodel"))
+            if payload is None and cached.get("json"):
+                try:
+                    payload = json.loads(str(cached["json"]))
+                except (TypeError, json.JSONDecodeError):
+                    payload = None
+
+    if not isinstance(payload, MutableMapping):
+        raise ValueError(
+            "Datamodel ausente para geração de prévia; forneça o conteúdo ou finalize o datamodel antes."
+        )
 
     template: Dict[str, Any] = {}
     template_metadata: Dict[str, Any] = {}
@@ -1938,12 +2208,20 @@ def generate_mermaid_preview(
 
     datamodel_views = _normalize_view_diagrams(payload.get("views"))
     blueprint_views = _normalize_view_diagrams(template.get("views"))
+    explicit_filter = view_filter is not None
+    filter_tokens = _normalize_view_filter(view_filter)
+    if explicit_filter:
+        set_view_focus(session_state, sorted(filter_tokens))
+    elif session_state is not None and not filter_tokens:
+        filter_tokens = _session_view_filter(session_state)
 
     datamodel_view_map: Dict[str, Dict[str, Any]] = {}
     datamodel_node_maps: Dict[str, Dict[str, Any]] = {}
     datamodel_connection_maps: Dict[str, Dict[str, Any]] = {}
     for view in datamodel_views:
         if not isinstance(view, dict):
+            continue
+        if filter_tokens and not _view_matches_filter(view, None, filter_tokens):
             continue
         view_id = view.get("id")
         if view_id:
@@ -1955,12 +2233,36 @@ def generate_mermaid_preview(
 
     results: List[Dict[str, Any]] = []
     processed_ids: set[str] = set()
+    layout_output_dir: Path | None = None
+
+    restrict_to_datamodel_views = not filter_tokens and bool(datamodel_view_map)
+
+    def _attach_layout_preview(view_payload: Dict[str, Any]) -> Dict[str, Any]:
+        nonlocal layout_output_dir
+        layout_info = view_payload.get("layout")
+        if not layout_info:
+            return view_payload
+        if layout_output_dir is None:
+            layout_output_dir = _ensure_output_dir()
+        preview = render_view_layout(
+            view_name=str(view_payload.get("name") or view_payload.get("id") or "Visão"),
+            view_alias=str(view_payload.get("alias") or view_payload.get("id") or "view"),
+            layout=layout_info,
+            output_dir=layout_output_dir,
+        )
+        if preview:
+            view_payload["layout_preview"] = preview
+        return view_payload
 
     for view in blueprint_views:
         if not isinstance(view, dict):
             continue
+        if filter_tokens and not _view_matches_filter(view, view, filter_tokens):
+            continue
         view_id = view.get("id")
         view_key = str(view_id) if view_id else f"template_{len(results) + 1}"
+        if restrict_to_datamodel_views and view_id and str(view_id) not in datamodel_view_map:
+            continue
         override_view = datamodel_view_map.get(str(view_id)) if view_id else None
         merged_view = (
             _merge_view_diagram(view, override_view) if override_view else copy.deepcopy(view)
@@ -1971,18 +2273,17 @@ def generate_mermaid_preview(
         datamodel_connections = (
             datamodel_connection_maps.get(str(view_id), {}) if view_id else {}
         )
-        results.append(
-            _build_view_mermaid(
-                merged_view,
-                view,
-                element_lookup,
-                relation_lookup,
-                blueprint_nodes,
-                blueprint_connections,
-                datamodel_nodes,
-                datamodel_connections,
-            )
+        view_payload = _build_view_preview(
+            merged_view,
+            view,
+            element_lookup,
+            relation_lookup,
+            blueprint_nodes,
+            blueprint_connections,
+            datamodel_nodes,
+            datamodel_connections,
         )
+        results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
         processed_ids.add(view_key)
@@ -1990,23 +2291,24 @@ def generate_mermaid_preview(
     for view in datamodel_views:
         if not isinstance(view, dict):
             continue
+        if filter_tokens and not _view_matches_filter(view, None, filter_tokens):
+            continue
         view_id = view.get("id")
         if view_id and str(view_id) in processed_ids:
             continue
         datamodel_nodes = _flatten_view_nodes(view.get("nodes") or [])
         datamodel_connections = _flatten_view_connections(view.get("connections") or [])
-        results.append(
-            _build_view_mermaid(
-                view,
-                None,
-                element_lookup,
-                relation_lookup,
-                {},
-                {},
-                datamodel_nodes,
-                datamodel_connections,
-            )
+        view_payload = _build_view_preview(
+            view,
+            None,
+            element_lookup,
+            relation_lookup,
+            {},
+            {},
+            datamodel_nodes,
+            datamodel_connections,
         )
+        results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
 
@@ -2025,22 +2327,215 @@ def generate_mermaid_preview(
         "views": results,
     }
 
+    preview_summaries, preview_artifacts = _summarize_layout_previews(results)
+
+    preview_messages = _aggregate_preview_messages(preview_summaries)
+
+    if preview_summaries:
+        response["preview_summaries"] = preview_summaries
+
+    if preview_artifacts:
+        response["artifacts"] = preview_artifacts
+
+    if preview_messages:
+        response["preview_messages"] = preview_messages
+        response["message"] = "\n\n".join(preview_messages)
+
+    if preview_summaries:
+        primary = preview_summaries[0]
+        primary_inline = primary.get("inline_markdown")
+        primary_download = primary.get("download_markdown")
+        primary_download_uri = primary.get("download_uri")
+        primary_summary_markdown = _preview_summary_markdown(primary)
+
+        if isinstance(primary_inline, str) and primary_inline.strip():
+            response["inline_markdown"] = primary_inline
+        if isinstance(primary_download, str) and primary_download.strip():
+            response["download_markdown"] = primary_download
+        elif isinstance(primary_download_uri, str) and primary_download_uri.strip():
+            response["download_markdown"] = (
+                primary.get("download_markdown")
+                or f"[Baixar pré-visualização]({primary_download_uri})"
+            )
+
+        response["primary_preview"] = {
+            "view_id": primary.get("view_id"),
+            "view_name": primary.get("view_name"),
+            "inline_markdown": response.get("inline_markdown"),
+            "download_markdown": response.get("download_markdown"),
+            "download_uri": primary_download_uri,
+        }
+
+        if primary_summary_markdown:
+            response.setdefault("preview_messages", preview_messages)
+            if not response.get("message"):
+                response["message"] = primary_summary_markdown
+            response["primary_message"] = primary_summary_markdown
+
     if template_metadata:
         response["template"] = template_metadata
+
+    store_artifact(
+        session_state,
+        SESSION_ARTIFACT_LAYOUT_PREVIEW,
+        response,
+    )
+
+    status_payload: Dict[str, Any] = {
+        "status": "ok",
+        "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW,
+        "view_count": len(results),
+    }
+
+    if preview_messages:
+        status_payload["message"] = "Pré-visualização armazenada com sucesso."
+
+    return status_payload
+
+
+def load_layout_preview(
+    view_filter: str | Sequence | None = None,
+    session_state: MutableMapping | None = None,
+) -> Dict[str, Any]:
+    """Recupera pré-visualizações armazenadas no estado de sessão."""
+
+    cached = get_cached_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW)
+    if not isinstance(cached, MutableMapping):
+        logger.warning(
+            "load_layout_preview não encontrou artefato em sessão para o identificador %s.",
+            SESSION_ARTIFACT_LAYOUT_PREVIEW,
+        )
+        return _error_response(
+            "Nenhuma pré-visualização foi armazenada anteriormente neste estado de sessão.",
+            code="preview_not_found",
+        )
+
+    filter_tokens = _normalize_view_filter(view_filter)
+    if filter_tokens:
+        set_view_focus(session_state, sorted(filter_tokens))
+    else:
+        filter_tokens = _session_view_filter(session_state)
+
+    artifacts_payload: list[Dict[str, Any]] = []
+    artifacts = cached.get("artifacts")
+    if isinstance(artifacts, Sequence):
+        for artifact in artifacts:
+            if isinstance(artifact, MutableMapping):
+                artifacts_payload.append(dict(artifact))
+
+    summaries = cached.get("preview_summaries")
+    if not isinstance(summaries, Sequence):
+        cached_views = cached.get("views")
+        if isinstance(cached_views, Sequence):
+            summaries, artifacts_fallback = _summarize_layout_previews(
+                [view for view in cached_views if isinstance(view, MutableMapping)]
+            )
+            if artifacts_fallback and not artifacts_payload:
+                artifacts_payload = [dict(item) for item in artifacts_fallback]
+        else:
+            logger.error(
+                "Artefato de pré-visualização não possui resumos nem visões serializadas."
+            )
+            return _error_response(
+                "A pré-visualização armazenada não contém resumos para apresentação.",
+                code="preview_invalid",
+            )
+
+    filtered_summaries: list[Dict[str, Any]] = []
+    for summary in summaries:
+        if not isinstance(summary, MutableMapping):
+            continue
+        if not _view_summary_matches_filter(summary, filter_tokens):
+            continue
+        filtered_summaries.append(dict(summary))
+
+    if not filtered_summaries:
+        logger.info(
+            "Nenhuma pré-visualização corresponde ao filtro informado ou foco atual."
+        )
+        return _error_response(
+            "Nenhuma pré-visualização corresponde ao filtro informado ou ao foco armazenado.",
+            code="preview_not_matched",
+        )
+
+    response: Dict[str, Any] = {
+        "status": "ok",
+        "view_count": len(filtered_summaries),
+        "previews": [],
+    }
+
+    preview_messages: list[str] = []
+
+    for summary in filtered_summaries:
+        inline_markdown = summary.get("inline_markdown")
+        download_markdown = summary.get("download_markdown")
+        download_uri = summary.get("download_uri")
+
+        normalized_download_md: str | None
+        if isinstance(download_markdown, str) and download_markdown.strip():
+            normalized_download_md = download_markdown.strip()
+        elif isinstance(download_uri, str) and download_uri.strip():
+            normalized_download_md = (
+                f"[Abrir diagrama em SVG]({download_uri.strip()})"
+            )
+        else:
+            normalized_download_md = None
+
+        preview_entry: Dict[str, Any] = {
+            "view_id": summary.get("view_id"),
+            "view_name": summary.get("view_name"),
+        }
+
+        if isinstance(inline_markdown, str) and inline_markdown.strip():
+            preview_entry["inline_markdown"] = inline_markdown.strip()
+        if normalized_download_md:
+            preview_entry["download_markdown"] = normalized_download_md
+        if isinstance(download_uri, str) and download_uri.strip():
+            preview_entry["download_uri"] = download_uri.strip()
+
+        response["previews"].append(preview_entry)
+
+        markdown_message = _preview_summary_markdown(summary)
+        if markdown_message:
+            preview_messages.append(markdown_message)
+
+    if artifacts_payload:
+        response["artifacts"] = artifacts_payload
+
+    if preview_messages:
+        response["messages"] = preview_messages
+        response["message"] = "\n\n".join(preview_messages)
+
+    primary_preview = dict(response["previews"][0])
+    response["primary_preview"] = primary_preview
 
     return response
 
 
 def generate_archimate_diagram(
-    model_json_path: str,
+    model_json_path: str | None,
     output_filename: str = DEFAULT_DIAGRAM_FILENAME,
     template_path: str | None = None,
     validate: bool = True,
     xsd_dir: str | None = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Gera o XML ArchiMate utilizando o template padrão e valida com os XSDs oficiais."""
 
-    model_path = Path(model_json_path)
+    resolved_model_path = model_json_path
+    if not resolved_model_path and session_state is not None:
+        cached = get_cached_artifact(session_state, SESSION_ARTIFACT_SAVED_DATAMODEL)
+        if isinstance(cached, MutableMapping):
+            cached_path = cached.get("path")
+            if isinstance(cached_path, str) and cached_path.strip():
+                resolved_model_path = cached_path
+
+    if not resolved_model_path:
+        raise ValueError(
+            "Caminho do datamodel não informado; salve o datamodel antes de gerar o XML ou forneça o caminho explicitamente."
+        )
+
+    model_path = Path(resolved_model_path)
     if not model_path.is_absolute():
         model_path = Path.cwd() / model_path
 
@@ -2086,14 +2581,32 @@ def generate_archimate_diagram(
             },
         )
 
-    return {
+    response = {
         "path": str(xml_path.resolve()),
         "validated": validate,
         "validation_report": validation,
     }
 
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_ARCHIMATE_XML,
+            response,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_ARCHIMATE_XML,
+            "path": response["path"],
+            "validated": response.get("validated", False),
+        }
 
-def list_templates(directory: str | None = None) -> Dict[str, Any]:
+    return response
+
+
+def list_templates(
+    directory: str | None = None,
+    session_state: MutableMapping | None = None,
+) -> Dict[str, Any]:
     """Lista templates ArchiMate disponíveis no diretório informado."""
 
     templates_dir = _resolve_templates_dir(directory)
@@ -2117,21 +2630,58 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
                 "model_name": _text_payload(name_el),
                 "documentation": _text_payload(documentation_el),
             }
+            views_metadata: List[Dict[str, Any]] = []
+            for view in root.findall("a:views/a:diagrams/a:view", ns):
+                view_entry: Dict[str, Any] = {}
+                view_id = view.get("identifier")
+                if view_id:
+                    view_entry["identifier"] = view_id
+                view_name = _text_payload(view.find("a:name", ns))
+                name_text = _payload_text(view_name)
+                if name_text:
+                    view_entry["name"] = name_text
+                doc_text = _payload_text(
+                    _text_payload(view.find("a:documentation", ns))
+                )
+                if doc_text:
+                    view_entry["documentation"] = doc_text
+                viewpoint_ref = view.get("viewpoint") or view.get("viewpointRef")
+                if viewpoint_ref:
+                    view_entry["viewpoint"] = viewpoint_ref
+                if view_entry:
+                    views_metadata.append(view_entry)
+            if views_metadata:
+                metadata["views"] = views_metadata
             discovered.append(metadata)
         except ET.ParseError:
             logger.warning("Template inválido ignorado", extra={"path": str(template_path)})
             continue
 
-    return {
+    payload = {
         "directory": str(templates_dir.resolve()),
         "count": len(discovered),
         "templates": discovered,
     }
 
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_TEMPLATE_LISTING,
+            payload,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_TEMPLATE_LISTING,
+            "count": len(discovered),
+        }
+
+    return payload
+
 
 def describe_template(
     template_path: str,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    view_filter: str | Sequence | None = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Retorna a estrutura detalhada de um template ArchiMate."""
 
@@ -2140,15 +2690,92 @@ def describe_template(
     if not template.exists():
         raise FileNotFoundError(f"Template não encontrado: {template}")
 
+    explicit_filter = view_filter is not None
+    filter_tokens = _normalize_view_filter(view_filter)
+    if not filter_tokens:
+        if explicit_filter and session_state is not None:
+            set_view_focus(session_state, [])
+        if session_state is not None:
+            filter_tokens = _session_view_filter(session_state)
+
     blueprint = _parse_template_blueprint(template)
     store_blueprint(session_state, template, blueprint)
+
+    matching_identifiers: set[str] = set()
+    matching_tokens: set[str] = set()
+    if filter_tokens:
+        for diagram in blueprint.get("views", {}).get("diagrams", []):
+            if not isinstance(diagram, dict):
+                continue
+            candidates = _view_token_candidates(diagram)
+            if candidates & filter_tokens:
+                identifier = diagram.get("id") or diagram.get("identifier")
+                if isinstance(identifier, str):
+                    identifier_text = identifier.strip()
+                    if identifier_text:
+                        matching_identifiers.add(identifier_text)
+                matching_tokens.update(candidates)
+        if not matching_identifiers and not matching_tokens:
+            raise ValueError(
+                "Nenhuma visão do template corresponde ao filtro informado."
+            )
+        set_view_focus(session_state, sorted(filter_tokens))
+
     guidance = _build_guidance_from_blueprint(blueprint)
     guidance["model"]["path"] = str(template.resolve())
+
+    if filter_tokens:
+        views_section = guidance.get("views")
+        if isinstance(views_section, dict):
+            diagrams = views_section.get("diagrams")
+            if isinstance(diagrams, list):
+                filtered_diagrams: List[Dict[str, Any]] = []
+                for diagram in diagrams:
+                    tokens = _view_token_candidates(diagram)
+                    identifier = diagram.get("identifier")
+                    include = False
+                    if isinstance(identifier, str):
+                        identifier_text = identifier.strip()
+                        if identifier_text and identifier_text in matching_identifiers:
+                            include = True
+                    if not include and tokens & (matching_tokens or filter_tokens):
+                        include = True
+                    if include:
+                        filtered_diagrams.append(diagram)
+                if not filtered_diagrams:
+                    raise ValueError(
+                        "Nenhuma visão simplificada corresponde ao filtro informado."
+                    )
+                views_section["diagrams"] = filtered_diagrams
+
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+            guidance,
+        )
+        return {
+            "status": "ok",
+            "artifact": SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+            "view_count": len(
+                guidance.get("views", {}).get("diagrams", [])
+                if isinstance(guidance.get("views"), dict)
+                else []
+            ),
+        }
+
     return guidance
 __all__ = [
+    "SESSION_ARTIFACT_TEMPLATE_LISTING",
+    "SESSION_ARTIFACT_TEMPLATE_GUIDANCE",
+    "SESSION_ARTIFACT_FINAL_DATAMODEL",
+    "SESSION_ARTIFACT_LAYOUT_PREVIEW",
+    "SESSION_ARTIFACT_SAVED_DATAMODEL",
+    "SESSION_ARTIFACT_ARCHIMATE_XML",
     "list_templates",
     "describe_template",
-    "generate_mermaid_preview",
+    "generate_layout_preview",
+    "load_layout_preview",
     "finalize_datamodel",
     "save_datamodel",
     "generate_archimate_diagram",

@@ -1,0 +1,369 @@
+{
+  "timestamp": "2025-10-29T20:13:09.620048+00:00",
+  "session": {
+    "id": "pix-container-simulation",
+    "app_name": "InMemoryRunner",
+    "user_id": "sim-user-pix",
+    "state": {},
+    "events": [
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "thought_signature": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": "Contexto de negócio:\n- O banco opera o Sistema de Transferências PIX como plataforma central para pagamentos instantâneos.\n- Os canais Mobile Banking App e Internet Banking precisam expor uma jornada unificada para transferências imediatas.\n- A régua operacional exige validação de saldo, checagem antifraude, notificações transacionais e geração de comprovantes digitais.\n- Todos os eventos devem respeitar regras do BACEN e integrar-se com SPI, DICT e conectores internos do core banking.\n\nHistória de usuário:\nComo gerente de produto responsável pelos canais digitais do Sistema de Transferências PIX,\nquero que um cliente PF autenticado possa iniciar uma transferência instantânea pelos canais mobile ou internet,\nvalidando limites, saldo e chaves PIX em tempo real, com dupla checagem antifraude e\nnotificação imediata do envio e da compensação, para garantir uma experiência confiável e rastreável.\n\nDetalhes e critérios de aceite:\n1. O Mobile Banking App e o Internet Banking devem compartilhar os mesmos componentes de backend expostos pelo Serviço de Transferências PIX.\n2. Antes da ordem ser enviada ao SPI BACEN, o fluxo deve consultar o Serviço de Validação de Saldo, aplicar o Motor Antifraude PIX e\n   gravar o registro da transação no PostgreSQL Transacional PIX e em tópicos Kafka para auditoria.\n3. O Serviço de Chaves PIX precisa consultar o DICT BACEN para confirmar a titularidade e acionar o Serviço de Autenticação Transacional\n   para validar o segundo fator no canal utilizado.\n4. Após a confirmação do SPI, o Serviço de Notificações PIX publica a mensagem via Gateway de Notificações Push e integra com o Conector Core Banking\n   para atualizar limites e extratos. As notificações assíncronas também devem estar disponíveis via Redis Cache PIX.\n5. O Serviço de Comprovantes Digitais gera PDFs acessíveis nos canais e envia o resumo da transação para o Serviço de Auditoria PIX.\n6. Todas as integrações externas (SPI, DICT, Bureau SPC/Serasa) precisam ser representadas como componentes dedicados, respeitando latências máximas de 2 segundos.\n7. A arquitetura deve manter isolamento entre as zonas de API Gateway PIX (inbound) e Load Balancer PIX garantindo alta disponibilidade.\n8. Exibir na visão de container os componentes tecnológicos principais, suas integrações e fluxos de dados, destacando o core \"Sistema de Transferências PIX\".\n"
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-4fe28b88-9d4a-42c5-bc66-576f44a7c34b",
+        "author": "user",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "e9973bf7-8b7e-4fa8-94f7-9d2817753f4a",
+        "timestamp": 1761768762.190416
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "thought_signature": "CrBOAePx_17ztjr4BQrw0ijwMkICYk1Nvg_c1TewrLcspdl8bhD07t7J_Ng0udF-iKn6B5H8AXQO5l6FNCWt_jPWa1L6YjFQEG4lmewIYt1HfQ39aW9vLhMXTacvaqKISghN7QlWtZsfGSHQYO687W9loO8AK7k8Je8dURawJ9Uvuz5oWO3Shpu_MAfsGA1Xk-NqRSs-SUCwX0z_OkKJ7TPYDDWymIDwDXn600em-_XUfWVLzZjLjlu5gdWviuOlw_rMOh6ZaUJxf1p_t6IZEjN2plLSaJs-nJMjlInifBm9_3ioC4Q-aZsRYy-lcNdo0I5VLorZQMOb8N9IYuksaC9-4nVzNGOeItvNzzs1WJaEsA6X6JYKHnxBVUs0PWyPzfnypRM6c9Erztcujwv8bUNHlYtBPPstxpBvNZfauDiGsdTnxMNPohC8o68jmcHqezNEW8Dew7f3qHm-oDAvXlhIJRM5InwUB3yYCxGUypFo53FwdG0S-hFgwSYXnqJTpPfyY9uIQG6QOIWXebunsVjVdDz9mljEqn83VUAky7OLB6yBACQkWzyeL3R2r1k2f_2rwUszEY1BmORHUzrwu72IedIXyc8QGUgTDrNgT6rrkhsMprwUFKFclZ_JkxTzoVyPPjOC8yTF22VvV2QDyaCL-7G6k13HaFtZuYmNdIrBhi3NtHBayHIFFwi45j0tSLFKctUpK2kecQ77cguK9Nk9U4xGFNpzYvzE4DG6qu9LLPWI9OFaUEfrR1xgoXHFYvOFjYExpbSExorKCqht8y6oPaIwmuFtVk1W1vOyQ_D60nnuiuKvMpLh3jmYbk_DVkiZPABRljWcJFcdwptypk21c0PbZEdg33dPPDAXnqZ1zCa3__1G_tT5rUhRqbA249pSoJuSIXC6Zgf96rdqG_1OFMir6qgcJYmeUe7To8DUjoln3CB_qhDp1HuEaJue-tK1hPk9eYQ2IS04rMd54lXwoSIYh0G1Odae4qt9tn5y4QYrWp4_FZXYLyXXT6dVu7vfZbRaIE5xuoUoP2DpuSOxhdS8orwsfUkObRjr6UWFxJWUSXcsXb-VHePdtvIPf8gJsPHnSSaEce_AmM7LoDSR7INaVPuNYaLJ3l1EcI__b3bP_Uw0R6bruHIImJBDHn09OSZbDv8suprXD0-oA83zYEHJnMl0ry9_e8JnKHAKvQsMxqhZlgQFwlc8_T0Qq784pV4Y02i0Nj1xbY1fsPF-3eYx4aI4nn9KO5W0RodvCkpnhcZmDgtMZVhJ_1Z0GS7ZdQx94dwMwjILe9x7DUwkl8-AcfvWmnTW1bcS4hAsyK8EzFXqOsBc-M-A6uB3PUSsIrMalavHwzjVGHMwqJ0o9s5KTQUuErjGpbffT644FgPyZNp_UuB8DFhxxQd3RSBLnMBf_tEoum2vXwi7xDxjS9lrUvfiPWneDpA5fCxs1LAvvSOBed6Y6vg1yFowKucbBiDb3JITAU3yiZJcQG1FiosgJPRmTQ5rodwxD8r2pCqsUoIljnSnC6TaME9ymb0pD6WU4hPQNeV1i8hMnPUNmsFN5tuTPEXKu85u3vDZLWCeC2PbTPmjhaJUKuwIfbakIwEuksgy8pYxZZbr-e72wzSvLQU5nqhv5vkC3eIzvLBzd4JgyRAIbQoIquO9vvYNugI_f1JiUEnlm4B4FnpAFHGPiUqs1R03teWpo1jcnu_ZaUcE0lsbvu67yhRZt2gwC9Uuacr8jDJkNwDK7qConfLX5xg0h3Q_7jPCEvKW2D8svCRUy4Nu3tYYWiOQBUo_8HDnjGuh4IN5QPtLjhd95cvue4w5V4LBX7uEN9vVkljfD7PelNawMcaHSrAgL3g7j-pmVUNRmEId1rbt7OJecg-Y6Vne321fG47x5fnAdnu4BDfBqpzWxLN2XEM6YzeGkLnAh5z_eHvC_0EWJkCi0_gHp1_C4v3H6IdhNZMKyELWkNWUQQDkl7PJcZOtkigrVrn5QWxu_JvySTDscK0CZqv5-jvt0Ff2OmcsN1vosHd4r-XLhRJMg_aDvU3FXOzXql0avR1B1R8HK1hWVQM8rgeiSWKfLTl2q7sjtDKnJPu7_mnRvBbCYxsRE5zmRvroUZjWq7CMSIYJvDX6gO_MOb_01fwKjV_-6O81kvf8li7pm-GQz36FICQw1E3MxS-a3-lHrRAVK7wEpO3la0wgCTIkXfRdGrQc7V6hzEHl6QhQvNBJcY4OGbhC1NWYcOefzxci9chP2tqI9AqdLyx0mF5knQNzAPGbMvV1nYMBtilDFgNJCqdUsosUZLYL8-25xJHiO5NN2oQlfne1pU_V7mP9tQ9p_vWnN5JdvBFDLDHNh_QTNhVrBaxkOBEAsp-O-8IaCPY4iYgHGXATbrmhMeT9j-Or0dfv2orTQ6ojZ_RyE02pHlrVx2olRSg6Dcuk2pMWaCQirg_yqY7EzQNULnaijKS2ogVi7LF-LEluATC3Do0m3hIZ8EvFAfMQLjwMGVvrQ-lrtPBfEcqee8UmzR_XgsBXUfev6NN7kkkdqohoQMnJmgsbnEHvS0MIn_ZIPk7o1G5SrOovVDP6kNgvuGO0ndyjFld8L7FLjAouDXpKH0nSg_hFqErC4EAumb27Pq8kPACRUZX4stexMgADV_2FfEBw-xOd6V36TCw8u_X8dy6HAm9F8JTw9ZXXJpxsxoh4xRMXKPwLGIb-0uAjZ_3qkhaMqsSicWVZrUirfd4pzIa8fIZNWvw-wppdCzf8PVdCPKhYB-JM0AgoeQk1xpcJLIMSW9DOFnXL_Tf01Inlir01rAJnN5ZZ5G_hG9V7gw9B5NjOteJeaMTFU5ByycSFtcFHSt6g5Bv7VptDUfg11zimmwVLj-Cjcjn_AMWm9s8VNCO1wC_N1sUWXJTzLaz0zmu-MNXkuFHI17qHt9d_PPsRXw7x3aJSe7jFFBVMEWIXYvW6t03Pqybcw7Sw4p8J8_hiK3K6ONBGxa4qXS3eSLJAkgIqDAu7a123C-a-hIH6naFkWyItPBSrmc1I_zbICsrC-qZoZDPHK5_28FAmWjCg6anFFdWgZzU_ZArLwqbPb63wWo0HGJx6g57XVJn1_G30mVME5q7bYSkDlUBF1BQjQkU9m5z7xvAcW7PxHz5ceYfGp0Xt_hZOl1SyT8C8_Sdf16qVdHZeBjyYKQIMWYSgcfVyifuxonN4txSYeQYpsBVFERuIxesmcr17Dcj7Z71QSE19eA7cFqLRorBRXuTY1Hi2pOjFpipYZ4L6zF8xY-Sxrzq2cPrKXJURE8bi-y8o2i5tqnRqAo3kaR1hg7wu-y1KfHCWTEToZSs9ulEQnJari8NZGB5H7Ha27rNtYeysTKhaIHvjL2C5pKp2z9srb8mm2PGLU0bQdBHNvU2n--Ay05IlQNq1O9dSNnV3dbXNFFiksGLXYyUp1yQbqSMDkTjKdIg-aWIhWUt6wvsC0xRYgeO-zUzGgMN8AeMMAmDBrqlu7LOUtwydxXgPyLD8M8t8sz4oruxZn5vCTd2lXZB9eYkQ1_decMAXb0No5_rN_4XqLVjgHPfNVFhbTFfndNID1E6HnyzmXczRUa8J4NXpl2uLkcGg2R4gPF1ZqbLSi_jhWBhoqRvuVZjf-mKIOz66D_KWCyqIO2TaxEYC-38DuxA1iIxRpxjZU4WJud7-6zNmJe68iG9TlLnPUOf6xkwZ5w1k691euGzmOKR2sfYrprLcR6aj7ropTjPB82KIRTpief7cpnOtF7YMZAxnDb568bKr3wJHtKc1Ko7Ne7SVPIu0kbx9rznEMyEWJnnXG2jSH0Z_eac3dPG-iTk_7d_YTv2lVAeub_cOnA_XAlEv323ZJkeF01G_0H5xi6F4e529D5pZzVNMzQWhgDQp6SqIax_Ijd5B9fc70Iqfi4L1AuE4KyzJ0814I40dKJ7JXEHq2Aj1RArPeU-usYlM8QJs9sh2mhFKW5uNwdaemrlS7xZ0BZywA3MPhPLnEEmi_keH4V3EmU6uQawQ9n57CsnAqVUKNhWxh9vkjWh5wcUOcbvfR_6CcOuEdcZu7yvTPQCIh5MCEMheto-daADx5QwVjy-uUc2RUCD8XPFcg5lRD3TwOSQ3nibD7z-nEVbKCrqNIqcuL_OkoKhku1FWH9IxutJiUTlM5FRRz8kx8QnGvHhU4Eyt3k40jhcsasW_E6C6F3z4owQ5vXzamfXHeOOk-BVNTP1Z7ggPOguQsOXn5ZhWRuCxLIdEgSaPkul5nxZ0WJCugox9mFlQyPOg3VCTmixMzIZDMjP48OYUKom7P8kVt7-3pGpAKC3r0dbaRNERnBTBTabNMt3AnTseAVyCu3gQYl7DSBrCRDGLUAc49p42CCREbc155jkWNg7CAy620KShXbXKaqVLY1nAxTRs71Tf_iWhFWmENbKoKPESeG18efhdQTOKM5Rktgg4KhxgtNEMivo2ulFlZdvS_4IFsukR4E2GHIG20jRpv5SSsWra9Ju575KHoYcQBhvKO9zLlwbWgrGjl8rAz_JZi3VLsvgZ0srG0BhAuJ_V8g-tNz3_qLKXddm1PPHDbd7NW4tmJmjBvB2iSi1qaS5Jd1IgKxUJKK2rQuOxv4qDmJxJq7DcqvYs8EFJ0qGi2wDPhyOH5QLb5js_MhWsRAzOv_CHRfd2wMSMK8fJUW4-CGMP46IJ_xn8TS0Viwwc_uaxcfjNRWFFsv6SQU-FVY0jHe2GU7m9IAMxlWf5BiDsqPzYtyLQSXo1Xfzra9SM965qYfQv2ukNgWDZ7O5BdO5VmQQmhy7MCPZBjbnsOcC8DeWrFrLVvcHcjQKg8L8BbBwg1mtCOjgElWH_K5fcWCTmRJ7JZGZwQlm52ruxOhZ_xMGEgujfmWNcnB5_stbSV7nmHGDhHbjUJXcUVLei32-aY7SvgKnvp0bVtQ2ODJpxb2zsPPB0rG9xL-fRqB9b-U3tgTZ39ibQHu9uR_qXgoocN2u6zHqVQElwalxq67VY7oV3EMYba_Wnqk-7taQU55Wk5g9jzAIsrxVvObVKgU0ZPRlaoVIjYzttnQE2uUbA9oTyRx16Y3TYGZAjIC9SQ6WStAH1XRXyyt4-fEL24j59hoNeJ5DvWPAfyFrWhfCX_g4Heghe-pQcIJZ3hEMofB6CeGpfS1qPq5njDVjRXEgA6IK5kM2sbFFHwxHcTH3P2Tz6AGgyDo6clydi2kn7JBAXPCVanWJwDBw_L05JcdGVykQ1hI921wh4sipd_DVk-2F6pSiTi4yR3VXdBRSr6z4XVu8sNSeocKVdr_d1wLEdO4swmVWgw4QHvfA1rqFL3Ku-5OE4KkW9fYR3logB0BnfyBjIYDv59gKBNVDfCz61VE2IOqdTCyZSOQweOos7hubizQpjvmT3kJyQX5LFviZKKzBwF_2QJ_jnQnY2rY8mgmb99_HmdkSwUMkrSE2lrCaKad6lSHzAahG1_aS4q5X3yVSNDc-twlcs0p34JRP9MzVWbY3t6VupPJw9LxGko5Wsu7Rn53BfOf6YlNGSaeUsWdxVTQecR7KFC_6XDPN565vbYKYTr8QqV3pU5TPSRaU_ELkldAFDirfV7v0vdRTXhABKiqLVAHYiFk9GxTEzibM2VgjpQZdvjvwt8iQHQMd8rxWndcit3FACK6p--wZU-3H9YzkvcN4GrUVhFLJWXFU0KRK_JfOHTSfXiavD8XyRYOawmbfe68V0-u2UCP87KZe0d5l0vqfF5aPzsYRCI8BSEpAVk0A3KwuQIxT-p0yDtIIb67s_blZ_32QtLZWlT3qsvPjUePh7Hq77Df7GfkvcM4qXtV1dA3SiupsfrQRLLMe6TbZVhB3bJbosBvA53xxBuZ4i6CHezLF1gvTmddKi04PYw6ndbUDkV-I3X_CG0DMpNzCZx-nNyPaV47RQ6svtjkVfR9hGcmZIzNYLlhGgrUi0y96TenbbxHaIgIz9oOHhVdy10LOZWBTrRpqgJqgo56QGIjn8XGT-lg2KSXBo5Y4Qhla9TluemwLoJFGa98jLCcHm3joPyLIiKX9oB1OMbW5xG2zFX9Ju3kHhi7_6m-CR05J3rTwN9yJfPeSkXXmmvrsYP5fEtmRLEzxNVoVw1bi5105sgIhgrUV88rjLGFaABqzMQeBYN4vlLtl6yHdxl0hxV_GoM_JuiNIrxKvhUsxOX9EnwCnDXHmKv4JKpigmDYeFX-HPcJIJqRzlMQfV17QxLOUSjP0AUMwArdPh7iDvgfcYETBOovPYmeA02WAykYeJduuQpcfOeMiUP3vlZbrZAVxxt-D9Jk3b9UeZppu03CyFViCvOK8y6-MBOGH9eJxXOK_Vpw7AZNsOYyRSh44go1UX6P7F1_ez9oeV1ATb22rlynbHi1LBsLY69M2o_u6RtcxiETzQmdnaOwXlVJJ2ksHj2nWAHbUb8Y3HsGPYkc4E19wCRfnSvQY63RFRH56FdMqzYClmftqklVtbFtVpj4NlYLF9S_016UgQfTXk42Hl9MiGYjpAAD0_5ORG1Gru8uom6yo8F8UG1I6twvDVi2XiBdWy7TE5zbeJ7v2RQi2L96vZ1VbeubCDwxmYBuKOtEIrgHvSphVe5_jgMqNHwHDoKJI9tHcICn896DsTd_3TtqBZQel5WFJKGZ9romu60EAxVi1g2axDx1687wkDggHZByMzxaHKtNNXD6_iNY33_TFNeyQX8dsQY5iUajC5S1qRGqMcWK1Lj1D_bmGUPxJm98HqPv9wYRI6DCQ3Bb3PHT1hZeMYiIj0ycU07Pz-wY_yuZ9LxdDRa-wBiZmNOrS6lKRf4dJLUnz5eMjjETVb3WD7CDRDh4UFCKvZ1_vtvhNVk5WTmyzUMzV9frZUk6HGUaIrU5gumnBCB2G00kIBgvZkEbb45ehniN15vE6BYF_YQVx6vzwDwZieDaerJ9X3jRaQR1ZvsQqbSGmuhPXo0btNDc_KzdPTWpTV8vLjKa_fPO3dkwP8LpE-Lb8juT4GtjiZcDY2scyuPsnjOQEYEsqtRS62YsoCqwatpZTGOwfApGAeFgvnfqRpM2rl-b53pQ8y-aw1KL5tZtQNLg7udTONtSsYecsZh9_rHWQB1DnPHoTjiFLHDDnRDQuEAuRc8iyJuwu5vS_kyo5zcvQ8G9vJivfjc-Q3caTYVB4Sb-HR3MK_d626Z7lVpIR9_zqBikgJ7MtXjMkpYjavch4OvWJ1yrAwwA9290ig-DpxkPdHGyuxjmWZblMg33jOLTB65vo94OXR-6qafyoEGEZ_29brXftYDoFSBDG2BhH5Tgbk_v7RLazuE2dKF2QfCyiOzSj9p8nVijbuGT6FM9I03J4U8XnVkF6lUgugK2zqCTvNAEq35HXZ5HJH9Zmq5JXRb_uNFA18PowRpRx6hK0AueWHStQ955CxdaUUXnFVuVIKQqhv3S19auRLqpyAjKY9ltfIVGW14KXVQo40q0MFLzE17KhtwGHBcV4kF6Tuh8HSftzK2-scP5ywgTXITQ8FfG_92IjcBgYfs727INrrCQ5x_AmSVq2Y8ysmsvrzqIsEYsBa0hKDEnG1L6BVPTgHNRX4Tkz9MDkOSU2abhtwZpk2Qt6DPJvpNcGtCD3SiBb-_ZqV-baznl2OakDYo-GrRN43maAINi0RQDaU2kIa12ua4tWQmb3LkVSPBUaIoXwBEySGVIMQMS14X0CkSfNKWx5CONfOZPocF-ouMLiG5AZYNCL96_O3zQ1IV8175H8ZqDWQ-bgyZgKG0MRYBZ0PVs8loDbrp8i5iBdzARTpLK28xN1XU6fXVzPBz7-74UQTxI8RmjWlGnytxykTI66paI3Dp5D6sqPilr3dAOh6ZNsEIOFOacSiJlqXFZAklBK2ZyiBCa9zR-qmNgBDVPkiEfdqIRvnyC-R7CiQBCa2_uY-HCNR4XhsAr561UsTIU31WZbDCIUmFPUkEQg_H6h8Oj3VPVlgduj0YntPH-iiaeQwYXBr41q78qr6s_ebfpqfLQ74REjvvzb_MMcUIun3R4Dr3eEqciYXEXZQZmrJAunzVIdxenNxBmCURw7NK8E38dLFNTr7XCVNIR3jmnUdHWWhyMCy1tEY9VvbkTOX5q9obCOqdoqILvIAdWzMctzJYTZ3I16WSJ8304BsGATAeScIV0EauDjvCIQdM6c6uPpOKSHdeZp3AgNARxirwek47XN8rVk1mcZ0RYFHX-irn8otyWG6vrH7dbNsaHKp2He8MG8pKvfxTVSBisONTAh2iUZ0o2I-LkpRIsrq63ytb0g8OsCsV_Z7iZoo3pM0ZxuaX_WoS0PnFqWQRW3j3TokLcWRz2dJR7ugkvrYQuYX242SHIbC1nzQ_J1nAP4cDu-GgcgfNj33CfCKeXNBEUms2xueDdQpLKfFVML2sjMEcGPimW_B9HDubuGhYpDn3KZVx_2clO7Y_0566jhHEsEsEx4kfGXmi3d3ibo9VZA4P21BbkJcje9cbK1z50bopfqNrKq7rCX9O93VUg5DKU34Av1JLS4MtFItULvr2gHztFsiXh7Va8hql4lTTV19rtGB2j_V-7CWofZi5ecAEsaa6gPq3J1U4J9dQ6WByA3LrekSHA_shJQoM1T9xk2KTHdL2s3y7bvv6RvomvNXp318xQm5MENgwgP2U8cL35gkiGeV5zWj9wCi2TSrmLJPSuFBFzIJORU5yBJWQdSmmvyXvtwlpEI_rboCjFEAHfwbTfy89HDqlqZE362mEaXQEkYdfcmf_6WDJcA6e7Go1jietJpJBJfRhGVJaEgAiZ_dBbgqjjokpXN4Zd13eck1h5s5gU4Gn7FyW0rw4Q45koLdf00z1h_a2ntCXOJQzoiqGdNdApqx937WOTM_f3xw8RN3VminiCK6AqxI6OQF-MyMu5YWh9myAIk9MGau8QK1rSovuxpfrVkjsTNCkOH3zUfukkZZB36g_T_zsuhyVdeSkYnRnDFIUbCuFfqB6MQt28AjodoOtpnA3IspIeoy2sIHEcZCmQ4X2QDmfGydWrfM6lR1KfC1TgiJQaEUqar5a2trHl8ZEJxoyxypD5p-GEFAVxHsbusjsl7uhqT2xnT0a4xQkvARpmaXLxCP2VZGF09qgsnyk5UouEwmkw3tTMVpxufe0VRz_z6XmvEd3-GvLD0Az8Tb8YAcaAPWD8KFn_HzIZ0l0oNYM5MTZyDR1X5KTX1_oUNDlWIdcPl5sFsLb-ZRytP6FuaE9v19yZk9f-WfQ_pBD1N6kLkoSp7zJ8uDQMJsEScAqYMM87G4nh4GWYnwACdFWocQyUBzuSLPuKH-lLgjHfW2xHc7rqPda7dXHNiLnehseXoEhrYP-eW2HvJJcsQ17vyaHpaGeqr1wK_mk7SBOwzD2fX_W8WSL6yndMQmohs7ktVr3B7xUcozMVapOZEUebIxY_BzEoJALwmM_vuhsbydE7ZEqS8ONH2R92MMzFsco3S9rmEpDyY8oO1xj2htm0tOvwkn_Xbrz-fBjKrkQgK0aymCbjdqA6u_CtRfgKhrq00203xLc5FvHTS0VR_MtEvKF4rPAP6iExdSRvzmeKf28C6H2r-GFHZMcbUgDCuOiyi4sR8TY1-UypUzPzwbUCpxARPQi5528rp28HPy0YR4p9i5pToxRggOgBpgAUn4n9W3or4YFmQ5t_LfntgwZ98D6p5_TaI2fcvJgUy8MX1nia1dDABJrFRWc1PRL_mwI3OlFwxigDApHXFi6Rc1f5Z5u-7ptolwc-L47raqJbaUTdJ8y8GXrbCnQ-R9G_4gA9a6nbhmTuEY9YvRpKxmPsvlGEuSgufQYPR2N-4isTwRQaTunc6FQrGFu8LYYKCAScyjrlZzw7NPCqdlzYfY4egQQ_H7TsfeWG2ebw9bl38V2hfMdMtX3uyeJfJj45csXdGFOa5qp2mEyKjVxUR3T_RqDWzV2tZEeQz6InwQA7A-RnSMODhdfC7UJfaxEjehW2w39Se8c1GyfktE7PkykWuYXr_7v-WaP5CWVJC77UQA01Ut6wD4RopNpAcJyq9ik9XTFFrGKGaKFwYKnH-SPPG3hn31sXaNNauoiJydAwhiqqf6rHRmsZymDiRyz8hTV0pMct7e33FNbsPDnewmdeLfjdk-UmQc2CGx9Q8rbVLcT5An-uZq0B3NS0Amv-kPmiKzQX0uxAnKOGjADeAkNr2NpI07F0KU6lUBUP_yWNMn229vdo1OevZVDEIBtSzX3ye1wHmGEVxAcd0XGJKYNTdqBcgVD_QmYdJm296jDplyw17HCxl_iGKPCGyhJKrddRnT6zoKIJ-p_YjDe41ZbQ5lXGxPbY0ZYvNKj8uvcItZTAO2KyXJXIEhpQfCAWpB_rfHzmVs_tJWsRxAWn7wgTFTunMjp0lAEcEqlUIZ0du0jlh47oZImychReo5St1_pmwhAmPP-dyo0Q93wWWHcGtz3Dk8OtPU4irVHo2lD9cyfm_h1n-BeZ59ldVPCeU1TUARRdIdx5kTvzaNpr6-8j0_tAFiGPyK4Pe7eiEmg24vLQ__3KQBdCyqA-BWJ25_69xD3bEN3M_WG3BNJk0uE5DpgkOIv2tUxhAo0gJfsvcjd-Y591S2WUEAdiQri2K-394oYYncUpEQiThcb8RNvVqxDgPWeyVGhiJI0N98P9xlZngS-rlF2wOIpbGU398F6IcSkliVvUpTe2dZjIcyl-SOQ9c0xAzO_bW6D8HTcX-mBci2VkLYJOydIxhjggr1WLwS5-qchVWXtsn9eDixdWe0SaiQCK1RjouAnDxevUpOaEPctf2G8OrUF5BNWWA5Ft0EE_44BuA7jmEdhY_dMb7VkZOWzyxeakNLvKUmZmDprcQK7KPD0HIPbCL3gQTi1LfSnGzgnCmgE7dKnxLOtG-BBc3oY7KXRjTz2GIPKNsPi4Im9ZqiKFdzA3lDtKr3modA1_oc6MmTtKAYUmMmHn6Hd_muC4MdwpNGilsD-FfVsIAtKGDTRwVNrn3hIinigmBd6geqBz8s8KfkyPSNc2kTesilggvPyzav2wb9v63ydwL6Q8VnzA4mpkiDdSlI8_g-twE4KevisGOtz9eEGDLhaEg5pVzvTJ8BR3UktmVFO5eyOWjukNDy-u6eD04VzApiwDSAaPvnbX3JWTztzr5fvezmabrNxewsabqDQ_5wxg4GE-0zLB0bSDLMduKVJQMXv2r31K3r5vPyqYC0OiBaamCp2tknTD-EhucTM-FYo1tymy-Jmli3mqMW__NO_PUYRhQdTDzQQQwMASa48tNyD1g9tlVilYcLi6CDsK-8gv2o3FqZTqyDg-HGtyTB0Rrp-Q8USndllug4QlDRnZ9EIK-OqGLTHJhckhMO8dpVncxGQsFJ3weG1zJnHj6w6VZWaYtLF17LoZ2eIT8oiaxiwlzs72Hq27De4cpKM441y7GXnu4qql7xe5HzoraTDvfKvJTbv4XEuLRlU7Ew_8caij54_JfGeis5GwEiLP9lB8WvcSsijunW3mEp7d168lMb-HikN5t5g11QW8fi6459liltWOHMwPulFva-qV-X-Lq9API1Lo35jEXV85o9D_l0duiuvMR-5gkW7rCM-z-0p5JqLSxRFVzd7d4tSAfriR_fI5MZgXPxNt808KjXhK5dnX3uzyLVihcZ5DvCiQVwIXQXlQXOUmATOetdT7bRVB97bcmGxxj2m9eXeiXljFY8OTSzHqck1hlvUtY3-AIKa6dk0HiM_hiDbzhaeLDsPNq7kjJIuRQZRZ3t4oPD1n4eyFZEC4nXWyEBbFguqvqz7tla07ByXV2YRhVrFMvYtyVrD9Kzy_vcQ7tLJFVQG2FR8D8CuxQkd-lgsvlYvBSgSN9PP7W2ZezfUelVu7_2YMJfn9B7y0f-_xpGRo7Sjve8w4azGQxRWBscDy-iBE_3Ol4c2jc4ahNR2Y1nsXm9qntK6ajAx_uXaA9771B2IitR3SNm2RgknftFBLAOdr2PM8NsXlcwFCb7qcXbVXGTr7ep12asULf21NJcLgwCopeFrbJR-m-YMiE-NblJgtdHv-dWdKfBvrXOR2esfL6twcwUU0bsXW04bUUj4n_k5Bg68XdtZEzNtafZ5w-VskbLF3ghS71DKbTWB842VPKTHOeirarKtxI3-J9k6gmLZ2Y25VTnnK3qCi0c74GNl_acMn4p70Rv1_YznxUwpfP9r_Sp1lZJcDMnpawDq-v1i--1YveqsE1P8bOUPA087bZPWlboBPCm7mAonFg2MG25Ih9e0VoDwkNiTFJ97kQGC5cJfbMltSRoFVTmAqcP6e1rYlnSZi_qmA3J3it4h0dR_KljwZdjwh5RebGCW5x2BNueE_A5V1O49micRTVM_XmAHf0nYtPSMKE2kxNPQb7vmxTZnVDkcav8KIRA1lSZ1SfNYusHI0_jevbb2bGVYwmdVK947NdwcRvt8lb8yEVgR5vIfxCuIAkNEFX_NntKcmy0WNOg4hiCeBwC_nhAdddnHIjCTmKS2ZGSeooMQt2gii_1ex68SENLspShtvEDfcFTxXkQs8Q8GnFvKmT9oy-BeLUpDyEWfOkMyTfAj1n7LGxb8rN_3HMFjyQLVGuc4wumaDkCj4mJUYS7iQNQAEmYYdK7QBIyKRj9YvZCaRBJQnVN0GAyAUeGKkZDP1hUD5YKvEy5tr30P3cZslGhfmRszVKzmdQVyaVEOsynEF2Nyg798v3XVUYVi2iUKgXkqs69O5TESndqNsblW1veu9yFFkRhHFz6CXIq2K-Bk_BfJkNCLj5QCDImvXtUjWQz6TKeIY9YLaM3tIxp7Hlvcz5Sv3f46IPXeQCC5O4hNm7zaHGhb7uEJk4FereoRUtq7-k9-lIf6eSy5MPHLaKWRsDX-v3Wiq-xoXRLTnTHDjcLmVBIR0ztzAE9EujAODAeyULTcdLZiRmUZM_BHmoojsOu9cYsnxpdoK0OcrZV4T4wHuLsHH9HEGUOenV-OjDEZTiguZ617kikL6GUeCL9cPhuGEjTXVylefsDNSU3Bsay5qklFoIm9gT-slNGblR-Di1X-6ZnjdE-7wmfXg3lWIGfFI4tqqD_ePg7tSzRbaJhJ9ABWFxmyD5WsUMfGSkVjy2QnneJLQOk2NBFjxiaHf7GoADf9gHraT1q6aw9tEQaR5U9Xk3xmDMwP4B8z9vqlEwU8F48hAPKehxsTW6G9paNOz6gPrWxbllCg2w1IYejXSETtoxcBxOLYXtIOOkijZk7fqzdhM8S_qf_7Wno5KZaHR_VqPRZlJTkH0ydNNoqK8HDlGhD4CI3gnYqVlKRIpUk3ofZ1NLXWrxkhZlchXSd2PCp21v6FesI5STL2X2lLpJZYy18fzRewkyYSEzHTma33OGk5m29",
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": "Compreendido. Assumo meu papel como **Diagramador**. Iniciarei a análise da sua história de usuário e do contexto de negócio para construir o modelo arquitetural do Sistema de Transferências PIX.\n\nMeu primeiro passo será identificar o template ArchiMate mais adequado para representar a solução, com foco na visão de containers e integrações, conforme solicitado. Para isso, preciso listar os templates disponíveis."
+            },
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "thought_signature": null,
+              "function_call": {
+                "id": "adk-86ff0834-2a88-40ea-8859-d14a14a91ca5",
+                "args": {
+                  "session_state": null,
+                  "directory": "templates/"
+                },
+                "name": "list_templates"
+              },
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": null
+            }
+          ],
+          "role": "model"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": "STOP",
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": {
+          "cache_tokens_details": null,
+          "cached_content_token_count": null,
+          "candidates_token_count": 91,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 91
+            }
+          ],
+          "prompt_token_count": 1868,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 1868
+            }
+          ],
+          "thoughts_token_count": 2404,
+          "tool_use_prompt_token_count": null,
+          "tool_use_prompt_tokens_details": null,
+          "total_token_count": 4363,
+          "traffic_type": "ON_DEMAND"
+        },
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": -4.925488817822802,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-4fe28b88-9d4a-42c5-bc66-576f44a7c34b",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": [],
+        "branch": null,
+        "id": "c272e314-5eed-4b63-9ff1-ca2b9a5281d8",
+        "timestamp": 1761768762.192271
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "thought_signature": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": {
+                "will_continue": null,
+                "scheduling": null,
+                "parts": null,
+                "id": "adk-86ff0834-2a88-40ea-8859-d14a14a91ca5",
+                "name": "list_templates",
+                "response": {
+                  "directory": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates",
+                  "count": 1,
+                  "templates": [
+                    {
+                      "path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates\\BV-C4-Model-SDLC\\layout_template.xml",
+                      "relative_path": "BV-C4-Model-SDLC\\layout_template.xml",
+                      "model_identifier": "id-65a4951d-6114-409d-9562-9a80710d5866",
+                      "model_name": {
+                        "text": "25.3T.JT-XXXX.TE-XXXX-{MainSolutionName}",
+                        "lang": "pt"
+                      },
+                      "documentation": null,
+                      "views": [
+                        {
+                          "identifier": "id-171323",
+                          "name": "Visão de Container - {SolutionName}"
+                        },
+                        {
+                          "identifier": "id-219315",
+                          "name": "Visão de negócio - {SolutionName}",
+                          "documentation": "Botão \"1. Visão de negócio\" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/1. Visão de negócio"
+                        },
+                        {
+                          "identifier": "id-154903",
+                          "name": "Visão de contexto - {SolutionName}",
+                          "documentation": "Botão \"2. Visão de contexto\" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/2. Visão de contexto"
+                        },
+                        {
+                          "identifier": "id-194586",
+                          "name": "Visão Técnica - {SolutionName}"
+                        },
+                        {
+                          "identifier": "id-209915",
+                          "name": "JT-XXXX.TE-XXXX-{MainSolutionName}"
+                        },
+                        {
+                          "identifier": "id-207637",
+                          "name": "Visão de negócios e solução"
+                        },
+                        {
+                          "identifier": "id-222409",
+                          "name": "Visões de container"
+                        },
+                        {
+                          "identifier": "id-196480",
+                          "name": "Visões técnicas"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "text": null
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-4fe28b88-9d4a-42c5-bc66-576f44a7c34b",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "ab947355-6b55-42af-a181-2c25dd4456cd",
+        "timestamp": 1761768789.614378
+      }
+    ],
+    "last_update_time": 1761768789.614378
+  },
+  "event": {
+    "content": {
+      "parts": [
+        {
+          "video_metadata": null,
+          "thought": null,
+          "inline_data": null,
+          "file_data": null,
+          "function_call": null,
+          "code_execution_result": null,
+          "executable_code": null,
+          "function_response": {
+            "will_continue": null,
+            "scheduling": null,
+            "parts": null,
+            "id": "adk-86ff0834-2a88-40ea-8859-d14a14a91ca5",
+            "name": "list_templates",
+            "response": {
+              "directory": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates",
+              "count": 1,
+              "templates": [
+                {
+                  "path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates\\BV-C4-Model-SDLC\\layout_template.xml",
+                  "relative_path": "BV-C4-Model-SDLC\\layout_template.xml",
+                  "model_identifier": "id-65a4951d-6114-409d-9562-9a80710d5866",
+                  "model_name": {
+                    "text": "25.3T.JT-XXXX.TE-XXXX-{MainSolutionName}",
+                    "lang": "pt"
+                  },
+                  "documentation": null,
+                  "views": [
+                    {
+                      "identifier": "id-171323",
+                      "name": "Visão de Container - {SolutionName}"
+                    },
+                    {
+                      "identifier": "id-219315",
+                      "name": "Visão de negócio - {SolutionName}",
+                      "documentation": "Botão \"1. Visão de negócio\" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/1. Visão de negócio"
+                    },
+                    {
+                      "identifier": "id-154903",
+                      "name": "Visão de contexto - {SolutionName}",
+                      "documentation": "Botão \"2. Visão de contexto\" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/2. Visão de contexto"
+                    },
+                    {
+                      "identifier": "id-194586",
+                      "name": "Visão Técnica - {SolutionName}"
+                    },
+                    {
+                      "identifier": "id-209915",
+                      "name": "JT-XXXX.TE-XXXX-{MainSolutionName}"
+                    },
+                    {
+                      "identifier": "id-207637",
+                      "name": "Visão de negócios e solução"
+                    },
+                    {
+                      "identifier": "id-222409",
+                      "name": "Visões de container"
+                    },
+                    {
+                      "identifier": "id-196480",
+                      "name": "Visões técnicas"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "text": null
+        }
+      ],
+      "role": "user"
+    },
+    "grounding_metadata": null,
+    "partial": null,
+    "turn_complete": null,
+    "finish_reason": null,
+    "error_code": null,
+    "error_message": null,
+    "interrupted": null,
+    "custom_metadata": null,
+    "usage_metadata": null,
+    "live_session_resumption_update": null,
+    "input_transcription": null,
+    "output_transcription": null,
+    "avg_logprobs": null,
+    "logprobs_result": null,
+    "cache_metadata": null,
+    "invocation_id": "e-4fe28b88-9d4a-42c5-bc66-576f44a7c34b",
+    "author": "diagramador",
+    "actions": {
+      "skip_summarization": null,
+      "state_delta": {},
+      "artifact_delta": {},
+      "transfer_to_agent": null,
+      "escalate": null,
+      "requested_auth_configs": {},
+      "requested_tool_confirmations": {},
+      "compaction": null
+    },
+    "long_running_tool_ids": null,
+    "branch": null,
+    "id": "ab947355-6b55-42af-a181-2c25dd4456cd",
+    "timestamp": 1761768789.614378
+  },
+  "artifacts": []
+}
