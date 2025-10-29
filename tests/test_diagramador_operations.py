@@ -61,7 +61,7 @@ def reset_fallback_state():
 
 
 def test_list_templates_returns_entries(session_state):
-    result = list_templates(session_state=session_state)
+    result = list_templates(directory=None, session_state=session_state)
     assert result["status"] == "ok"
 
     listing = get_cached_artifact(
@@ -79,7 +79,7 @@ def test_list_templates_returns_entries(session_state):
 
 
 def test_describe_template_stores_blueprint(session_state):
-    result = describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    result = describe_template(str(SAMPLE_TEMPLATE), view_filter=None, session_state=session_state)
     assert result["status"] == "ok"
 
     guidance = get_cached_artifact(
@@ -112,7 +112,7 @@ def test_describe_template_filters_views(session_state):
 
 def test_agent_wrapper_describe_template_uses_session_state(session_state):
     response = diagramador_agent_module.describe_template(
-        str(SAMPLE_TEMPLATE), session_state=session_state
+        str(SAMPLE_TEMPLATE), None, session_state=session_state
     )
     assert response["status"] == "ok"
     assert response["artifact"] == SESSION_ARTIFACT_TEMPLATE_GUIDANCE
@@ -130,7 +130,7 @@ def test_agent_wrapper_describe_template_uses_session_state(session_state):
     assert "views" not in response
 
 def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state):
-    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    describe_template(str(SAMPLE_TEMPLATE), view_filter=None, session_state=session_state)
     with mock.patch(
         "tools.diagramador.operations._parse_template_blueprint",
         side_effect=AssertionError("blueprint should be served from cache"),
@@ -153,7 +153,7 @@ def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state)
 
 
 def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
-    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    describe_template(str(SAMPLE_TEMPLATE), view_filter=None, session_state=session_state)
     finalize_datamodel(
         sample_payload,
         str(SAMPLE_TEMPLATE),
@@ -168,6 +168,7 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
         result = generate_layout_preview(
             None,
             str(SAMPLE_TEMPLATE),
+            view_filter=None,
             session_state=session_state,
         )
     assert result["status"] == "ok"
@@ -210,7 +211,7 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert "primary_preview" not in result
     assert "artifacts" not in result
 
-    load_result = load_layout_preview(session_state=session_state)
+    load_result = load_layout_preview(view_filter=None, session_state=session_state)
     assert load_result["status"] == "ok"
     assert load_result["view_count"] == datamodel_view_count
     primary_loaded = load_result["primary_preview"]
@@ -225,6 +226,7 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload, se
     result = generate_layout_preview(
         sample_payload,
         ALTERNATIVE_TEMPLATE_PATH,
+        view_filter=None,
         session_state=session_state,
     )
     assert result["status"] == "ok"
@@ -272,6 +274,7 @@ def test_generate_layout_preview_without_session_state_uses_fallback(sample_payl
     result = generate_layout_preview(
         sample_payload,
         str(SAMPLE_TEMPLATE),
+        view_filter=None,
         session_state=None,
     )
     assert result["status"] == "ok"
@@ -294,7 +297,7 @@ def test_generate_layout_preview_without_session_state_uses_fallback(sample_payl
 
 
 def test_generate_layout_preview_filters_views(sample_payload, session_state):
-    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    describe_template(str(SAMPLE_TEMPLATE), view_filter=None, session_state=session_state)
     finalize_datamodel(
         sample_payload,
         str(SAMPLE_TEMPLATE),
@@ -341,7 +344,7 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
 
 
 def test_generate_layout_preview_filters_views_with_string(sample_payload, session_state):
-    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    describe_template(str(SAMPLE_TEMPLATE), view_filter=None, session_state=session_state)
     finalize_datamodel(
         sample_payload,
         str(SAMPLE_TEMPLATE),
@@ -390,6 +393,7 @@ def test_finalize_generates_preview_with_view_focus(sample_payload, session_stat
     result = generate_layout_preview(
         None,
         str(SAMPLE_TEMPLATE),
+        view_filter=None,
         session_state=session_state,
     )
     assert result["status"] == "ok"
@@ -406,14 +410,14 @@ def test_finalize_generates_preview_with_view_focus(sample_payload, session_stat
     if updated_preview["views"][0].get("layout_preview") is None:
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
 
-    load_result = load_layout_preview(session_state=session_state)
+    load_result = load_layout_preview(view_filter=None, session_state=session_state)
     assert load_result["status"] == "ok"
     assert load_result["view_count"] == 1
     assert load_result["previews"][0]["view_id"] == "id-154903"
 
 
 def test_load_layout_preview_without_session_state_returns_not_found():
-    result = load_layout_preview()
+    result = load_layout_preview(view_filter=None, session_state=None)
     assert result["status"] == "error"
     assert result.get("code") == "preview_not_found"
 
@@ -421,6 +425,7 @@ def test_load_layout_preview_without_session_state_returns_not_found():
     generate_layout_preview(
         SAMPLE_DATAMODEL.read_text(encoding="utf-8"),
         str(SAMPLE_TEMPLATE),
+        view_filter=None,
         session_state=None,
     )
     preview = get_cached_artifact(None, SESSION_ARTIFACT_LAYOUT_PREVIEW)
@@ -428,7 +433,7 @@ def test_load_layout_preview_without_session_state_returns_not_found():
         pytest.skip("Pré-visualização não pôde ser armazenada no fallback.")
     if any(view.get("layout_preview") is None for view in preview.get("views", [])):
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
-    load_result = load_layout_preview()
+    load_result = load_layout_preview(view_filter=None, session_state=None)
     assert load_result["status"] == "ok"
     assert load_result["view_count"] >= 1
     primary = load_result["primary_preview"]
@@ -462,6 +467,7 @@ def test_save_and_generate_archimate_diagram(tmp_path, sample_payload, session_s
         output_filename="test_diagram.xml",
         template_path=str(SAMPLE_TEMPLATE),
         validate=True,
+        xsd_dir=None,
         session_state=session_state,
     )
     assert xml_result["status"] == "ok"

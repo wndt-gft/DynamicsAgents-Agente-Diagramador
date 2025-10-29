@@ -80,7 +80,7 @@ def _make_tool(function, *, name: str | None = None):
     return tool
 
 
-def list_templates(directory: str = "", session_state: str = ""):
+def list_templates(directory: str | None, session_state: str | None):
     """Wrapper to keep the public signature simple for automatic calling."""
 
     coerced_state = _coerce_session_state(session_state)
@@ -89,8 +89,8 @@ def list_templates(directory: str = "", session_state: str = ""):
 
 def describe_template(
     template_path: str,
-    view_filter: str = "",
-    session_state: str = "",
+    view_filter: str | list[str] | None,
+    session_state: str | None,
 ):
     coerced_state = _coerce_session_state(session_state)
     filter_payload = view_filter or None
@@ -102,18 +102,14 @@ def describe_template(
 
 
 def generate_layout_preview(
-    datamodel: str = "",
-    template_path: str = "",
+    datamodel: str | None,
+    template_path: str | None,
     *,
-    view_filter: str = "",
-    session_state: str = "",
+    view_filter: str | list[str] | None,
+    session_state: str | None,
 ):
     coerced_state = _coerce_session_state(session_state)
-    filter_payload: Any | None
-    if not view_filter:
-        filter_payload = None
-    else:
-        filter_payload = view_filter
+    filter_payload: Any | None = view_filter or None
 
     return _generate_layout_preview(
         datamodel or None,
@@ -124,8 +120,8 @@ def generate_layout_preview(
 
 
 def load_layout_preview(
-    view_filter: str = "",
-    session_state: str = "",
+    view_filter: str | list[str] | None,
+    session_state: str | None,
 ):
     coerced_state = _coerce_session_state(session_state)
     filter_payload: Any | None = view_filter or None
@@ -138,7 +134,7 @@ def load_layout_preview(
 def finalize_datamodel(
     datamodel: str,
     template_path: str,
-    session_state: str = "",
+    session_state: str | None,
 ):
     coerced_state = _coerce_session_state(session_state)
     return _finalize_datamodel(
@@ -149,9 +145,9 @@ def finalize_datamodel(
 
 
 def save_datamodel(
-    datamodel: str = "",
-    filename: str = DEFAULT_DATAMODEL_FILENAME,
-    session_state: str = "",
+    datamodel: str | None,
+    filename: str | None,
+    session_state: str | None,
 ):
     target = filename or DEFAULT_DATAMODEL_FILENAME
     payload: Any | None = datamodel or None
@@ -160,12 +156,12 @@ def save_datamodel(
 
 
 def generate_archimate_diagram(
-    model_json_path: str = "",
-    output_filename: str = DEFAULT_DIAGRAM_FILENAME,
-    template_path: str = "",
-    validate: bool = True,
-    xsd_dir: str = "",
-    session_state: str = "",
+    model_json_path: str | None,
+    output_filename: str | None,
+    template_path: str | None,
+    validate: bool | None,
+    xsd_dir: str | None,
+    session_state: str | None,
 ):
     target_output = output_filename or DEFAULT_DIAGRAM_FILENAME
     coerced_state = _coerce_session_state(session_state)
@@ -173,7 +169,7 @@ def generate_archimate_diagram(
         model_json_path or None,
         output_filename=target_output,
         template_path=template_path or None,
-        validate=validate,
+        validate=True if validate is None else validate,
         xsd_dir=xsd_dir or None,
         session_state=coerced_state,
     )

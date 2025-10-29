@@ -6,13 +6,20 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import re
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+
+try:
+    from dotenv import load_dotenv  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - dependency optional em testes offline
+    load_dotenv = None
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -95,6 +102,43 @@ if str(REPO_ROOT) not in sys.path:
 
 from agents.diagramador.agent import get_root_agent  # noqa: E402
 from agents.diagramador.prompt import ORCHESTRATOR_PROMPT  # noqa: E402
+
+
+def _load_environment() -> None:
+    """Carrega variáveis de ambiente definidas em arquivos ``.env``."""
+
+    if load_dotenv is None:
+        return
+
+    env_candidates = [REPO_ROOT / ".env", REPO_ROOT / "tests" / "user_simulator" / ".env"]
+    for env_file in env_candidates:
+        if env_file.exists():
+            load_dotenv(env_file, override=False)
+
+
+def _ensure_credentials() -> None:
+    """Valida que credenciais necessárias estão configuradas."""
+
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GENAI_API_KEY")
+    project = os.getenv("VERTEXAI_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT")
+    location = os.getenv("VERTEXAI_LOCATION") or os.getenv("GOOGLE_CLOUD_LOCATION")
+
+    if api_key or (project and location):
+        return
+
+    raise SystemExit(
+        "Credenciais não configuradas. Defina GOOGLE_API_KEY ou as variáveis "
+        "VERTEXAI_PROJECT e VERTEXAI_LOCATION (ou GOOGLE_CLOUD_PROJECT/GOOGLE_CLOUD_LOCATION)."
+    )
+
+
+def _utcnow() -> datetime:
+    """Retorna o horário atual em UTC com timezone explícito."""
+
+    return datetime.now(timezone.utc)
+
+
+_load_environment()
 
 
 @dataclass
@@ -229,7 +273,7 @@ def _copy_static_assets(case_dir: Path, run_dir: Path) -> None:
 
 
 def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_run: bool) -> Path:
-    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    timestamp = _utcnow().strftime("%Y%m%d-%H%M%S")
     run_identifier = f"{timestamp}-{run_name}" if run_name else timestamp
     run_dir = case_dir / "results" / run_identifier
     artefacts_dir = run_dir / "artefacts"
@@ -253,7 +297,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     "description": flow.description,
                     "expected_outcomes": flow.expected_outcomes,
                     "dry_run": True,
-                    "timestamp": timestamp,
+                    "timestamp": _utcnow().isoformat(),
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -273,6 +317,8 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
         return run_dir
 
     user_history = (case_dir / "user_history.txt").read_text(encoding="utf-8")
+
+    _ensure_credentials()
 
     agent = get_root_agent()
     runner = InMemoryRunner(agent=agent)
@@ -296,7 +342,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
             session_log.write(
                 json.dumps(
                     {
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": _utcnow().isoformat(),
                         "step": step.name,
                         "event_type": "user_message",
                         "payload": user_message,
@@ -316,7 +362,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                 session_log.write(
                     json.dumps(
                         {
-                            "timestamp": datetime.utcnow().isoformat(),
+                            "timestamp": _utcnow().isoformat(),
                             "step": step.name,
                             "event_type": "agent_event",
                             "payload": event_payload,
