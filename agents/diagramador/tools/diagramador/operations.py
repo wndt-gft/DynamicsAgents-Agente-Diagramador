@@ -10,6 +10,7 @@ import json
 import logging
 import re
 import textwrap
+import unicodedata
 import warnings
 from pathlib import Path
 from collections.abc import Iterable, MutableMapping, Sequence
@@ -71,6 +72,60 @@ def _placeholder_token(value: str, fallback: str = "preview") -> str:
     token = token.strip("-")
     return token or fallback
 
+
+_CONTROL_CHAR_CLEAN_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
+_INVALID_ESCAPE_RE = re.compile(r"(?<!\\)\\([^\"\\/bfnrtu])")
+_TOKEN_SPLIT_RE = re.compile(r"[\s\-–—:/|]+")
+
+
+def _safe_json_loads(raw_text: str) -> Any:
+    """Parse JSON tolerating minor formatting issues produced by the LLM."""
+
+    if not isinstance(raw_text, str):
+        raise TypeError("Esperado texto JSON para parsing.")
+
+    stripped = raw_text.strip()
+    if not stripped:
+        raise ValueError("Conteúdo JSON vazio.")
+
+    # First attempt with the original payload for proper errors if already valid.
+    try:
+        return json.loads(stripped)
+    except json.JSONDecodeError as exc:
+        last_error = exc
+
+    # Remove ASCII control characters that aren't valid in JSON.
+    sanitized = _CONTROL_CHAR_CLEAN_RE.sub("", stripped)
+    if sanitized != stripped:
+        try:
+            return json.loads(sanitized)
+        except json.JSONDecodeError as exc:  # pragma: no cover - defensive path
+            last_error = exc
+    else:
+        sanitized = stripped
+
+    # Repair invalid escape sequences like Windows paths ("\folder\file").
+    def _fix_invalid_escape(match: re.Match[str]) -> str:
+        tail = match.group(1)
+        if tail is None:
+            return "\\\\"
+        return "\\\\" + tail
+
+    repaired = _INVALID_ESCAPE_RE.sub(_fix_invalid_escape, sanitized)
+    if repaired != sanitized:
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError as exc:  # pragma: no cover - defensive path
+            last_error = exc
+    else:
+        repaired = sanitized
+
+    # As a final attempt relax strict checks; still raises JSONDecodeError if invalid.
+    try:
+        return json.loads(repaired, strict=False)
+    except json.JSONDecodeError as exc:
+        last_error = exc
+        raise last_error
 
 def _resolve_package_path(path: Path) -> Path:
     """Resolve a resource path relative to the package when needed."""
@@ -1725,8 +1780,8 @@ def save_datamodel(
     if datamodel is not None:
         raw_text = _content_to_text(datamodel)
         try:
-            payload = json.loads(raw_text)
-        except json.JSONDecodeError as exc:
+            payload = _safe_json_loads(raw_text)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
             logger.error("Falha ao converter datamodel para JSON", exc_info=exc)
             raise ValueError(
                 "O conteúdo enviado para `save_datamodel` não é um JSON válido."
@@ -1745,8 +1800,8 @@ def save_datamodel(
                 payload = copy.deepcopy(cached.get("datamodel"))
                 if payload is None and cached.get("json"):
                     try:
-                        payload = json.loads(str(cached["json"]))
-                    except (TypeError, json.JSONDecodeError):
+                        payload = _safe_json_loads(str(cached["json"]))
+                    except (TypeError, ValueError, json.JSONDecodeError):
                         payload = None
                 if payload is not None:
                     raw_text = json.dumps(payload, indent=2, ensure_ascii=False)
@@ -1806,8 +1861,8 @@ def finalize_datamodel(
 
     raw_text = _content_to_text(datamodel)
     try:
-        base_payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
+        base_payload = _safe_json_loads(raw_text)
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
         logger.error("Datamodel de entrada inválido para finalização", exc_info=exc)
         raise ValueError("O conteúdo recebido não é um JSON válido.") from exc
 
@@ -1982,7 +2037,25 @@ def _view_token_candidates(source: Optional[Dict[str, Any]]) -> set[str]:
         if isinstance(value, str):
             candidate = value.strip()
             if candidate:
-                tokens.add(candidate.casefold())
+                normalized = unicodedata.normalize("NFKC", candidate)
+
+                def _register(token_value: str) -> None:
+                    trimmed = token_value.strip()
+                    if not trimmed:
+                        return
+                    tokens.add(trimmed.casefold())
+                    ascii_variant = unicodedata.normalize("NFD", trimmed)
+                    ascii_variant = "".join(
+                        ch for ch in ascii_variant if not unicodedata.combining(ch)
+                    )
+                    ascii_variant = unicodedata.normalize("NFC", ascii_variant).strip()
+                    if ascii_variant:
+                        tokens.add(ascii_variant.casefold())
+
+                _register(normalized)
+                for fragment in _TOKEN_SPLIT_RE.split(normalized):
+                    if fragment and len(fragment) >= 2:
+                        _register(fragment)
     return tokens
 
 
@@ -2223,9 +2296,12 @@ def generate_layout_preview(
     if datamodel is not None:
         raw_text = _content_to_text(datamodel)
         try:
-            payload = json.loads(raw_text)
-        except json.JSONDecodeError as exc:
-            logger.error("Datamodel inválido para pré-visualização de layout", exc_info=exc)
+            payload = _safe_json_loads(raw_text)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            logger.error(
+                "Datamodel inválido para pré-visualização de layout",
+                exc_info=exc,
+            )
             raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
     else:
         cached = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
@@ -2233,8 +2309,8 @@ def generate_layout_preview(
             payload = copy.deepcopy(cached.get("datamodel"))
             if payload is None and cached.get("json"):
                 try:
-                    payload = json.loads(str(cached["json"]))
-                except (TypeError, json.JSONDecodeError):
+                    payload = _safe_json_loads(str(cached["json"]))
+                except (TypeError, ValueError, json.JSONDecodeError):
                     payload = None
 
     if not isinstance(payload, MutableMapping):
