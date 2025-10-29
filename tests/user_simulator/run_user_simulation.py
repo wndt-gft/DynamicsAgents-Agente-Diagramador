@@ -253,6 +253,20 @@ def _extract_text_from_event(event: dict[str, Any]) -> str:
     return "\n".join(texts)
 
 
+def _scrub_thought_signature(payload: Any) -> Any:
+    """Remove a propriedade ``thought_signature`` de estruturas arbitrárias."""
+
+    if isinstance(payload, dict):
+        return {
+            key: _scrub_thought_signature(value)
+            for key, value in payload.items()
+            if key != "thought_signature"
+        }
+    if isinstance(payload, list):
+        return [_scrub_thought_signature(item) for item in payload]
+    return payload
+
+
 def _build_user_message(step: StepDefinition, user_history: str) -> str:
     if step.type == "user_history":
         template = step.prompt_template or "{user_history}"
@@ -335,26 +349,24 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     model_error: dict[str, Any] | None = None
 
     with session_log_path.open("w", encoding="utf-8") as session_log:
+        session_log.write("# Log de sessão do usuário com o agente Diagramador\n\n")
         for step in flow.steps:
             user_message = _build_user_message(step, user_history)
             content = types.Content(
                 role="user",
                 parts=[types.Part(text=user_message)],
             )
+            step_timestamp = _utcnow().isoformat()
             session_log.write(
-                json.dumps(
-                    {
-                        "timestamp": _utcnow().isoformat(),
-                        "step": step.name,
-                        "event_type": "user_message",
-                        "payload": user_message,
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
+                f"## Passo: {step.name}\n"
+                f"Horário: {step_timestamp}\n\n"
+                "**Usuário**\n"
+                "--------------\n"
+                f"{user_message}\n\n"
             )
 
             abort_step = False
+            agent_responses: list[str] = []
 
             try:
                 for event in runner.run(
@@ -364,17 +376,16 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     run_config=run_config,
                 ):
                     event_payload = event.model_dump(mode="json")
+                    sanitized_payload = _scrub_thought_signature(event_payload)
+                    event_timestamp = _utcnow().isoformat()
                     session_log.write(
-                        json.dumps(
-                            {
-                                "timestamp": _utcnow().isoformat(),
-                                "step": step.name,
-                                "event_type": "agent_event",
-                                "payload": event_payload,
-                            },
-                            ensure_ascii=False,
-                        )
-                        + "\n"
+                        "**Agente Diagramador**\n"
+                        "----------------------\n"
+                        f"Horário: {event_timestamp}\n"
+                        f"{_extract_text_from_event(sanitized_payload) or '[sem texto disponível]'}\n\n"
+                        "```json\n"
+                        f"{json.dumps(sanitized_payload, ensure_ascii=False, indent=2)}\n"
+                        "```\n\n"
                     )
 
                     snapshot = asyncio.run(
@@ -409,7 +420,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     _write_session_state_snapshot(
                         state_path=state_path,
                         snapshot=snapshot,
-                        event_payload=event_payload,
+                        event_payload=sanitized_payload,
                         artifacts=artifacts_records,
                     )
 
@@ -417,22 +428,29 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         text = _extract_text_from_event(event_payload)
                         if text:
                             final_agent_text.append(text)
+                            agent_responses.append(text)
             except genai_errors.ClientError as exc:  # pragma: no cover - requer ambiente real
                 model_error = _serialize_model_error(exc)
                 session_log.write(
-                    json.dumps(
-                        {
-                            "timestamp": _utcnow().isoformat(),
-                            "step": step.name,
-                            "event_type": "model_error",
-                            "payload": model_error,
-                        },
-                        ensure_ascii=False,
-                    )
-                    + "\n"
+                    "**Erro do Modelo**\n"
+                    "------------------\n"
+                    f"Horário: {_utcnow().isoformat()}\n"
+                    f"{json.dumps(model_error, ensure_ascii=False, indent=2)}\n\n"
                 )
                 session_log.flush()
                 abort_step = True
+
+            expected_text = step.expect or "Nenhum resultado esperado definido."
+            analysis = _analyze_expectation(step.expect, agent_responses, model_error)
+            session_log.write(
+                "**Esperado**\n"
+                "-----------\n"
+                f"{expected_text}\n\n"
+                "**Resultado**\n"
+                "------------\n"
+                f"{analysis}\n\n"
+                "---\n\n"
+            )
 
             if abort_step:
                 break
@@ -655,6 +673,42 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Não aciona a LLM; apenas prepara a estrutura de diretórios e arquivos.",
     )
     return parser.parse_args(argv)
+
+
+def _analyze_expectation(
+    expected: str | None,
+    responses: Iterable[str],
+    model_error: dict[str, Any] | None,
+) -> str:
+    if model_error:
+        return (
+            "A execução foi interrompida por um erro do provedor. Consulte o bloco de erro "
+            "acima para detalhes."
+        )
+
+    collected = "\n".join(response for response in responses if response)
+
+    if not expected or not expected.strip():
+        if collected:
+            return (
+                "Nenhum resultado esperado definido para este passo. A resposta do agente foi "
+                "registrada para acompanhamento."
+            )
+        return (
+            "Nenhum resultado esperado definido e o agente não retornou conteúdo comparável."
+        )
+
+    if not collected:
+        return "Nenhuma resposta do agente para comparar com o esperado."
+
+    normalized_expected = expected.strip().lower()
+    if normalized_expected in collected.lower():
+        return "✅ O conteúdo retornado contém o texto esperado."
+
+    return (
+        "❌ O conteúdo retornado não contém o texto esperado. Compare manualmente com a "
+        "resposta do agente registrada acima."
+    )
 
 
 def _serialize_model_error(exc: Exception) -> dict[str, Any]:
