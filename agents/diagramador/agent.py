@@ -46,7 +46,12 @@ def _coerce_session_state(
     """
 
     if session_state is None:
-        return None, False
+        # Cria um bucket vazio para garantir que as tools possam armazenar
+        # resultados no estado de sessão mesmo quando o chamador não forneceu
+        # explicitamente um dicionário. Isso mantém as respostas concisas,
+        # pois os dados volumosos serão persistidos no estado e não retornados
+        # diretamente ao LLM.
+        return {}, True
 
     if isinstance(session_state, MutableMapping):
         return session_state, False

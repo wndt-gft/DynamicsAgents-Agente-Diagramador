@@ -32,6 +32,7 @@ from tools.diagramador import (
     save_datamodel,
 )
 from tools.diagramador import operations
+from agents.diagramador import agent as diagramador_agent_module
 
 SAMPLE_TEMPLATE = operations._resolve_package_path(DEFAULT_TEMPLATE)
 SAMPLE_DATAMODEL = operations._resolve_package_path(
@@ -99,6 +100,27 @@ def test_describe_template_filters_views(session_state):
     focus_tokens = get_view_focus(session_state)
     assert focus_tokens == ["id-154903".casefold()]
 
+
+def test_agent_wrapper_describe_template_uses_session_state():
+    response = diagramador_agent_module.describe_template(str(SAMPLE_TEMPLATE))
+    assert response["status"] == "ok"
+    assert response["artifact"] == SESSION_ARTIFACT_TEMPLATE_GUIDANCE
+    assert "session_state" in response
+
+    serialized_state = response["session_state"]
+    assert isinstance(serialized_state, str)
+    restored_state = json.loads(serialized_state)
+
+    guidance = get_cached_artifact(
+        restored_state, SESSION_ARTIFACT_TEMPLATE_GUIDANCE
+    )
+    assert guidance["model"]["identifier"]
+    assert guidance.get("views", {}).get("diagrams")
+
+    # Resposta deve permanecer enxuta, sem incluir a estrutura completa do
+    # template diretamente.
+    assert "model" not in response
+    assert "views" not in response
 
 def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state):
     describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
