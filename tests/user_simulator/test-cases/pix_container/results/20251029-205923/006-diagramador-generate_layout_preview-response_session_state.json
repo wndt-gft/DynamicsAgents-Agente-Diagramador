@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-29T20:34:46.934669+00:00",
+  "timestamp": "2025-10-29T21:01:42.170736+00:00",
   "session": {
     "id": "pix-container-simulation",
     "app_name": "InMemoryRunner",
@@ -14,7 +14,6 @@
               "thought": null,
               "inline_data": null,
               "file_data": null,
-              "thought_signature": null,
               "function_call": null,
               "code_execution_result": null,
               "executable_code": null,
@@ -39,7 +38,7 @@
         "avg_logprobs": null,
         "logprobs_result": null,
         "cache_metadata": null,
-        "invocation_id": "e-4b16d3b2-3dce-41a1-b927-f3836d4fb2d1",
+        "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
         "author": "user",
         "actions": {
           "skip_summarization": null,
@@ -53,8 +52,8 @@
         },
         "long_running_tool_ids": null,
         "branch": null,
-        "id": "d11f2de5-150d-495e-9621-9f0c36969899",
-        "timestamp": 1761770019.011433
+        "id": "a4964f0d-5af5-43a3-bd95-c12ab1035f9c",
+        "timestamp": 1761771563.822584
       },
       {
         "content": {
@@ -64,24 +63,22 @@
               "thought": null,
               "inline_data": null,
               "file_data": null,
-              "thought_signature": "CqwjAePx_14iZdg7iNWdNGdVUjYY4CGFiLLPEx-g6MWZFDCQKIVMaFqb7sCqbPG22jzu86EfJ5GWpr3-6Q9ZOvYcmVl9MbY-sm4J4e78LNNa9759rbSBPm7LKter3kGYXiVkw6cQD0BjeIJ8KwsHqkEqylKwK4SakDp4A_vKeChjlRUYTgKoDKZZ9XtUFBUUCh5vsI2sZtLFFfI7sxXKKIFCoVaneBQFXjCf-5T5u_pPX5tXpBUbID_yN9n4sMtNHV8Gyurzc3SxZqPuPVbwYCuSHqYoZkxIXuq7vfw7lWoIx0Sgntxw0Tv3pAjkO430SFPFZuHGMM3aeaF34wnoJDvvHZhotkudl26dQX-T1HdV7cvFNaMW8Fplp20bejc8BATfVaPu_lEKwliwrta0QnSoXQ7mO1PDw4BERyig2Vg6gI8bsRBI_-HI32iD3R0mAMio5SaiWecp7P-W0uRHfzicBE1qfZy5S9yXH2kCN1rd_1WV5oBYt63yNQf_p0TwLsMmA-74o2EBeM0-BtlaphjW6kFVDzFNwD2rZq23vwtvBXPgyeGoBWxtdiQuk-QCpMTFdUe6EXwDdiTIokP82ihDAnntTVXzzTEgGgjQgj3Y86Eo3idb8xTzffwPg2vDiK8vaVf7xR8uqHcFMmR2Asvr__F3dpYGSrnTOCEShC2yX4xWL-XIFTGPbsedIp1EjSgeCJ6cJ-RlQEALkkexEHDAw6xliRb-xB8UmAhHLhMpT6Z0QqS-b5M82eQ28QIFUxQrDPjrBCNL-E2JDwrJpFlbDL7YuyHKI21YMvCH4QZ202yofT6KRsnEjPN8ZHmAJaOUrCKnHCN_z4Ae60atSJIJDslgLA5U0fRk1VnNytxve2rpzRMLiKC3WW8N-yKNgbwVyWAcbK7iTbRrUK3LigpIjIed9zdQSxMZKS_M4CBXHbLcESojNqJTy71QaN6ylzHBXsmDIPMVDqtdK3fWks0tFA0ni3ivHG93-Bd8Z9MrivU_kReU4ht78nqZoG1yTpUTzsQPGfK5cC6ib19wjDi3AqfegkzGaHgIGFWbeeyrUFAv0Xa3hClhLEi2HNdFUQmrRs5437hObCwjqnS_vU_DupTppkGaBatuINXcEIlZ01eBL-2XQwitNzE3ROe_DYM1RmRmbnFU1Wf3Jb-g93S8D9BRUzDBTiaoN5ykOFJz5jalAyz96v52XlARi2cF2AkzkXUaboJrlwpebSbJDO7Z3sPoFwShu1ncgI0gi13GEn8CnYZ1boQwn17jkk7NV1m24fXy4078a97BTJbRB7YbPITAhtkMXZhKV1PW2OKzDCex82JxjHrm3fhF7h6QMetvCA98cu6sOI_sxMoZSug7xClVWfjWg9VMDSjx0lNRv1ZB1PaNJ5_Yzf-HFJykSrGIzrDwdxvWzDj5K2w0hbtSr0HoYxpprf0LIyOZJqJAV2XlK-ZTRkPFMcWJ9elF1bZ0uYvKfbXAS5hLpqDrPbkb9NRxs1rBXQK5SfB2KT3Jl-5TCp_RVuNm5zOU-7wD2q4oVwiCuQ6K_q9dI1qZHpk-LPFjRGFga3pbYxwEnQwgvB819FU4OYK7YdgB4LDUHyn6ex6On7qM7DP5hjClI_cKmjvcyWuZx5tqPkJHi5-EnnPyPtfUKPz5sXVqmplgeHfzc18igsuHnVkzWxvStYCaQASDZTeZCqnzuMpBBs2Wup7Fu9L8QYBup_A778lwUZEPRIVdLvZUmdrONBT3YQlahW3S8S-OhNfaV_sy6QT89nMj3gE_1xFoLO0iiKolsN1goTCm-5ej2IXf4EfiYl_O-7UspCLmdk2TbHWMDakOU2XpbVOvYDVQggbBO7-CNs5yRQGCMIL_n15SS_sQg7ZmBhe_mRK_4YKuad0a6lM7m74Jt15I1pxQx3CvREFPZuYJVfeQljWwtbvsTQKE2ybqU_XOaRKjhZ3aGjIltkK-ayeAwl_rHY91Do0hX3yr-V0S5MCfV07eGEXglkwlihrPZPsuKUDOJTYn7OFF1_FYWHvbr4lXvkbJJio7KDcWWRXuaxx0NAw43AN5OQTb8R-lDjwsKCHxmAaA0c6xRU3PzpGQRzI8uQZLwRoPHtFeWAgRUS6GO4A0ZF3QbDvL97TIM2PmRL76hRDuNLVxgXAP1suBnBbyd_b1q6YXOB0ul4WAcM-nWZx4MLG3vrGy7cDupaWYRzIJWvqyzLD1-99CbteMYdRhRbon1YyZKBbv6JhfOFudiN2uhTkbs79-9NOUjKowNMwIPNzl-u1VdGfBLnfdlYutDad_6n6GlcFN9WtNhgBR7qMb_musEmRzKhFbmu4oBIa0Ra6r6wZXtniV9LVyHOgNQjfHVPSN2VNGjxjDuKOf629GRSu41kG6oFvyRqWTbsYFyzaLv5UK0g3uOL0rkxQPdKnHxH6g3glyrBJ7gQL3VPoX3kTb5WZoe0_YSD2g6EcgmodPxbzayjz_4P76jdjxvV-IGUes9wzmmiusQoelud7ccyQFe_QFXIBLZzBTIPqbNAoxZLYdnE8TQhMtzIZc02UKtyeDDZMygJs_3Pzn9W3BPPzmzpn6OBz9EnfJUizX6-iWXGxgLscMXoeNvFEEUgla9dAsAithm3NIIg930yKzYvNRc_YK88TYV_iiptbZxDr04Kd1F2XFeiYB2gIlpY1GfHfIfel_ZWpeGGn0J5DDEIrBxjDM6rWpWnqvkSddU15DEXfkBrzMldp9pvKXm16FthHUZs51-0VeEngO2HeYQRG_hkFz1qUKLbh2XPyou2iVHrIuWCl9J9H1zKz3KQ1JSbLKO-ovWr5XcQWxoYqex43r5glTyg_M5IsORjoK9MGS6Yh5sQi62RLSU3DhuAa3ctO8t1BdjUKjFkMI2MCXDQcfEQldSSYr1fKYKKBqeZqGL9wGm30VEN4EigcPGW4KLGJA45736CWor0MM9SmTfM5hRtPKqAydHJilu6lYvFexZBKYZcdSpihjLGkQVl9-37-LQumatHYB_2embMU9T6zHJa5w957HakYr8600ewDZRSVxxSqIYTosQi7G3UFLY3emGdFzMdCA9Uaq16FconnK-QmlKAeZSo-PiH8xjajUFDhd2fR2v4FCrygLhfIodRxoHSxSveaR_1IydYrmk5hSK1Jo8nnz0YX_rDIS4Z5oyxp66ZtOVYpN4C1v7OxGl9GIvnRmZ6MR_5qNOs4Gg_g3QlHHNFxeCCp7XueR_mSfc5qfOlURu04xEdNCDrYdvhH91rWeCJH73j__my4SrIlFIQ9UVD0f4MRrirPK8CLT84wetH3Ov7m9pTgimtHk6CjR_NIbkdA6RrKtVyk0XRGg9pItyV0gkBksH9n07fKpC5EDqcj9j19T_DMOhGLoA2ipTpglBaSiJh7TJ7HPg7aUO2Ah2QoqjcqX-513gQGh--HGgjqEGCRlwnlkZaDKqX4d4CFCJp23RWppggJbzju1HWPwZwk7z5rl0Rtto1XeAM5OrSMeZfJ9kSkHNtTIUhqulfBT6I-mAzxoXNuIpDdTkEIiCZgJa_4WvnQqTa8KJlxCB1z7wUB44dVZvAZrq-GiUJW0KMPVwSSg59FlGozDvLwsd0nvBbkyb-gK8TCoquzmLb3sl-y5AlOS91ItaZ2B4OoWsrn1UF7v2eDGtIVh_pz20LVS4oWEQipSSaOQQLYfAZn9dFec7yyQcydKy4fDWezQKj2TtVcT_s_sumHIDdSSNmMiICvhrEmGS6vAGJkUkqhf2hOkgPCk2RM4K6HEA1zqSSS8kwLDy9_9WgypmGEt_gmGVeLiwb95_CpMBj-ZzsjBFgoEYVvMdEm6eLQDb82cAevqfTOCumsc_fWP27LV7vHI7sA1Y-HK4VGBej35ROQID-vX6nfwimc2XxQyF69ahWqEYuZpmFQBfK-Mx8_z0E5TfUSf1c8bftXkU_br26bNAEG5vjHBgAd5S8cOP3g9_2uJiiE3NBTiKJTQrSQ9nhudCsEirVVSQUUjQJNUtGJERpmKXEgwb921aSjSX_46IGo1Z9OIhOBS0Q-tgl_mdsZfszzurZg6-G3yrelBmuFIFvpcp_mapkfF_p66jrLFBeebdL9LRQfrOQAhntBN31Sexpi-UBfiqyB7LXTzwF-VyTXc7SFVquxWYRfDLTO0uoa9pCAQPZbHxABRfQXk82Imri_IzTZxbfo9rrWVS2MSfnuymaTx5IB0bY1P20bF6-IUyQT6r7iwFah_BzZjJJMgsLM_QgHUKYCTuAJUFLhyANqpq4kgFDilUCxrda_Y-63yboFF8m_N0HB2NNi0y4Ij_2-pAHshBKi5bHYSs4irgMZuaMP3HsPJqMMbfth3ATAuKdVIjJaJNS9YHyzmRCJsnP-2Plit_k-NmeDK5nz87XwwoNYn8jsjoNCeZFDVFtnYW_J5ASope9YYcwa9oKGZr5NFjjd3_Cpfo7szUlGskZHvD5HDDJrzDjZADI49EOWyIaTTjX9cn9IqE-qsYjX0wAHdh9Dtj3bIBb8eXxER2kosNmJ-dWP3dMxkeBdvqE1ZIcxXsSfNQyK-4gtFisUrWKgAOlSKvh909lsYIYxjhCgs7C1FtzBsjqk7iOL_RPUrytmQsnjtt356x2hPgDDG1cOJJeDR3T8Tj3kKNTcwBMeGXpTEMY5s4vRabr-AqSDj8uFOGB26_ASBuejNJ-p8I523joNyqRGZMZQIvhY3tS8UgKALIQL18cmG8vi1epz4LxNQLrdt5-mKCtGTtCmtK-UC5dTVMinmVRH_6nRD03xV86QRUEKm3pEdaoJjWYsU2yfzA_L9m6vVQ3bjodw5yfbt2pOSOgkgjzoDVoTMb9ddwnxHwIag_0yErtaa6GZnlbLEo561q6YLwf0AfO0b-QdppMiF2ZI_ZU2j0Dh_ih8i3-J1UPXh-gEi6hqa2Te5L9589IsuX1hjwtlwKz7mDpeCme2IrUWXqPG2s0XBkDzjaEQbK2xYgjJISPCPtxMsGo1JYUwtgv2g80fT_0QbLZyWYs6oIMfuQRw1I-slxkJx3QkIjrXR6U4SLQZZDHkizjO9aBywj2fP7EklWKySD4phIj61m-B-4V4YPLYlIUOH2JPqAyq04EAsTAtWpIps8_QaeYBBFvP9flCxdTo1z_QzflcuCdcgaFjmf_vSx7whASluWgh6I6aPU-ZcOHwmBJyN1HSNYUuKeW5TdiuMbKBy2YcGk8YLWUE8eO5cuK-TuWEHwjER6DsRJZLWdiJsi6o64fEadTtyM77lGyfWUuKXN3bxGRCPmvpiiQYuzo97GHzE9fSHd8BuO5w0Je4JDVxwiI0KZJHxRCEzu3x7o5mZ67FRyQlSBLDE6L5aB87rQ_XYzXWz5WuKEE4Gwbr39nDS4X_A5RqUIeBXGzTZaaRGSsQVUeCNXRKHjAFMqffbd97N7cc1pLA6ZUBHYw_3nVeZd7ZHIlHFTqNC4p3dbtEneTTEFIMjVF_YI3BP6WE-z9r9uNCbmdmEFgz741yK1Fj5azC7Ah4Au9JsS31MFCooTJnDRdp6Mbo7hnG-xS232zMva8775FVSlbzwycYMVn9yW-5rNjLw-UERjV25GLEqcaAiER1w7B-CrZY8b0ALJIaZTgpRIufr0bBL7V3hjvmdlozaWHHQEJskD6ZucOvxGlouavINR8AFwG4e5a-hX_wAa2tFJGtaiBQJTqW_1_N1cll-XqyTazeW7PPap8yZYghSP_zYRoD7S24H4ZZAOW1jR8zyqIcDK-c73m0v6vLOOFuCykEJimI7-WTmiTWCEhgrR3FLe1HxIzeakEMZWQc1iPVxsqVx3Coe23VauUNZ9zvN2SrTjXdPvGrOTGi6PhwEYB9r2Np81hbkR7qpkV3zt0RYq7OURpKYT_W3bFSCLpBAEqGz6RP_LZoM5-KJgX3PfEjJ0FUSq-I5mW47FMXNxS9mdqUmWxFdoWsk_Lvn3K_0wY7ET-qS8y0KoWkA7uv5EBh8J0Q5vl5S4JZIbmkRetZ8SPm-wZBlpdgygEXfsKiPan5M3ffF",
               "function_call": null,
               "code_execution_result": null,
               "executable_code": null,
               "function_response": null,
-              "text": "Olá! Sou o Diagramador, seu arquiteto corporativo para transformar histórias de usuário em modelos ArchiMate.\n\nCom base no contexto de negócio, na história de usuário e nos critérios de aceite fornecidos, iniciarei o processo de modelagem da arquitetura para a funcionalidade de transferência PIX.\n\nMeu primeiro passo é identificar os templates disponíveis para encontrarmos o mais adequado para representar a solução.\n\n"
+              "text": "Compreendido. Inicio o processo de arquitetura e modelagem do Sistema de Transferências PIX com base na história de usuário e nos critérios de aceite fornecidos.\n\nMeu primeiro passo é identificar o template mais adequado para representar a arquitetura em questão. Para isso, listarei os templates disponíveis."
             },
             {
               "video_metadata": null,
               "thought": null,
               "inline_data": null,
               "file_data": null,
-              "thought_signature": null,
               "function_call": {
-                "id": "adk-e135ea66-2ca5-491d-9e64-9b0e22628cfd",
+                "id": "adk-bf534d99-78d3-4df3-af8e-b6914d7b7975",
                 "args": {
                   "session_state": "",
-                  "directory": "templates"
+                  "directory": "templates/"
                 },
                 "name": "list_templates"
               },
@@ -104,11 +101,11 @@
         "usage_metadata": {
           "cache_tokens_details": null,
           "cached_content_token_count": null,
-          "candidates_token_count": 90,
+          "candidates_token_count": 67,
           "candidates_tokens_details": [
             {
               "modality": "TEXT",
-              "token_count": 90
+              "token_count": 67
             }
           ],
           "prompt_token_count": 1868,
@@ -118,19 +115,19 @@
               "token_count": 1868
             }
           ],
-          "thoughts_token_count": 2547,
+          "thoughts_token_count": 3996,
           "tool_use_prompt_token_count": null,
           "tool_use_prompt_tokens_details": null,
-          "total_token_count": 4505,
+          "total_token_count": 5931,
           "traffic_type": "ON_DEMAND"
         },
         "live_session_resumption_update": null,
         "input_transcription": null,
         "output_transcription": null,
-        "avg_logprobs": -6.059865993923611,
+        "avg_logprobs": -6.992025346898321,
         "logprobs_result": null,
         "cache_metadata": null,
-        "invocation_id": "e-4b16d3b2-3dce-41a1-b927-f3836d4fb2d1",
+        "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
         "author": "diagramador",
         "actions": {
           "skip_summarization": null,
@@ -144,8 +141,8 @@
         },
         "long_running_tool_ids": [],
         "branch": null,
-        "id": "ef141737-dc41-4685-bc45-a66ade5649bd",
-        "timestamp": 1761770019.013369
+        "id": "acc0441f-a5b1-4331-b64c-39c541cb6cf9",
+        "timestamp": 1761771563.824633
       },
       {
         "content": {
@@ -155,7 +152,6 @@
               "thought": null,
               "inline_data": null,
               "file_data": null,
-              "thought_signature": null,
               "function_call": null,
               "code_execution_result": null,
               "executable_code": null,
@@ -163,7 +159,7 @@
                 "will_continue": null,
                 "scheduling": null,
                 "parts": null,
-                "id": "adk-e135ea66-2ca5-491d-9e64-9b0e22628cfd",
+                "id": "adk-bf534d99-78d3-4df3-af8e-b6914d7b7975",
                 "name": "list_templates",
                 "response": {
                   "directory": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates",
@@ -238,7 +234,7 @@
         "avg_logprobs": null,
         "logprobs_result": null,
         "cache_metadata": null,
-        "invocation_id": "e-4b16d3b2-3dce-41a1-b927-f3836d4fb2d1",
+        "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
         "author": "diagramador",
         "actions": {
           "skip_summarization": null,
@@ -252,8 +248,8 @@
         },
         "long_running_tool_ids": null,
         "branch": null,
-        "id": "dd0077d6-9496-4727-a4b7-14451d746e06",
-        "timestamp": 1761770077.784479
+        "id": "31242d74-07ba-48da-a7e8-f64a70c0fec9",
+        "timestamp": 1761771631.667644
       },
       {
         "content": {
@@ -263,25 +259,23 @@
               "thought": null,
               "inline_data": null,
               "file_data": null,
-              "thought_signature": "CrgHAePx_14AZaO7_i0zHYkTa7uj5Kfcdrq1m48oDbmhsB21RHsQnNTMpmSj3mGsY9KMJ9cb4yBv09OhudsPbmOeV8skRqokp8WAd9RQwhr_W1n6fq4qulGLAogZclSUG4tSDuGHSy4O4QXcS8TLB6pvSDT4r_FfNaa60GWK40GUwdTpzDW1VTTd3W-K2aJ7ckZLEPxLg_uqyz5cKwtcCmz8mIvUEn3JadpY1dPOoZGML3s4lEZOf8O4SQNIo7LUvJddq3nqBMySbym8GvOfn6qyVQRHnX726hZjTA0BvrIBUks10JNLf74Rsr8l3yglw4cu43Dk8U3P69vi5h2wBw0OlLTHLpSh_9ZHZaX4B-_WmETBbSsT1MofA_Y1IAJk9v60Ct1Im_N1pQgJEojh-r55MHOfyrxDx5k0duyGBbtZfxz2AHb6qOgKhJTRCeXdNYcXLYI_u_4dCa76eOKDOkIptbTXtdmKGfjOpqr-bfvOWm3rAIsaX_Oo29_0d1H7X85RBrjv-A7MWZd0JGtr-DWLkLt0ifp5o4x7ygBeZw6JApkBRi4lJvCbTEra3Ul7ZSRo1856NRC1VB8t6zhn_Di-cqcGXO2ClG0uPIbm8DUfqc4ON3J8T7gmI4Me0csVJfr2_rZ1-F5shnUrbomGwkGLqyKv8LjppGIPDOZDF3ertrGumtsIyV8A7qLlj4daeXL9njoTf7fJCQRp3PoDCGPm__CZz9cJ4sPeo8YTuqH_ocOtYWPTc7u2ohz-GhK7sO6RyMGKvnsWLeFf-HSz-3rFPdFUV8x--QAnIQJjw-cZeK8J_ZCYf-OzdPGxEDriFnc2ZuM9PS4MGqV6PBbevjaIqcOV1s2u7inxEj_M0FB_BUgRWWhOBfaRqHadZj0aJw10VGWcf7Pvj_A_8nzurrPkzUEyBU0FrYvVdy0hzKQ9k5w9wDA-1LtN0rVxH_VXUMMIm5kjDUHCica1xySbC4B7m5ORSvxv0OC4A_4QwKHdh9eOy4hKMcIpr2TVHo-5GkuV55Yth_FmFyrIcmfNAkEmxSTzJ_jTzAKuSrIQPNvW9I1cjBrHmP-C1zx5Hk5tXMmyFQ2IR7yC--yFJa085ym3CcYzuxK-iIuriFDBam3-skBE7uiAFpTbIhkwdeZPMKE9HdOnKEUKVYFuvoJL2zPYuiyZFJD_YDHVE0ESPv_Dcw0TlO3R3jwZ9Hj6JDdn0BAcS81M6h85_-0J8rTJb9LauC61d0RSeRGPxXJS1nlUKosdZ5nrY4UISw==",
               "function_call": null,
               "code_execution_result": null,
               "executable_code": null,
               "function_response": null,
-              "text": "Excelente. O sistema localizou o template `BV-C4-Model-SDLC`, que é ideal para nossa necessidade, pois inclui uma \"Visão de Container\", alinhada ao critério de aceite nº 8. Este modelo nos permite representar os principais componentes de software, seus relacionamentos e as tecnologias envolvidas, exatamente como a história de usuário solicita.\n\nAgora, vou analisar a estrutura detalhada desta visão para entender como mapear os elementos da história do PIX.\n\n"
+              "text": "A análise revelou um template disponível: `BV-C4-Model-SDLC`. Este template é ideal, pois inclui uma \"Visão de Container\", que foi explicitamente solicitada para exibir os componentes tecnológicos, suas integrações e os fluxos de dados do \"Sistema de Transferências PIX\".\n\nO próximo passo é inspecionar detalhadamente a estrutura deste template, com foco na visão de container, para entender como mapear os elementos da história de usuário."
             },
             {
               "video_metadata": null,
               "thought": null,
               "inline_data": null,
               "file_data": null,
-              "thought_signature": null,
               "function_call": {
-                "id": "adk-1db10e6b-e14f-44c0-a11e-18a9c40b76a4",
+                "id": "adk-5901112d-eb9c-407d-9414-e70fcdc398d4",
                 "args": {
-                  "template_path": "BV-C4-Model-SDLC\\layout_template.xml",
+                  "view_filter": "id-171323",
                   "session_state": "",
-                  "view_filter": "id-171323"
+                  "template_path": "BV-C4-Model-SDLC/layout_template.xml"
                 },
                 "name": "describe_template"
               },
@@ -302,35 +296,40 @@
         "interrupted": null,
         "custom_metadata": null,
         "usage_metadata": {
-          "cache_tokens_details": null,
-          "cached_content_token_count": null,
-          "candidates_token_count": 134,
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 1652
+            }
+          ],
+          "cached_content_token_count": 1652,
+          "candidates_token_count": 131,
           "candidates_tokens_details": [
             {
               "modality": "TEXT",
-              "token_count": 134
+              "token_count": 131
             }
           ],
-          "prompt_token_count": 2342,
+          "prompt_token_count": 2319,
           "prompt_tokens_details": [
             {
               "modality": "TEXT",
-              "token_count": 3451
+              "token_count": 3736
             }
           ],
-          "thoughts_token_count": 218,
+          "thoughts_token_count": 282,
           "tool_use_prompt_token_count": null,
           "tool_use_prompt_tokens_details": null,
-          "total_token_count": 2694,
+          "total_token_count": 2732,
           "traffic_type": "ON_DEMAND"
         },
         "live_session_resumption_update": null,
         "input_transcription": null,
         "output_transcription": null,
-        "avg_logprobs": -0.5152701762185168,
+        "avg_logprobs": -0.43521147283888956,
         "logprobs_result": null,
         "cache_metadata": null,
-        "invocation_id": "e-4b16d3b2-3dce-41a1-b927-f3836d4fb2d1",
+        "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
         "author": "diagramador",
         "actions": {
           "skip_summarization": null,
@@ -344,8 +343,8 @@
         },
         "long_running_tool_ids": [],
         "branch": null,
-        "id": "a79e80ad-e84d-4296-a7ae-bf0c94b12a0a",
-        "timestamp": 1761770077.789204
+        "id": "a26ab177-2fb8-4dcc-921f-480f6b789235",
+        "timestamp": 1761771631.669632
       },
       {
         "content": {
@@ -355,7 +354,6 @@
               "thought": null,
               "inline_data": null,
               "file_data": null,
-              "thought_signature": null,
               "function_call": null,
               "code_execution_result": null,
               "executable_code": null,
@@ -363,7 +361,7 @@
                 "will_continue": null,
                 "scheduling": null,
                 "parts": null,
-                "id": "adk-1db10e6b-e14f-44c0-a11e-18a9c40b76a4",
+                "id": "adk-5901112d-eb9c-407d-9414-e70fcdc398d4",
                 "name": "describe_template",
                 "response": {
                   "model": {
@@ -1203,7 +1201,7 @@
         "avg_logprobs": null,
         "logprobs_result": null,
         "cache_metadata": null,
-        "invocation_id": "e-4b16d3b2-3dce-41a1-b927-f3836d4fb2d1",
+        "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
         "author": "diagramador",
         "actions": {
           "skip_summarization": null,
@@ -1217,11 +1215,168 @@
         },
         "long_running_tool_ids": null,
         "branch": null,
-        "id": "4500984a-198d-44c0-8379-5f2bf3abadf8",
-        "timestamp": 1761770086.926317
+        "id": "989cfeeb-76cb-4d30-a64c-f59af7447ccb",
+        "timestamp": 1761771641.730885
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": "A análise do template `BV-C4-Model-SDLC` confirma que ele é perfeitamente adequado. A \"Visão de Container\" possui uma estrutura de camadas (Layers) que nos permite organizar de forma clara os canais, gateways, a lógica de execução principal e as integrações externas.\n\nApresento a seguir a proposta arquitetural e o datamodel para a sua validação. Mapeei os componentes e fluxos descritos na história de usuário para os elementos correspondentes do template.\n\n### Proposta Arquitetural\n\n1.  **Canais e Gateways de Entrada**:\n    *   Os sistemas `Mobile Banking App` e `Internet Banking` serão representados como um único elemento \"Canais Digitais\" na **Layer de Canais**.\n    *   As requisições dos canais chegarão através do `API Gateway PIX`, posicionado na **Layer GATEWAY INBOUND**, garantindo um ponto de entrada único e seguro.\n\n2.  **Lógica de Execução (Core do Sistema)**:\n    *   O coração do sistema, o `Sistema de Transferências PIX`, será modelado na **Layer EXECUTION LOGIC**.\n    *   O `Serviço de Transferências PIX` atuará como orquestrador principal.\n    *   Este orquestrador irá interagir com os demais componentes nesta camada: `Serviço de Validação de Saldo`, `Motor Antifraude PIX`, `Serviço de Chaves PIX` (que por sua vez consulta o DICT), `Serviço de Autenticação Transacional`, `Serviço de Notificações` e `Serviço de Comprovantes Digitais`.\n\n3.  **Gerenciamento de Dados**:\n    *   Na **Layer DATA MANAGEMENT**, estarão as tecnologias de persistência:\n        *   `PostgreSQL Transacional PIX` para os dados da transação.\n        *   `Tópicos de Auditoria (Kafka)` para o registro de eventos.\n        *   `Redis Cache PIX` para notificações assíncronas.\n\n4.  **Gateways de Saída e Integrações Externas**:\n    *   O `Load Balancer PIX` será o componente na **Layer GATEWAY OUTBOUND**, gerenciando as conexões com os sistemas externos.\n    *   Na **Layer EXTERNAL INTEGRATION**, estarão representados os sistemas de terceiros: `SPI BACEN`, `DICT BACEN` e o `Gateway de Notificações Push`. O `Conector Core Banking` também é posicionado nesta camada, por fazer a ponte com um sistema legado externo ao domínio do PIX.\n\nAbaixo, apresento a primeira versão do diagrama de container para sua avaliação. Ele reflete visualmente a estrutura que acabei de descrever.\n\nEstou gerando a pré-visualização do diagrama. Um momento, por favor."
+            },
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": {
+                "id": "adk-8902c236-a572-40f7-b06b-e9afffc2b5b8",
+                "args": {
+                  "datamodel": "\n{\n    \"model_identifier\": \"id-65a4951d-6114-409d-9562-9a80710d5866\",\n    \"elements\": [\n        {\n            \"identifier\": \"id-3db4884e4ef2449292c1953d4bda30c7\",\n            \"name\": \"Canais Digitais (Mobile & IB)\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Representa os canais Mobile Banking App e Internet Banking, por onde o cliente inicia a transferência PIX.\"\n        },\n        {\n            \"identifier\": \"id-35719f23fe184d95ad5d2190c6f202be\",\n            \"name\": \"API Gateway PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Gateway de entrada para todas as requisições da jornada PIX, garantindo segurança e roteamento.\"\n        },\n        {\n            \"identifier\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"name\": \"Serviço de Transferências PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Orquestrador central do fluxo de transferência, responsável por coordenar as validações e a comunicação com o SPI.\"\n        },\n        {\n            \"identifier\": \"id-pix-saldo\",\n            \"name\": \"Serviço de Validação de Saldo\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Consulta o saldo disponível na conta do cliente antes de efetivar a transferência.\"\n        },\n        {\n            \"identifier\": \"id-pix-fraude\",\n            \"name\": \"Motor Antifraude PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Realiza a dupla checagem antifraude para mitigar riscos transacionais.\"\n        },\n        {\n            \"identifier\": \"id-pix-chaves\",\n            \"name\": \"Serviço de Chaves PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Consulta o DICT para validar a titularidade e os dados da chave PIX de destino.\"\n        },\n        {\n            \"identifier\": \"id-pix-auth\",\n            \"name\": \"Serviço de Autenticação\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Valida o segundo fator de autenticação (2FA) do cliente no canal.\"\n        },\n        {\n            \"identifier\": \"id-pix-notify\",\n            \"name\": \"Serviço de Notificações PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Envia notificações de envio e compensação da transferência para o cliente.\"\n        },\n        {\n            \"identifier\": \"id-pix-comprovante\",\n            \"name\": \"Serviço de Comprovantes\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Gera e disponibiliza o comprovante digital (PDF) da transação.\"\n        },\n        {\n            \"identifier\": \"id-pix-auditoria\",\n            \"name\": \"Serviço de Auditoria PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Recebe o resumo da transação para fins de auditoria e conformidade.\"\n        },\n        {\n            \"identifier\": \"id-da18b5f4b21a4bdab0c63fa99d95ba91\",\n            \"name\": \"PostgreSQL Transacional PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Banco de dados relacional para persistência das transações PIX.\"\n        },\n        {\n            \"identifier\": \"id-37401d37c1034a718ab785406022fc9c\",\n            \"name\": \"Tópicos de Auditoria (Kafka)\",\n            \"type\": \"ApplicationEvent\",\n            \"documentation\": \"Tópicos no Kafka para publicação de eventos de auditoria de forma assíncrona.\"\n        },\n        {\n            \"identifier\": \"id-pix-cache\",\n            \"name\": \"Redis Cache PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Cache para armazenamento de notificações assíncronas e dados de acesso rápido.\"\n        },\n        {\n            \"identifier\": \"id-a5185a2f58394a6891167652bb0b8021\",\n            \"name\": \"Load Balancer PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Balanceador de carga que direciona o tráfego para as integrações externas, como SPI e DICT.\"\n        },\n        {\n            \"identifier\": \"id-pix-conector-core\",\n            \"name\": \"Conector Core Banking\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Componente responsável por integrar com o sistema de core banking para atualização de limites e extratos.\"\n        },\n        {\n            \"identifier\": \"id-5816f0efb1ad40b0b1f6e67dc1fa86bb\",\n            \"name\": \"SPI BACEN\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Sistema de Pagamentos Instantâneos do Banco Central do Brasil. Sistema externo para liquidação da transferência.\"\n        },\n        {\n            \"identifier\": \"id-pix-dict\",\n            \"name\": \"DICT BACEN\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Diretório de Identificadores de Contas Transacionais. Sistema externo para consulta de chaves PIX.\"\n        },\n        {\n            \"identifier\": \"id-pix-push-gw\",\n            \"name\": \"Gateway de Notificações Push\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Sistema externo responsável pelo envio de notificações push para os dispositivos móveis.\"\n        }\n    ],\n    \"relations\": [\n        {\n            \"source\": \"id-3db4884e4ef2449292c1953d4bda30c7\", \"target\": \"id-35719f23fe184d95ad5d2190c6f202be\", \"type\": \"Triggering\", \"name\": \"Inicia transferência\", \"identifier\": \"id-rel-01\" \n        },\n        {\n            \"source\": \"id-35719f23fe184d95ad5d2190c6f202be\", \"target\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"type\": \"Triggering\", \"name\": \"Processa transferência\", \"identifier\": \"id-rel-02\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-pix-saldo\", \"type\": \"Triggering\", \"name\": \"Consulta saldo\", \"identifier\": \"id-rel-03\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-pix-fraude\", \"type\": \"Triggering\", \"name\": \"Valida fraude\", \"identifier\": \"id-rel-04\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-pix-chaves\", \"type\": \"Triggering\", \"name\": \"Valida chave PIX\", \"identifier\": \"id-rel-05\" \n        },\n        {\n            \"source\": \"id-pix-chaves\", \"target\": \"id-pix-dict\", \"type\": \"Triggering\", \"name\": \"Consulta chave\", \"identifier\": \"id-rel-06\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-pix-auth\", \"type\": \"Triggering\", \"name\": \"Solicita 2FA\", \"identifier\": \"id-rel-07\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-da18b5f4b21a4bdab0c63fa99d95ba91\", \"type\": \"Access\", \"name\": \"Grava transação\", \"identifier\": \"id-rel-08\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-37401d37c1034a718ab785406022fc9c\", \"type\": \"Triggering\", \"name\": \"Publica evento de auditoria\", \"identifier\": \"id-rel-09\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-a5185a2f58394a6891167652bb0b8021\", \"type\": \"Triggering\", \"name\": \"Envia ordem ao SPI\", \"identifier\": \"id-rel-10\" \n        },\n        {\n            \"source\": \"id-a5185a2f58394a6891167652bb0b8021\", \"target\": \"id-5816f0efb1ad40b0b1f6e67dc1fa86bb\", \"type\": \"Triggering\", \"name\": \"Liquida no SPI\", \"identifier\": \"id-rel-11\" \n        },\n        {\n            \"source\": \"id-5816f0efb1ad40b0b1f6e67dc1fa86bb\", \"target\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"type\": \"Triggering\", \"name\": \"Retorna confirmação\", \"identifier\": \"id-rel-12\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-pix-notify\", \"type\": \"Triggering\", \"name\": \"Dispara notificação\", \"identifier\": \"id-rel-13\" \n        },\n        {\n            \"source\": \"id-pix-notify\", \"target\": \"id-pix-push-gw\", \"type\": \"Triggering\", \"name\": \"Envia Push\", \"identifier\": \"id-rel-14\" \n        },\n        {\n            \"source\": \"id-pix-notify\", \"target\": \"id-pix-cache\", \"type\": \"Access\", \"name\": \"Salva notificação\", \"identifier\": \"id-rel-15\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-pix-conector-core\", \"type\": \"Triggering\", \"name\": \"Atualiza extrato/limite\", \"identifier\": \"id-rel-16\" \n        },\n        {\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\", \"target\": \"id-pix-comprovante\", \"type\": \"Triggering\", \"name\": \"Gera comprovante\", \"identifier\": \"id-rel-17\" \n        },\n        {\n            \"source\": \"id-pix-comprovante\", \"target\": \"id-pix-auditoria\", \"type\": \"Triggering\", \"name\": \"Envia resumo para auditoria\", \"identifier\": \"id-rel-18\" \n        }\n    ],\n    \"organizations\": [\n      {\n        \"label\": \"Views\",\n        \"items\": [\n          {\n            \"label\": \"Visões de container\",\n            \"items\": [\n              {\n                \"identifierRef\": \"id-171323\"\n              }\n            ]\n          }\n        ]\n      }\n    ],\n    \"views\": [\n        {\n            \"identifier\": \"id-171323\",\n            \"name\": \"Visão de Container - Sistema de Transferências PIX\"\n        }\n    ]\n}\n",
+                  "template_path": "BV-C4-Model-SDLC/layout_template.xml",
+                  "view_filter": "id-171323",
+                  "session_state": ""
+                },
+                "name": "generate_layout_preview"
+              },
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": null
+            }
+          ],
+          "role": "model"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": "STOP",
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 3351
+            }
+          ],
+          "cached_content_token_count": 3351,
+          "candidates_token_count": 3680,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 3680
+            }
+          ],
+          "prompt_token_count": 11160,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 12857
+            }
+          ],
+          "thoughts_token_count": 2000,
+          "tool_use_prompt_token_count": null,
+          "tool_use_prompt_tokens_details": null,
+          "total_token_count": 16840,
+          "traffic_type": "ON_DEMAND"
+        },
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": -0.09758518882419752,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": [],
+        "branch": null,
+        "id": "cf7b5022-2544-4b5b-b35a-6fecc8645939",
+        "timestamp": 1761771641.73545
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": {
+                "will_continue": null,
+                "scheduling": null,
+                "parts": null,
+                "id": "adk-8902c236-a572-40f7-b06b-e9afffc2b5b8",
+                "name": "generate_layout_preview",
+                "response": {
+                  "status": "ok",
+                  "artifact": "layout_preview",
+                  "view_count": 2,
+                  "message": "Pré-visualização armazenada com sucesso."
+                }
+              },
+              "text": null
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "af9126e7-16d1-4aad-8798-8442600fa376",
+        "timestamp": 1761771702.145116
       }
     ],
-    "last_update_time": 1761770086.926317
+    "last_update_time": 1761771702.145116
   },
   "event": {
     "content": {
@@ -1238,824 +1393,13 @@
             "will_continue": null,
             "scheduling": null,
             "parts": null,
-            "id": "adk-1db10e6b-e14f-44c0-a11e-18a9c40b76a4",
-            "name": "describe_template",
+            "id": "adk-8902c236-a572-40f7-b06b-e9afffc2b5b8",
+            "name": "generate_layout_preview",
             "response": {
-              "model": {
-                "identifier": "id-65a4951d-6114-409d-9562-9a80710d5866",
-                "name": "25.3T.JT-XXXX.TE-XXXX-{MainSolutionName}",
-                "path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates\\BV-C4-Model-SDLC\\layout_template.xml"
-              },
-              "elements": [
-                {
-                  "identifier": "id-9a9b5d551e904bfcbfce12a6197943a2",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Application Component"
-                },
-                {
-                  "identifier": "id-e493478723ba461f8f0731340cdff41f",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Application Component"
-                },
-                {
-                  "identifier": "id-da18b5f4b21a4bdab0c63fa99d95ba91",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Data Application Component",
-                  "documentation_hint": "Exemplo: Dados de cartão"
-                },
-                {
-                  "identifier": "id-a5185a2f58394a6891167652bb0b8021",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Gateway Outbound Component Element",
-                  "documentation_hint": "Component referente as funcionalidades do gateway de saída, exemplo: \"API Gateway Fatura out\""
-                },
-                {
-                  "identifier": "id-42f016f285604cbca15dbafb7438ac18",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Application Component"
-                },
-                {
-                  "identifier": "id-3db4884e4ef2449292c1953d4bda30c7",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Chanel Application Component",
-                  "documentation_hint": "Componentes diversos utilizados do canal"
-                },
-                {
-                  "identifier": "id-35719f23fe184d95ad5d2190c6f202be",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Gateway Inbound Component Element",
-                  "documentation_hint": "Component referente as funcionalidades do gateway de entrada, exemplo: \"API Gateway Conta in\""
-                },
-                {
-                  "identifier": "id-06d59e4560d847a8861b915405296e0a",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Application Component"
-                },
-                {
-                  "identifier": "id-1662934bb0ff40f5b4c10e88f49dd8c0",
-                  "type": "ApplicationProcess",
-                  "name_hint": "Chanel Process Component",
-                  "documentation_hint": "Componentes especificos de processos diversos utilizados do canal"
-                },
-                {
-                  "identifier": "id-ea78a465f32843da94bd2f5e8fdb1099",
-                  "type": "ApplicationEvent",
-                  "name_hint": "Chanel Event Component",
-                  "documentation_hint": "Componentes de eventos diversos utilizados do canal"
-                },
-                {
-                  "identifier": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Chanel Application Component",
-                  "documentation_hint": "Componentes de aplicação utilizados do canal"
-                },
-                {
-                  "identifier": "id-c2dc90e4f7d74f3c919e2ea0c71dc054",
-                  "type": "ApplicationProcess",
-                  "name_hint": "Chanel Process Component",
-                  "documentation_hint": "Componentes especificos de processos diversos utilizados do canal"
-                },
-                {
-                  "identifier": "id-a4e5d61e2fad4c96b8775d3fba9061ba",
-                  "type": "ApplicationEvent",
-                  "name_hint": "Chanel Event Component",
-                  "documentation_hint": "Componentes de eventos diversos utilizados do canal"
-                },
-                {
-                  "identifier": "id-ff4420a980a4408ca3f37e186600eba5",
-                  "type": "ApplicationEvent",
-                  "name_hint": "Sigla Event Component",
-                  "documentation_hint": "Componente de evento da execução lógica relativo com a sigla, exemplo:\n\n- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo"
-                },
-                {
-                  "identifier": "id-248825a7f0514d0883e8e72f271c6cdf",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Sigla Application Component",
-                  "documentation_hint": "Componente de aplicação da execução lógica relativo com a sigla, exemplos:\n\n- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. \"alteração de data de vencimento\", \"alteração de limite\", \"segunda via de cartão\", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço."
-                },
-                {
-                  "identifier": "id-37401d37c1034a718ab785406022fc9c",
-                  "type": "ApplicationEvent",
-                  "name_hint": "Data Event Component (copy)",
-                  "documentation_hint": "Exemplo: Dados de eventos de cartão"
-                },
-                {
-                  "identifier": "id-dafb5e39b03847c5beb7155f873d14de",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Sigla Application Component",
-                  "documentation_hint": "Componente de aplicação da execução lógica relativo com a sigla, exemplos:\n\n- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. \"alteração de data de vencimento\", \"alteração de limite\", \"segunda via de cartão\", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço."
-                },
-                {
-                  "identifier": "id-d32ab69807e245f0bc44735baba04623",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Application Component"
-                },
-                {
-                  "identifier": "id-054a6684fc7c404f8c9d3d8718379a6d",
-                  "type": "ApplicationEvent",
-                  "name_hint": "Sigla Event Component",
-                  "documentation_hint": "Componente de evento da execução lógica relativo com a sigla, exemplo:\n\n- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo"
-                },
-                {
-                  "identifier": "id-a4021f10be6c4c1096c75ea6cdc03f83",
-                  "type": "ApplicationEvent",
-                  "name_hint": "Application Event"
-                },
-                {
-                  "identifier": "id-7b0c03d4f05a410da57057c7e0b1ad25",
-                  "type": "ApplicationComponent",
-                  "name_hint": "Application Component"
-                },
-                {
-                  "identifier": "id-89aef989c04f448294e301fac2bb9f67",
-                  "type": "ApplicationEvent",
-                  "name_hint": "Application Event"
-                },
-                {
-                  "identifier": "id-9959e599181b4524bf9d082892d127da",
-                  "type": "Artifact",
-                  "name_hint": "Artifact"
-                },
-                {
-                  "identifier": "id-469670",
-                  "type": "Deliverable",
-                  "name_hint": "ARQCOR-9897"
-                },
-                {
-                  "identifier": "id-415459",
-                  "type": "WorkPackage",
-                  "name_hint": "JT-XXXX"
-                }
-              ],
-              "relationships": [
-                {
-                  "identifier": "id-5208d4b53f39489c875385ae1d18b89a",
-                  "type": "Triggering",
-                  "source": "id-dafb5e39b03847c5beb7155f873d14de",
-                  "target": "id-054a6684fc7c404f8c9d3d8718379a6d"
-                },
-                {
-                  "identifier": "id-44d0815f798249459770e25aa3e959d6",
-                  "type": "Triggering",
-                  "source": "id-d32ab69807e245f0bc44735baba04623",
-                  "target": "id-a4021f10be6c4c1096c75ea6cdc03f83"
-                },
-                {
-                  "identifier": "id-340253e03b0247bcb4fa80eae1b4367d",
-                  "type": "Triggering",
-                  "source": "id-054a6684fc7c404f8c9d3d8718379a6d",
-                  "target": "id-d32ab69807e245f0bc44735baba04623"
-                },
-                {
-                  "identifier": "id-9f4a255d7c7044ca950a4831328cf9f8",
-                  "type": "Serving",
-                  "source": "id-d32ab69807e245f0bc44735baba04623",
-                  "target": "id-9a9b5d551e904bfcbfce12a6197943a2"
-                },
-                {
-                  "identifier": "id-b43ea55d2f554a7a8808c5f2226a1bea",
-                  "type": "Serving",
-                  "source": "id-9a9b5d551e904bfcbfce12a6197943a2",
-                  "target": "id-9a9b5d551e904bfcbfce12a6197943a2"
-                },
-                {
-                  "identifier": "id-de5b98d2e4ad4e4c91be68c4d3f342c5",
-                  "type": "Triggering",
-                  "source": "id-9a9b5d551e904bfcbfce12a6197943a2",
-                  "target": "id-e493478723ba461f8f0731340cdff41f"
-                },
-                {
-                  "identifier": "id-71f6aa63a84848d8aec1570865dd7ac4",
-                  "type": "Triggering",
-                  "source": "id-d32ab69807e245f0bc44735baba04623",
-                  "target": "id-9a9b5d551e904bfcbfce12a6197943a2"
-                },
-                {
-                  "identifier": "id-966a757c907e4dbf91bff9a20826aab9",
-                  "type": "Triggering",
-                  "source": "id-d32ab69807e245f0bc44735baba04623",
-                  "target": "id-a5185a2f58394a6891167652bb0b8021"
-                },
-                {
-                  "identifier": "id-d43696f3b326435d9389cacc19e73197",
-                  "type": "Triggering",
-                  "source": "id-a5185a2f58394a6891167652bb0b8021",
-                  "target": "id-42f016f285604cbca15dbafb7438ac18"
-                },
-                {
-                  "identifier": "id-e71170cc00c4413cb7c298469733418b",
-                  "type": "Triggering",
-                  "source": "id-054a6684fc7c404f8c9d3d8718379a6d",
-                  "target": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
-                },
-                {
-                  "identifier": "id-a84d2dca787046568bcfdd292669cf2b",
-                  "type": "Triggering",
-                  "source": "id-35719f23fe184d95ad5d2190c6f202be",
-                  "target": "id-3db4884e4ef2449292c1953d4bda30c7"
-                },
-                {
-                  "identifier": "id-f751e171b27b4a7d9fef48c1c98be4c7",
-                  "type": "Triggering",
-                  "source": "id-35719f23fe184d95ad5d2190c6f202be",
-                  "target": "id-dafb5e39b03847c5beb7155f873d14de"
-                },
-                {
-                  "identifier": "id-eb8e066c2e25497abf12ed0d9be60aea",
-                  "type": "Triggering",
-                  "source": "id-3db4884e4ef2449292c1953d4bda30c7",
-                  "target": "id-35719f23fe184d95ad5d2190c6f202be"
-                },
-                {
-                  "identifier": "id-21b2d80dcea847cd92f828666d5f3a49",
-                  "type": "Triggering",
-                  "source": "id-a5185a2f58394a6891167652bb0b8021",
-                  "target": "id-06d59e4560d847a8861b915405296e0a"
-                },
-                {
-                  "identifier": "id-2eba8673d6ac473ab9436dc6db8a0d6d",
-                  "type": "Triggering",
-                  "source": "id-a5185a2f58394a6891167652bb0b8021",
-                  "target": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
-                },
-                {
-                  "identifier": "id-9477c6ff875f4173a25aad33ad44f6ce",
-                  "type": "Triggering",
-                  "source": "id-248825a7f0514d0883e8e72f271c6cdf",
-                  "target": "id-ff4420a980a4408ca3f37e186600eba5"
-                },
-                {
-                  "identifier": "id-f87a6ce51213455d936c5cf5f09fa565",
-                  "type": "Triggering",
-                  "source": "id-dafb5e39b03847c5beb7155f873d14de",
-                  "target": "id-248825a7f0514d0883e8e72f271c6cdf"
-                },
-                {
-                  "identifier": "id-2225e175d1354879b7ec60544b87f732",
-                  "type": "Triggering",
-                  "source": "id-248825a7f0514d0883e8e72f271c6cdf",
-                  "target": "id-a5185a2f58394a6891167652bb0b8021"
-                },
-                {
-                  "identifier": "id-da865efeab8746989fe4b4fe9ffa2a90",
-                  "type": "Triggering",
-                  "source": "id-37401d37c1034a718ab785406022fc9c",
-                  "target": "id-ff4420a980a4408ca3f37e186600eba5"
-                },
-                {
-                  "identifier": "id-3d4a5b0c678e4befa1746f3172082d37",
-                  "type": "Triggering",
-                  "source": "id-ff4420a980a4408ca3f37e186600eba5",
-                  "target": "id-37401d37c1034a718ab785406022fc9c"
-                },
-                {
-                  "identifier": "id-469668",
-                  "type": "Realization",
-                  "source": "id-415459",
-                  "target": "id-469670"
-                }
-              ],
-              "organizations": [
-                {
-                  "label": "Application",
-                  "items": [
-                    {
-                      "label": "Application Layer",
-                      "items": [
-                        {
-                          "identifierRef": "id-dafb5e39b03847c5beb7155f873d14de"
-                        },
-                        {
-                          "identifierRef": "id-d32ab69807e245f0bc44735baba04623"
-                        },
-                        {
-                          "identifierRef": "id-054a6684fc7c404f8c9d3d8718379a6d"
-                        },
-                        {
-                          "identifierRef": "id-a4021f10be6c4c1096c75ea6cdc03f83"
-                        }
-                      ]
-                    },
-                    {
-                      "label": "Components",
-                      "items": [
-                        {
-                          "label": "Container",
-                          "items": [
-                            {
-                              "label": "Application Component",
-                              "items": [
-                                {
-                                  "identifierRef": "id-7b0c03d4f05a410da57057c7e0b1ad25"
-                                },
-                                {
-                                  "identifierRef": "id-89aef989c04f448294e301fac2bb9f67"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "identifierRef": "id-9a9b5d551e904bfcbfce12a6197943a2"
-                    },
-                    {
-                      "identifierRef": "id-e493478723ba461f8f0731340cdff41f"
-                    },
-                    {
-                      "identifierRef": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
-                    },
-                    {
-                      "identifierRef": "id-a5185a2f58394a6891167652bb0b8021"
-                    },
-                    {
-                      "identifierRef": "id-42f016f285604cbca15dbafb7438ac18"
-                    },
-                    {
-                      "identifierRef": "id-3db4884e4ef2449292c1953d4bda30c7"
-                    },
-                    {
-                      "identifierRef": "id-35719f23fe184d95ad5d2190c6f202be"
-                    },
-                    {
-                      "identifierRef": "id-06d59e4560d847a8861b915405296e0a"
-                    },
-                    {
-                      "identifierRef": "id-1662934bb0ff40f5b4c10e88f49dd8c0"
-                    },
-                    {
-                      "identifierRef": "id-ea78a465f32843da94bd2f5e8fdb1099"
-                    },
-                    {
-                      "identifierRef": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
-                    },
-                    {
-                      "identifierRef": "id-c2dc90e4f7d74f3c919e2ea0c71dc054"
-                    },
-                    {
-                      "identifierRef": "id-a4e5d61e2fad4c96b8775d3fba9061ba"
-                    },
-                    {
-                      "identifierRef": "id-ff4420a980a4408ca3f37e186600eba5"
-                    },
-                    {
-                      "identifierRef": "id-248825a7f0514d0883e8e72f271c6cdf"
-                    },
-                    {
-                      "identifierRef": "id-37401d37c1034a718ab785406022fc9c"
-                    }
-                  ]
-                },
-                {
-                  "label": "Technology & Physical",
-                  "items": [
-                    {
-                      "label": "Components",
-                      "items": [
-                        {
-                          "label": "Container",
-                          "items": [
-                            {
-                              "label": "Application Component",
-                              "items": [
-                                {
-                                  "identifierRef": "id-9959e599181b4524bf9d082892d127da"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "label": "Implementation & Migration",
-                  "items": [
-                    {
-                      "label": "Implementation and migration elements",
-                      "items": [
-                        {
-                          "identifierRef": "id-469670"
-                        },
-                        {
-                          "identifierRef": "id-415459"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "label": "Relations",
-                  "items": [
-                    {
-                      "label": "Implementation and migration elements",
-                      "items": [
-                        {
-                          "identifierRef": "id-469668"
-                        }
-                      ]
-                    },
-                    {
-                      "identifierRef": "id-5208d4b53f39489c875385ae1d18b89a"
-                    },
-                    {
-                      "identifierRef": "id-44d0815f798249459770e25aa3e959d6"
-                    },
-                    {
-                      "identifierRef": "id-340253e03b0247bcb4fa80eae1b4367d"
-                    },
-                    {
-                      "identifierRef": "id-9f4a255d7c7044ca950a4831328cf9f8"
-                    },
-                    {
-                      "identifierRef": "id-b43ea55d2f554a7a8808c5f2226a1bea"
-                    },
-                    {
-                      "identifierRef": "id-de5b98d2e4ad4e4c91be68c4d3f342c5"
-                    },
-                    {
-                      "identifierRef": "id-71f6aa63a84848d8aec1570865dd7ac4"
-                    },
-                    {
-                      "identifierRef": "id-966a757c907e4dbf91bff9a20826aab9"
-                    },
-                    {
-                      "identifierRef": "id-d43696f3b326435d9389cacc19e73197"
-                    },
-                    {
-                      "identifierRef": "id-e71170cc00c4413cb7c298469733418b"
-                    },
-                    {
-                      "identifierRef": "id-a84d2dca787046568bcfdd292669cf2b"
-                    },
-                    {
-                      "identifierRef": "id-f751e171b27b4a7d9fef48c1c98be4c7"
-                    },
-                    {
-                      "identifierRef": "id-eb8e066c2e25497abf12ed0d9be60aea"
-                    },
-                    {
-                      "identifierRef": "id-21b2d80dcea847cd92f828666d5f3a49"
-                    },
-                    {
-                      "identifierRef": "id-2eba8673d6ac473ab9436dc6db8a0d6d"
-                    },
-                    {
-                      "identifierRef": "id-9477c6ff875f4173a25aad33ad44f6ce"
-                    },
-                    {
-                      "identifierRef": "id-f87a6ce51213455d936c5cf5f09fa565"
-                    },
-                    {
-                      "identifierRef": "id-2225e175d1354879b7ec60544b87f732"
-                    },
-                    {
-                      "identifierRef": "id-da865efeab8746989fe4b4fe9ffa2a90"
-                    },
-                    {
-                      "identifierRef": "id-3d4a5b0c678e4befa1746f3172082d37"
-                    }
-                  ]
-                },
-                {
-                  "label": "Views",
-                  "items": [
-                    {
-                      "items": [
-                        {
-                          "items": [
-                            {
-                              "items": [
-                                {
-                                  "identifierRef": "id-171323"
-                                }
-                              ]
-                            },
-                            {
-                              "identifierRef": "id-219315"
-                            },
-                            {
-                              "identifierRef": "id-154903"
-                            },
-                            {
-                              "identifierRef": "id-194586"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "identifierRef": "id-209915"
-                    },
-                    {
-                      "identifierRef": "id-207637"
-                    },
-                    {
-                      "identifierRef": "id-222409"
-                    },
-                    {
-                      "identifierRef": "id-196480"
-                    }
-                  ]
-                }
-              ],
-              "views": {
-                "diagrams": [
-                  {
-                    "identifier": "id-171323",
-                    "type": "Diagram",
-                    "name": "Visão de Container - {SolutionName}",
-                    "nodes": [
-                      {
-                        "identifier": "id-1328065",
-                        "type": "Label"
-                      },
-                      {
-                        "identifier": "id-1328062",
-                        "type": "Label",
-                        "label_hint": "Sub titulo do diagrama exemplo: Visão de container - Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC"
-                      },
-                      {
-                        "identifier": "id-1328082",
-                        "type": "Label",
-                        "label_hint": "Titulo da solução, exemplo: Plataforma e Produtos de Dados"
-                      },
-                      {
-                        "identifier": "id-1328081",
-                        "type": "Container",
-                        "label_hint": "Layer DATA MANAGEMENT",
-                        "documentation_hint": "Conatiner de elementos de gerenciamento de dados",
-                        "nodes": [
-                          {
-                            "identifier": "id-6d6c7c9cc5d849128a73781698f56bfd",
-                            "type": "Element",
-                            "elementRef": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
-                          },
-                          {
-                            "identifier": "id-6e3ca600781546f892a18495d735a525",
-                            "type": "Element",
-                            "elementRef": "id-37401d37c1034a718ab785406022fc9c"
-                          }
-                        ]
-                      },
-                      {
-                        "identifier": "id-1328074",
-                        "type": "Container",
-                        "label_hint": "Layer EXTERNAL INTEGRATION",
-                        "documentation_hint": "Layer contendo os canais externos de integração, como por exemplo: BLANKY e seus componentes.",
-                        "nodes": [
-                          {
-                            "identifier": "id-cd39d1ae05e84602b9909ab5ef51c763",
-                            "type": "Container",
-                            "label_hint": "Group",
-                            "documentation_hint": "Container por tipo de canais agrupando os elementos relativos, exemplo BANKLY.\n\n- Relacionamento: qualquer elemnto dentro da Layer de canais se comunica exclusivamente apenas com os elementos da layer \"GATEWAY OUTBOUND\"",
-                            "nodes": [
-                              {
-                                "identifier": "id-4b5442cf99744cdcaabc0a40319345e6",
-                                "type": "Element",
-                                "elementRef": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
-                              },
-                              {
-                                "identifier": "id-2a675b26e0fc460ebc161013f339f404",
-                                "type": "Element",
-                                "elementRef": "id-c2dc90e4f7d74f3c919e2ea0c71dc054"
-                              },
-                              {
-                                "identifier": "id-bb910d792af24683872fbd8e44aa3786",
-                                "type": "Element",
-                                "elementRef": "id-a4e5d61e2fad4c96b8775d3fba9061ba"
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "identifier": "id-1328078",
-                        "type": "Container",
-                        "label_hint": "Layer GATEWAY OUTBOUND",
-                        "documentation_hint": "Container de Gateways de Entrada",
-                        "nodes": [
-                          {
-                            "identifier": "id-37712ad4563449c6a7d771388b253e00",
-                            "type": "Element",
-                            "elementRef": "id-a5185a2f58394a6891167652bb0b8021"
-                          }
-                        ]
-                      },
-                      {
-                        "identifier": "id-1328066",
-                        "type": "Container",
-                        "label_hint": "Layer GATEWAY INBOUND",
-                        "documentation_hint": "Container de Gateways de Entrada",
-                        "nodes": [
-                          {
-                            "identifier": "id-8249df6b00904220bbd97049f96d13e8",
-                            "type": "Element",
-                            "elementRef": "id-35719f23fe184d95ad5d2190c6f202be"
-                          }
-                        ]
-                      },
-                      {
-                        "identifier": "id-1328077",
-                        "type": "Container",
-                        "label_hint": "Layer Etapas",
-                        "documentation_hint": "Layer de todas as etapas realizadas e observações.",
-                        "nodes": [
-                          {
-                            "identifier": "id-1328083",
-                            "type": "Label",
-                            "label_hint": "Elemento de nota para as Regras Aplicadas e Observações.\n\nExemplo:\n\n1 - Orch GCOC subscreve o tópico do GLIT que informa o novo limite garantido por CDB. 2 - Consulta os parâmetros do Cartão no atom PPRC. 3 - Recupera dados de Quina no CART. 4 - orch do GCOC requisita o orch do IPRC para realizar criação do contrato de crédito. 5 - Recupera token de identificação. 6 - O atom pessiste a requisição na base para atulização posterior após recebimento de evento de confirmação. 7- Envia a requisição de criaçãod e contrato de crédito para a Bankly. 8 - Por meio do webhook a Bankly envia os eventos de criação de contrato e liberação de limite."
-                          }
-                        ]
-                      },
-                      {
-                        "identifier": "id-1328072",
-                        "type": "Container",
-                        "label_hint": "Layer de Canais",
-                        "documentation_hint": "Container de canais",
-                        "nodes": [
-                          {
-                            "identifier": "id-1aaac1fc0c8e4c8288bcb62d40b4798d",
-                            "type": "Container",
-                            "label_hint": "Container de canais",
-                            "documentation_hint": "Container por tipo de canais agrupando os elementos relativos, exemplo BANKLY.\n\n- Relacionamento: qualquer elemnto dentro da Layer de canais se comunica exclusivamente apenas com os elementos da layer \"GATEWAY OUTBOUND\"",
-                            "nodes": [
-                              {
-                                "identifier": "id-a653ed9b742343bf92dc9a1c2599fdcd",
-                                "type": "Element",
-                                "elementRef": "id-3db4884e4ef2449292c1953d4bda30c7"
-                              },
-                              {
-                                "identifier": "id-6d6e258d7ca2407f92804f64b4d7ff46",
-                                "type": "Element",
-                                "elementRef": "id-1662934bb0ff40f5b4c10e88f49dd8c0"
-                              },
-                              {
-                                "identifier": "id-a9832addd82c446ea7959f0e44ee89f3",
-                                "type": "Element",
-                                "elementRef": "id-ea78a465f32843da94bd2f5e8fdb1099"
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "identifier": "id-1328068",
-                        "type": "Container",
-                        "label_hint": "Layer EXECUTION LOGIC",
-                        "documentation_hint": "Container de elementos relacionados ao fluxo da execução lógica contendo elementos do tpo container de siglas",
-                        "nodes": [
-                          {
-                            "identifier": "id-c29855f0bd6e478884815011462500ab",
-                            "type": "Label",
-                            "label_hint": "1"
-                          },
-                          {
-                            "identifier": "id-8f8ca5f03e824170afa997ebca68dbcf",
-                            "type": "Container",
-                            "label_hint": "SIGLA"
-                          },
-                          {
-                            "identifier": "id-4ad8986cdb314353b56229190c133b25",
-                            "type": "Label",
-                            "label_hint": "Sequencial de operação por siglas, 1,2,3,4,5..."
-                          },
-                          {
-                            "identifier": "id-3111c6571de948789b6448c8bf505dd5",
-                            "type": "Container",
-                            "label_hint": "Container de Siglas",
-                            "documentation_hint": "Container da sigla CMDB dos elementos exemplo ASDI: Sistema de notificações do feedback para squid, AADA-ANLT: Sigla para ambientes Analíticos em áreas referente a área de negócio do PLD, AADA-RISK: Autenticação Avançada risk usando CA Risk\n\nExemplo do datamodel de siglas:\n\n[\n\n{\n\n'u_acronym': 'AADA',\n\n'comments': 'Produto de autenticação avançada e avaliação risco',\n\n'u_install_status': 'Em Uso',\n\n'environment': 'Produção',\n\n'u_service_classification': 'Serviço de gestão de tecnologia',\n\n'u_tower': 'Prevenção Autenticação e Autorização - CORE',\n\n'u_squad_name': 'Prevenção Crimes Financeiros',\n\n'u_tribe_name': 'Serviço de Não Avalia Infraestrutura',\n\n'sys_cla': 'u_syste'\n\n},\n\n...",
-                            "nodes": [
-                              {
-                                "identifier": "id-2931c65da2db441da5b1998641c6aa5d",
-                                "type": "Element",
-                                "elementRef": "id-054a6684fc7c404f8c9d3d8718379a6d"
-                              },
-                              {
-                                "identifier": "id-0f7ba3b0297f41499e1b4709cfead71e",
-                                "type": "Element",
-                                "elementRef": "id-dafb5e39b03847c5beb7155f873d14de"
-                              }
-                            ]
-                          },
-                          {
-                            "identifier": "id-7a9ca719a6d34ed8bd32ce45bbb6ecdc",
-                            "type": "Label",
-                            "label_hint": "1"
-                          },
-                          {
-                            "identifier": "id-2fad2ab0cc2045fd84f36c2be410ef16",
-                            "type": "Label",
-                            "label_hint": "Sequencial de operação por siglas, 1,2,3,4,5..."
-                          },
-                          {
-                            "identifier": "id-30fbc75f93ce42708d6ead87abfeed3a",
-                            "type": "Container",
-                            "label_hint": "Container de Siglas",
-                            "documentation_hint": "Container da sigla CMDB dos elementos exemplo ASDI: Sistema de notificações do feedback para squid, AADA-ANLT: Sigla para ambientes Analíticos em áreas referente a área de negócio do PLD, AADA-RISK: Autenticação Avançada risk usando CA Risk\n\nExemplo do datamodel de siglas:\n\n[\n\n{\n\n'u_acronym': 'AADA',\n\n'comments': 'Produto de autenticação avançada e avaliação risco',\n\n'u_install_status': 'Em Uso',\n\n'environment': 'Produção',\n\n'u_service_classification': 'Serviço de gestão de tecnologia',\n\n'u_tower': 'Prevenção Autenticação e Autorização - CORE',\n\n'u_squad_name': 'Prevenção Crimes Financeiros',\n\n'u_tribe_name': 'Serviço de Não Avalia Infraestrutura',\n\n'sys_cla': 'u_syste'\n\n},\n\n...\n\n]",
-                            "nodes": [
-                              {
-                                "identifier": "id-1a6bd4fd6bd74261b3c540956158deb5",
-                                "type": "Element",
-                                "elementRef": "id-ff4420a980a4408ca3f37e186600eba5"
-                              },
-                              {
-                                "identifier": "id-54e453a7f6b24796b66c40fe48bc819e",
-                                "type": "Element",
-                                "elementRef": "id-248825a7f0514d0883e8e72f271c6cdf"
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "identifier": "id-482165",
-                        "type": "Label",
-                        "viewRef": "id-154903",
-                        "label_hint": "Visão de contexto - {SolutionName}"
-                      },
-                      {
-                        "identifier": "id-482164",
-                        "type": "Label",
-                        "viewRef": "id-219315",
-                        "label_hint": "Visão de negócio - {SolutionName}"
-                      },
-                      {
-                        "identifier": "id-482166",
-                        "type": "Element",
-                        "elementRef": "id-415459"
-                      }
-                    ],
-                    "connections": [
-                      {
-                        "identifier": "id-8f9e260702bb40278eae9461343d17bd",
-                        "type": "Relationship",
-                        "relationshipRef": "id-2eba8673d6ac473ab9436dc6db8a0d6d",
-                        "source": "id-37712ad4563449c6a7d771388b253e00",
-                        "target": "id-4b5442cf99744cdcaabc0a40319345e6"
-                      },
-                      {
-                        "identifier": "id-005a476687b44c678c73af259df5aea0",
-                        "type": "Relationship",
-                        "relationshipRef": "id-f751e171b27b4a7d9fef48c1c98be4c7",
-                        "source": "id-8249df6b00904220bbd97049f96d13e8",
-                        "target": "id-0f7ba3b0297f41499e1b4709cfead71e"
-                      },
-                      {
-                        "identifier": "id-e37fea33a07c4beb9c0b345b497e1c72",
-                        "type": "Relationship",
-                        "relationshipRef": "id-eb8e066c2e25497abf12ed0d9be60aea",
-                        "source": "id-a653ed9b742343bf92dc9a1c2599fdcd",
-                        "target": "id-8249df6b00904220bbd97049f96d13e8"
-                      },
-                      {
-                        "identifier": "id-2f15bad28f7943f3a77316b1e500eda8",
-                        "type": "Relationship",
-                        "relationshipRef": "id-e71170cc00c4413cb7c298469733418b",
-                        "source": "id-2931c65da2db441da5b1998641c6aa5d",
-                        "target": "id-6d6c7c9cc5d849128a73781698f56bfd"
-                      },
-                      {
-                        "identifier": "id-9b72a95b796647a194ee4098dd5faf9b",
-                        "type": "Relationship",
-                        "relationshipRef": "id-5208d4b53f39489c875385ae1d18b89a",
-                        "source": "id-0f7ba3b0297f41499e1b4709cfead71e",
-                        "target": "id-2931c65da2db441da5b1998641c6aa5d"
-                      },
-                      {
-                        "identifier": "id-8d66e5f9dd3546fbbe20a201b5ee6295",
-                        "type": "Relationship",
-                        "relationshipRef": "id-f87a6ce51213455d936c5cf5f09fa565",
-                        "source": "id-0f7ba3b0297f41499e1b4709cfead71e",
-                        "target": "id-54e453a7f6b24796b66c40fe48bc819e"
-                      },
-                      {
-                        "identifier": "id-e3d4a96c4dd74425bcb2c1e871f6adb0",
-                        "type": "Relationship",
-                        "relationshipRef": "id-3d4a5b0c678e4befa1746f3172082d37",
-                        "source": "id-1a6bd4fd6bd74261b3c540956158deb5",
-                        "target": "id-6e3ca600781546f892a18495d735a525"
-                      },
-                      {
-                        "identifier": "id-d5723ac9a8734eba8f24861213a90e8a",
-                        "type": "Relationship",
-                        "relationshipRef": "id-9477c6ff875f4173a25aad33ad44f6ce",
-                        "source": "id-54e453a7f6b24796b66c40fe48bc819e",
-                        "target": "id-1a6bd4fd6bd74261b3c540956158deb5"
-                      },
-                      {
-                        "identifier": "id-cfd8cfd456864685b2ce8e4567b2ee66",
-                        "type": "Relationship",
-                        "relationshipRef": "id-2225e175d1354879b7ec60544b87f732",
-                        "source": "id-54e453a7f6b24796b66c40fe48bc819e",
-                        "target": "id-37712ad4563449c6a7d771388b253e00"
-                      }
-                    ]
-                  }
-                ]
-              }
+              "status": "ok",
+              "artifact": "layout_preview",
+              "view_count": 2,
+              "message": "Pré-visualização armazenada com sucesso."
             }
           },
           "text": null
@@ -2078,7 +1422,7 @@
     "avg_logprobs": null,
     "logprobs_result": null,
     "cache_metadata": null,
-    "invocation_id": "e-4b16d3b2-3dce-41a1-b927-f3836d4fb2d1",
+    "invocation_id": "e-85dca642-a31a-4f16-b2da-74ac9178a569",
     "author": "diagramador",
     "actions": {
       "skip_summarization": null,
@@ -2092,8 +1436,8 @@
     },
     "long_running_tool_ids": null,
     "branch": null,
-    "id": "4500984a-198d-44c0-8379-5f2bf3abadf8",
-    "timestamp": 1761770086.926317
+    "id": "af9126e7-16d1-4aad-8798-8442600fa376",
+    "timestamp": 1761771702.145116
   },
   "artifacts": []
 }
