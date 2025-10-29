@@ -1,0 +1,1655 @@
+{
+  "timestamp": "2025-10-29T21:29:50.974518+00:00",
+  "session": {
+    "id": "pix-container-simulation",
+    "app_name": "InMemoryRunner",
+    "user_id": "sim-user-pix",
+    "state": {},
+    "events": [
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": "Contexto de negócio:\n- O banco opera o Sistema de Transferências PIX como plataforma central para pagamentos instantâneos.\n- Os canais Mobile Banking App e Internet Banking precisam expor uma jornada unificada para transferências imediatas.\n- A régua operacional exige validação de saldo, checagem antifraude, notificações transacionais e geração de comprovantes digitais.\n- Todos os eventos devem respeitar regras do BACEN e integrar-se com SPI, DICT e conectores internos do core banking.\n\nHistória de usuário:\nComo gerente de produto responsável pelos canais digitais do Sistema de Transferências PIX,\nquero que um cliente PF autenticado possa iniciar uma transferência instantânea pelos canais mobile ou internet,\nvalidando limites, saldo e chaves PIX em tempo real, com dupla checagem antifraude e\nnotificação imediata do envio e da compensação, para garantir uma experiência confiável e rastreável.\n\nDetalhes e critérios de aceite:\n1. O Mobile Banking App e o Internet Banking devem compartilhar os mesmos componentes de backend expostos pelo Serviço de Transferências PIX.\n2. Antes da ordem ser enviada ao SPI BACEN, o fluxo deve consultar o Serviço de Validação de Saldo, aplicar o Motor Antifraude PIX e\n   gravar o registro da transação no PostgreSQL Transacional PIX e em tópicos Kafka para auditoria.\n3. O Serviço de Chaves PIX precisa consultar o DICT BACEN para confirmar a titularidade e acionar o Serviço de Autenticação Transacional\n   para validar o segundo fator no canal utilizado.\n4. Após a confirmação do SPI, o Serviço de Notificações PIX publica a mensagem via Gateway de Notificações Push e integra com o Conector Core Banking\n   para atualizar limites e extratos. As notificações assíncronas também devem estar disponíveis via Redis Cache PIX.\n5. O Serviço de Comprovantes Digitais gera PDFs acessíveis nos canais e envia o resumo da transação para o Serviço de Auditoria PIX.\n6. Todas as integrações externas (SPI, DICT, Bureau SPC/Serasa) precisam ser representadas como componentes dedicados, respeitando latências máximas de 2 segundos.\n7. A arquitetura deve manter isolamento entre as zonas de API Gateway PIX (inbound) e Load Balancer PIX garantindo alta disponibilidade.\n8. Exibir na visão de container os componentes tecnológicos principais, suas integrações e fluxos de dados, destacando o core \"Sistema de Transferências PIX\".\n"
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "user",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "e776fc29-9950-44ba-8d9a-73de7f0a0fbd",
+        "timestamp": 1761773308.353911
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": "Compreendido. Inicio o processo de arquitetura e modelagem do Sistema de Transferências PIX, seguindo as diretrizes e a história de usuário fornecidas.\n\n### 1. Entendimento do Contexto\n\nAnalisei a narrativa e os critérios de aceite. Os pontos-chave para a modelagem são:\n- **Atores Principais**: Cliente PF (usuário final) e os sistemas externos (BACEN, Bureaus).\n- **Canais**: A jornada unificada abrange o Mobile Banking App e o Internet Banking.\n- **Sistema Central**: \"Sistema de Transferências PIX\", que encapsula a lógica de negócio.\n- **Componentes de Backend**: Múltiplos serviços especializados (Validação de Saldo, Antifraude, Chaves, Notificações, etc.).\n- **Repositórios de Dados**: Uso de PostgreSQL para transações, Kafka para auditoria e Redis para cache.\n- **Integrações Críticas**: Conexões com o SPI e DICT do BACEN, além de sistemas legados (Core Banking) e de notificação.\n- **Requisitos Não Funcionais**: Alta disponibilidade e baixa latência são mandatórios.\n\n### 2. Descoberta de Templates\n\nPara selecionar o template mais adequado, vou listar as opções disponíveis no diretório padrão. A história de usuário descreve um sistema em detalhe, suas fronteiras, componentes internos e interações, o que sugere que um modelo C4, especificamente a visão de containers, é o mais indicado."
+            },
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": {
+                "id": "adk-21ecdf11-e663-47a4-a353-7f94ea57fffa",
+                "args": {
+                  "directory": "templates",
+                  "session_state": ""
+                },
+                "name": "list_templates"
+              },
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": null
+            }
+          ],
+          "role": "model"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": "STOP",
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": {
+          "cache_tokens_details": null,
+          "cached_content_token_count": null,
+          "candidates_token_count": 325,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 325
+            }
+          ],
+          "prompt_token_count": 1868,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 1868
+            }
+          ],
+          "thoughts_token_count": 1411,
+          "tool_use_prompt_token_count": null,
+          "tool_use_prompt_tokens_details": null,
+          "total_token_count": 3604,
+          "traffic_type": "ON_DEMAND"
+        },
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": -0.6295182917668269,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": [],
+        "branch": null,
+        "id": "32c243f5-0106-4b01-9a9e-8a6c29d9329f",
+        "timestamp": 1761773308.355976
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": {
+                "will_continue": null,
+                "scheduling": null,
+                "parts": null,
+                "id": "adk-21ecdf11-e663-47a4-a353-7f94ea57fffa",
+                "name": "list_templates",
+                "response": {
+                  "directory": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates",
+                  "count": 1,
+                  "templates": [
+                    {
+                      "path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates\\BV-C4-Model-SDLC\\layout_template.xml",
+                      "relative_path": "BV-C4-Model-SDLC\\layout_template.xml",
+                      "model_identifier": "id-65a4951d-6114-409d-9562-9a80710d5866",
+                      "model_name": {
+                        "text": "25.3T.JT-XXXX.TE-XXXX-{MainSolutionName}",
+                        "lang": "pt"
+                      },
+                      "documentation": null,
+                      "views": [
+                        {
+                          "identifier": "id-171323",
+                          "name": "Visão de Container - {SolutionName}"
+                        },
+                        {
+                          "identifier": "id-219315",
+                          "name": "Visão de negócio - {SolutionName}",
+                          "documentation": "Botão \"1. Visão de negócio\" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/1. Visão de negócio"
+                        },
+                        {
+                          "identifier": "id-154903",
+                          "name": "Visão de contexto - {SolutionName}",
+                          "documentation": "Botão \"2. Visão de contexto\" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/2. Visão de contexto"
+                        },
+                        {
+                          "identifier": "id-194586",
+                          "name": "Visão Técnica - {SolutionName}"
+                        },
+                        {
+                          "identifier": "id-209915",
+                          "name": "JT-XXXX.TE-XXXX-{MainSolutionName}"
+                        },
+                        {
+                          "identifier": "id-207637",
+                          "name": "Visão de negócios e solução"
+                        },
+                        {
+                          "identifier": "id-222409",
+                          "name": "Visões de container"
+                        },
+                        {
+                          "identifier": "id-196480",
+                          "name": "Visões técnicas"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "text": null
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "d64f052f-ee25-4a29-9a7e-22d8e5a85f88",
+        "timestamp": 1761773328.307158
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": "A busca retornou o template `BV-C4-Model-SDLC`, que é ideal para este cenário, pois inclui a \"Visão de Container\" solicitada, permitindo detalhar os componentes tecnológicos da solução.\n\n### 3. Análise do Template Escolhido\n\nAgora, vou inspecionar a estrutura do template `BV-C4-Model-SDLC` para entender seus elementos, relacionamentos e, principalmente, a organização da visão de containers. Isso me permitirá mapear corretamente cada serviço, sistema e fluxo de dados da história do usuário."
+            },
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": {
+                "id": "adk-6f71a656-4671-4671-a34d-5f6fce6c3de7",
+                "args": {
+                  "view_filter": "id-171323",
+                  "template_path": "BV-C4-Model-SDLC\\layout_template.xml",
+                  "session_state": ""
+                },
+                "name": "describe_template"
+              },
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": null
+            }
+          ],
+          "role": "model"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": "STOP",
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 1672
+            }
+          ],
+          "cached_content_token_count": 1672,
+          "candidates_token_count": 152,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 152
+            }
+          ],
+          "prompt_token_count": 2577,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 3986
+            }
+          ],
+          "thoughts_token_count": 159,
+          "tool_use_prompt_token_count": null,
+          "tool_use_prompt_tokens_details": null,
+          "total_token_count": 2888,
+          "traffic_type": "ON_DEMAND"
+        },
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": -0.3027440874200118,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": [],
+        "branch": null,
+        "id": "2197835a-4b2b-4b4c-b129-e55da47abdd9",
+        "timestamp": 1761773328.311501
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": {
+                "will_continue": null,
+                "scheduling": null,
+                "parts": null,
+                "id": "adk-6f71a656-4671-4671-a34d-5f6fce6c3de7",
+                "name": "describe_template",
+                "response": {
+                  "model": {
+                    "identifier": "id-65a4951d-6114-409d-9562-9a80710d5866",
+                    "name": "25.3T.JT-XXXX.TE-XXXX-{MainSolutionName}",
+                    "path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\agents\\diagramador\\templates\\BV-C4-Model-SDLC\\layout_template.xml"
+                  },
+                  "elements": [
+                    {
+                      "identifier": "id-9a9b5d551e904bfcbfce12a6197943a2",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Application Component"
+                    },
+                    {
+                      "identifier": "id-e493478723ba461f8f0731340cdff41f",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Application Component"
+                    },
+                    {
+                      "identifier": "id-da18b5f4b21a4bdab0c63fa99d95ba91",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Data Application Component",
+                      "documentation_hint": "Exemplo: Dados de cartão"
+                    },
+                    {
+                      "identifier": "id-a5185a2f58394a6891167652bb0b8021",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Gateway Outbound Component Element",
+                      "documentation_hint": "Component referente as funcionalidades do gateway de saída, exemplo: \"API Gateway Fatura out\""
+                    },
+                    {
+                      "identifier": "id-42f016f285604cbca15dbafb7438ac18",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Application Component"
+                    },
+                    {
+                      "identifier": "id-3db4884e4ef2449292c1953d4bda30c7",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Chanel Application Component",
+                      "documentation_hint": "Componentes diversos utilizados do canal"
+                    },
+                    {
+                      "identifier": "id-35719f23fe184d95ad5d2190c6f202be",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Gateway Inbound Component Element",
+                      "documentation_hint": "Component referente as funcionalidades do gateway de entrada, exemplo: \"API Gateway Conta in\""
+                    },
+                    {
+                      "identifier": "id-06d59e4560d847a8861b915405296e0a",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Application Component"
+                    },
+                    {
+                      "identifier": "id-1662934bb0ff40f5b4c10e88f49dd8c0",
+                      "type": "ApplicationProcess",
+                      "name_hint": "Chanel Process Component",
+                      "documentation_hint": "Componentes especificos de processos diversos utilizados do canal"
+                    },
+                    {
+                      "identifier": "id-ea78a465f32843da94bd2f5e8fdb1099",
+                      "type": "ApplicationEvent",
+                      "name_hint": "Chanel Event Component",
+                      "documentation_hint": "Componentes de eventos diversos utilizados do canal"
+                    },
+                    {
+                      "identifier": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Chanel Application Component",
+                      "documentation_hint": "Componentes de aplicação utilizados do canal"
+                    },
+                    {
+                      "identifier": "id-c2dc90e4f7d74f3c919e2ea0c71dc054",
+                      "type": "ApplicationProcess",
+                      "name_hint": "Chanel Process Component",
+                      "documentation_hint": "Componentes especificos de processos diversos utilizados do canal"
+                    },
+                    {
+                      "identifier": "id-a4e5d61e2fad4c96b8775d3fba9061ba",
+                      "type": "ApplicationEvent",
+                      "name_hint": "Chanel Event Component",
+                      "documentation_hint": "Componentes de eventos diversos utilizados do canal"
+                    },
+                    {
+                      "identifier": "id-ff4420a980a4408ca3f37e186600eba5",
+                      "type": "ApplicationEvent",
+                      "name_hint": "Sigla Event Component",
+                      "documentation_hint": "Componente de evento da execução lógica relativo com a sigla, exemplo:\n\n- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo"
+                    },
+                    {
+                      "identifier": "id-248825a7f0514d0883e8e72f271c6cdf",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Sigla Application Component",
+                      "documentation_hint": "Componente de aplicação da execução lógica relativo com a sigla, exemplos:\n\n- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. \"alteração de data de vencimento\", \"alteração de limite\", \"segunda via de cartão\", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço."
+                    },
+                    {
+                      "identifier": "id-37401d37c1034a718ab785406022fc9c",
+                      "type": "ApplicationEvent",
+                      "name_hint": "Data Event Component (copy)",
+                      "documentation_hint": "Exemplo: Dados de eventos de cartão"
+                    },
+                    {
+                      "identifier": "id-dafb5e39b03847c5beb7155f873d14de",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Sigla Application Component",
+                      "documentation_hint": "Componente de aplicação da execução lógica relativo com a sigla, exemplos:\n\n- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. \"alteração de data de vencimento\", \"alteração de limite\", \"segunda via de cartão\", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço."
+                    },
+                    {
+                      "identifier": "id-d32ab69807e245f0bc44735baba04623",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Application Component"
+                    },
+                    {
+                      "identifier": "id-054a6684fc7c404f8c9d3d8718379a6d",
+                      "type": "ApplicationEvent",
+                      "name_hint": "Sigla Event Component",
+                      "documentation_hint": "Componente de evento da execução lógica relativo com a sigla, exemplo:\n\n- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo"
+                    },
+                    {
+                      "identifier": "id-a4021f10be6c4c1096c75ea6cdc03f83",
+                      "type": "ApplicationEvent",
+                      "name_hint": "Application Event"
+                    },
+                    {
+                      "identifier": "id-7b0c03d4f05a410da57057c7e0b1ad25",
+                      "type": "ApplicationComponent",
+                      "name_hint": "Application Component"
+                    },
+                    {
+                      "identifier": "id-89aef989c04f448294e301fac2bb9f67",
+                      "type": "ApplicationEvent",
+                      "name_hint": "Application Event"
+                    },
+                    {
+                      "identifier": "id-9959e599181b4524bf9d082892d127da",
+                      "type": "Artifact",
+                      "name_hint": "Artifact"
+                    },
+                    {
+                      "identifier": "id-469670",
+                      "type": "Deliverable",
+                      "name_hint": "ARQCOR-9897"
+                    },
+                    {
+                      "identifier": "id-415459",
+                      "type": "WorkPackage",
+                      "name_hint": "JT-XXXX"
+                    }
+                  ],
+                  "relationships": [
+                    {
+                      "identifier": "id-5208d4b53f39489c875385ae1d18b89a",
+                      "type": "Triggering",
+                      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+                      "target": "id-054a6684fc7c404f8c9d3d8718379a6d"
+                    },
+                    {
+                      "identifier": "id-44d0815f798249459770e25aa3e959d6",
+                      "type": "Triggering",
+                      "source": "id-d32ab69807e245f0bc44735baba04623",
+                      "target": "id-a4021f10be6c4c1096c75ea6cdc03f83"
+                    },
+                    {
+                      "identifier": "id-340253e03b0247bcb4fa80eae1b4367d",
+                      "type": "Triggering",
+                      "source": "id-054a6684fc7c404f8c9d3d8718379a6d",
+                      "target": "id-d32ab69807e245f0bc44735baba04623"
+                    },
+                    {
+                      "identifier": "id-9f4a255d7c7044ca950a4831328cf9f8",
+                      "type": "Serving",
+                      "source": "id-d32ab69807e245f0bc44735baba04623",
+                      "target": "id-9a9b5d551e904bfcbfce12a6197943a2"
+                    },
+                    {
+                      "identifier": "id-b43ea55d2f554a7a8808c5f2226a1bea",
+                      "type": "Serving",
+                      "source": "id-9a9b5d551e904bfcbfce12a6197943a2",
+                      "target": "id-9a9b5d551e904bfcbfce12a6197943a2"
+                    },
+                    {
+                      "identifier": "id-de5b98d2e4ad4e4c91be68c4d3f342c5",
+                      "type": "Triggering",
+                      "source": "id-9a9b5d551e904bfcbfce12a6197943a2",
+                      "target": "id-e493478723ba461f8f0731340cdff41f"
+                    },
+                    {
+                      "identifier": "id-71f6aa63a84848d8aec1570865dd7ac4",
+                      "type": "Triggering",
+                      "source": "id-d32ab69807e245f0bc44735baba04623",
+                      "target": "id-9a9b5d551e904bfcbfce12a6197943a2"
+                    },
+                    {
+                      "identifier": "id-966a757c907e4dbf91bff9a20826aab9",
+                      "type": "Triggering",
+                      "source": "id-d32ab69807e245f0bc44735baba04623",
+                      "target": "id-a5185a2f58394a6891167652bb0b8021"
+                    },
+                    {
+                      "identifier": "id-d43696f3b326435d9389cacc19e73197",
+                      "type": "Triggering",
+                      "source": "id-a5185a2f58394a6891167652bb0b8021",
+                      "target": "id-42f016f285604cbca15dbafb7438ac18"
+                    },
+                    {
+                      "identifier": "id-e71170cc00c4413cb7c298469733418b",
+                      "type": "Triggering",
+                      "source": "id-054a6684fc7c404f8c9d3d8718379a6d",
+                      "target": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+                    },
+                    {
+                      "identifier": "id-a84d2dca787046568bcfdd292669cf2b",
+                      "type": "Triggering",
+                      "source": "id-35719f23fe184d95ad5d2190c6f202be",
+                      "target": "id-3db4884e4ef2449292c1953d4bda30c7"
+                    },
+                    {
+                      "identifier": "id-f751e171b27b4a7d9fef48c1c98be4c7",
+                      "type": "Triggering",
+                      "source": "id-35719f23fe184d95ad5d2190c6f202be",
+                      "target": "id-dafb5e39b03847c5beb7155f873d14de"
+                    },
+                    {
+                      "identifier": "id-eb8e066c2e25497abf12ed0d9be60aea",
+                      "type": "Triggering",
+                      "source": "id-3db4884e4ef2449292c1953d4bda30c7",
+                      "target": "id-35719f23fe184d95ad5d2190c6f202be"
+                    },
+                    {
+                      "identifier": "id-21b2d80dcea847cd92f828666d5f3a49",
+                      "type": "Triggering",
+                      "source": "id-a5185a2f58394a6891167652bb0b8021",
+                      "target": "id-06d59e4560d847a8861b915405296e0a"
+                    },
+                    {
+                      "identifier": "id-2eba8673d6ac473ab9436dc6db8a0d6d",
+                      "type": "Triggering",
+                      "source": "id-a5185a2f58394a6891167652bb0b8021",
+                      "target": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
+                    },
+                    {
+                      "identifier": "id-9477c6ff875f4173a25aad33ad44f6ce",
+                      "type": "Triggering",
+                      "source": "id-248825a7f0514d0883e8e72f271c6cdf",
+                      "target": "id-ff4420a980a4408ca3f37e186600eba5"
+                    },
+                    {
+                      "identifier": "id-f87a6ce51213455d936c5cf5f09fa565",
+                      "type": "Triggering",
+                      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+                      "target": "id-248825a7f0514d0883e8e72f271c6cdf"
+                    },
+                    {
+                      "identifier": "id-2225e175d1354879b7ec60544b87f732",
+                      "type": "Triggering",
+                      "source": "id-248825a7f0514d0883e8e72f271c6cdf",
+                      "target": "id-a5185a2f58394a6891167652bb0b8021"
+                    },
+                    {
+                      "identifier": "id-da865efeab8746989fe4b4fe9ffa2a90",
+                      "type": "Triggering",
+                      "source": "id-37401d37c1034a718ab785406022fc9c",
+                      "target": "id-ff4420a980a4408ca3f37e186600eba5"
+                    },
+                    {
+                      "identifier": "id-3d4a5b0c678e4befa1746f3172082d37",
+                      "type": "Triggering",
+                      "source": "id-ff4420a980a4408ca3f37e186600eba5",
+                      "target": "id-37401d37c1034a718ab785406022fc9c"
+                    },
+                    {
+                      "identifier": "id-469668",
+                      "type": "Realization",
+                      "source": "id-415459",
+                      "target": "id-469670"
+                    }
+                  ],
+                  "organizations": [
+                    {
+                      "label": "Application",
+                      "items": [
+                        {
+                          "label": "Application Layer",
+                          "items": [
+                            {
+                              "identifierRef": "id-dafb5e39b03847c5beb7155f873d14de"
+                            },
+                            {
+                              "identifierRef": "id-d32ab69807e245f0bc44735baba04623"
+                            },
+                            {
+                              "identifierRef": "id-054a6684fc7c404f8c9d3d8718379a6d"
+                            },
+                            {
+                              "identifierRef": "id-a4021f10be6c4c1096c75ea6cdc03f83"
+                            }
+                          ]
+                        },
+                        {
+                          "label": "Components",
+                          "items": [
+                            {
+                              "label": "Container",
+                              "items": [
+                                {
+                                  "label": "Application Component",
+                                  "items": [
+                                    {
+                                      "identifierRef": "id-7b0c03d4f05a410da57057c7e0b1ad25"
+                                    },
+                                    {
+                                      "identifierRef": "id-89aef989c04f448294e301fac2bb9f67"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "identifierRef": "id-9a9b5d551e904bfcbfce12a6197943a2"
+                        },
+                        {
+                          "identifierRef": "id-e493478723ba461f8f0731340cdff41f"
+                        },
+                        {
+                          "identifierRef": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+                        },
+                        {
+                          "identifierRef": "id-a5185a2f58394a6891167652bb0b8021"
+                        },
+                        {
+                          "identifierRef": "id-42f016f285604cbca15dbafb7438ac18"
+                        },
+                        {
+                          "identifierRef": "id-3db4884e4ef2449292c1953d4bda30c7"
+                        },
+                        {
+                          "identifierRef": "id-35719f23fe184d95ad5d2190c6f202be"
+                        },
+                        {
+                          "identifierRef": "id-06d59e4560d847a8861b915405296e0a"
+                        },
+                        {
+                          "identifierRef": "id-1662934bb0ff40f5b4c10e88f49dd8c0"
+                        },
+                        {
+                          "identifierRef": "id-ea78a465f32843da94bd2f5e8fdb1099"
+                        },
+                        {
+                          "identifierRef": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
+                        },
+                        {
+                          "identifierRef": "id-c2dc90e4f7d74f3c919e2ea0c71dc054"
+                        },
+                        {
+                          "identifierRef": "id-a4e5d61e2fad4c96b8775d3fba9061ba"
+                        },
+                        {
+                          "identifierRef": "id-ff4420a980a4408ca3f37e186600eba5"
+                        },
+                        {
+                          "identifierRef": "id-248825a7f0514d0883e8e72f271c6cdf"
+                        },
+                        {
+                          "identifierRef": "id-37401d37c1034a718ab785406022fc9c"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Technology & Physical",
+                      "items": [
+                        {
+                          "label": "Components",
+                          "items": [
+                            {
+                              "label": "Container",
+                              "items": [
+                                {
+                                  "label": "Application Component",
+                                  "items": [
+                                    {
+                                      "identifierRef": "id-9959e599181b4524bf9d082892d127da"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Implementation & Migration",
+                      "items": [
+                        {
+                          "label": "Implementation and migration elements",
+                          "items": [
+                            {
+                              "identifierRef": "id-469670"
+                            },
+                            {
+                              "identifierRef": "id-415459"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Relations",
+                      "items": [
+                        {
+                          "label": "Implementation and migration elements",
+                          "items": [
+                            {
+                              "identifierRef": "id-469668"
+                            }
+                          ]
+                        },
+                        {
+                          "identifierRef": "id-5208d4b53f39489c875385ae1d18b89a"
+                        },
+                        {
+                          "identifierRef": "id-44d0815f798249459770e25aa3e959d6"
+                        },
+                        {
+                          "identifierRef": "id-340253e03b0247bcb4fa80eae1b4367d"
+                        },
+                        {
+                          "identifierRef": "id-9f4a255d7c7044ca950a4831328cf9f8"
+                        },
+                        {
+                          "identifierRef": "id-b43ea55d2f554a7a8808c5f2226a1bea"
+                        },
+                        {
+                          "identifierRef": "id-de5b98d2e4ad4e4c91be68c4d3f342c5"
+                        },
+                        {
+                          "identifierRef": "id-71f6aa63a84848d8aec1570865dd7ac4"
+                        },
+                        {
+                          "identifierRef": "id-966a757c907e4dbf91bff9a20826aab9"
+                        },
+                        {
+                          "identifierRef": "id-d43696f3b326435d9389cacc19e73197"
+                        },
+                        {
+                          "identifierRef": "id-e71170cc00c4413cb7c298469733418b"
+                        },
+                        {
+                          "identifierRef": "id-a84d2dca787046568bcfdd292669cf2b"
+                        },
+                        {
+                          "identifierRef": "id-f751e171b27b4a7d9fef48c1c98be4c7"
+                        },
+                        {
+                          "identifierRef": "id-eb8e066c2e25497abf12ed0d9be60aea"
+                        },
+                        {
+                          "identifierRef": "id-21b2d80dcea847cd92f828666d5f3a49"
+                        },
+                        {
+                          "identifierRef": "id-2eba8673d6ac473ab9436dc6db8a0d6d"
+                        },
+                        {
+                          "identifierRef": "id-9477c6ff875f4173a25aad33ad44f6ce"
+                        },
+                        {
+                          "identifierRef": "id-f87a6ce51213455d936c5cf5f09fa565"
+                        },
+                        {
+                          "identifierRef": "id-2225e175d1354879b7ec60544b87f732"
+                        },
+                        {
+                          "identifierRef": "id-da865efeab8746989fe4b4fe9ffa2a90"
+                        },
+                        {
+                          "identifierRef": "id-3d4a5b0c678e4befa1746f3172082d37"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Views",
+                      "items": [
+                        {
+                          "items": [
+                            {
+                              "items": [
+                                {
+                                  "items": [
+                                    {
+                                      "identifierRef": "id-171323"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "identifierRef": "id-219315"
+                                },
+                                {
+                                  "identifierRef": "id-154903"
+                                },
+                                {
+                                  "identifierRef": "id-194586"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "identifierRef": "id-209915"
+                        },
+                        {
+                          "identifierRef": "id-207637"
+                        },
+                        {
+                          "identifierRef": "id-222409"
+                        },
+                        {
+                          "identifierRef": "id-196480"
+                        }
+                      ]
+                    }
+                  ],
+                  "views": {
+                    "diagrams": [
+                      {
+                        "identifier": "id-171323",
+                        "type": "Diagram",
+                        "name": "Visão de Container - {SolutionName}",
+                        "nodes": [
+                          {
+                            "identifier": "id-1328065",
+                            "type": "Label"
+                          },
+                          {
+                            "identifier": "id-1328062",
+                            "type": "Label",
+                            "label_hint": "Sub titulo do diagrama exemplo: Visão de container - Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC"
+                          },
+                          {
+                            "identifier": "id-1328082",
+                            "type": "Label",
+                            "label_hint": "Titulo da solução, exemplo: Plataforma e Produtos de Dados"
+                          },
+                          {
+                            "identifier": "id-1328081",
+                            "type": "Container",
+                            "label_hint": "Layer DATA MANAGEMENT",
+                            "documentation_hint": "Conatiner de elementos de gerenciamento de dados",
+                            "nodes": [
+                              {
+                                "identifier": "id-6d6c7c9cc5d849128a73781698f56bfd",
+                                "type": "Element",
+                                "elementRef": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+                              },
+                              {
+                                "identifier": "id-6e3ca600781546f892a18495d735a525",
+                                "type": "Element",
+                                "elementRef": "id-37401d37c1034a718ab785406022fc9c"
+                              }
+                            ]
+                          },
+                          {
+                            "identifier": "id-1328074",
+                            "type": "Container",
+                            "label_hint": "Layer EXTERNAL INTEGRATION",
+                            "documentation_hint": "Layer contendo os canais externos de integração, como por exemplo: BLANKY e seus componentes.",
+                            "nodes": [
+                              {
+                                "identifier": "id-cd39d1ae05e84602b9909ab5ef51c763",
+                                "type": "Container",
+                                "label_hint": "Group",
+                                "documentation_hint": "Container por tipo de canais agrupando os elementos relativos, exemplo BANKLY.\n\n- Relacionamento: qualquer elemnto dentro da Layer de canais se comunica exclusivamente apenas com os elementos da layer \"GATEWAY OUTBOUND\"",
+                                "nodes": [
+                                  {
+                                    "identifier": "id-4b5442cf99744cdcaabc0a40319345e6",
+                                    "type": "Element",
+                                    "elementRef": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
+                                  },
+                                  {
+                                    "identifier": "id-2a675b26e0fc460ebc161013f339f404",
+                                    "type": "Element",
+                                    "elementRef": "id-c2dc90e4f7d74f3c919e2ea0c71dc054"
+                                  },
+                                  {
+                                    "identifier": "id-bb910d792af24683872fbd8e44aa3786",
+                                    "type": "Element",
+                                    "elementRef": "id-a4e5d61e2fad4c96b8775d3fba9061ba"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "identifier": "id-1328078",
+                            "type": "Container",
+                            "label_hint": "Layer GATEWAY OUTBOUND",
+                            "documentation_hint": "Container de Gateways de Entrada",
+                            "nodes": [
+                              {
+                                "identifier": "id-37712ad4563449c6a7d771388b253e00",
+                                "type": "Element",
+                                "elementRef": "id-a5185a2f58394a6891167652bb0b8021"
+                              }
+                            ]
+                          },
+                          {
+                            "identifier": "id-1328066",
+                            "type": "Container",
+                            "label_hint": "Layer GATEWAY INBOUND",
+                            "documentation_hint": "Container de Gateways de Entrada",
+                            "nodes": [
+                              {
+                                "identifier": "id-8249df6b00904220bbd97049f96d13e8",
+                                "type": "Element",
+                                "elementRef": "id-35719f23fe184d95ad5d2190c6f202be"
+                              }
+                            ]
+                          },
+                          {
+                            "identifier": "id-1328077",
+                            "type": "Container",
+                            "label_hint": "Layer Etapas",
+                            "documentation_hint": "Layer de todas as etapas realizadas e observações.",
+                            "nodes": [
+                              {
+                                "identifier": "id-1328083",
+                                "type": "Label",
+                                "label_hint": "Elemento de nota para as Regras Aplicadas e Observações.\n\nExemplo:\n\n1 - Orch GCOC subscreve o tópico do GLIT que informa o novo limite garantido por CDB. 2 - Consulta os parâmetros do Cartão no atom PPRC. 3 - Recupera dados de Quina no CART. 4 - orch do GCOC requisita o orch do IPRC para realizar criação do contrato de crédito. 5 - Recupera token de identificação. 6 - O atom pessiste a requisição na base para atulização posterior após recebimento de evento de confirmação. 7- Envia a requisição de criaçãod e contrato de crédito para a Bankly. 8 - Por meio do webhook a Bankly envia os eventos de criação de contrato e liberação de limite."
+                              }
+                            ]
+                          },
+                          {
+                            "identifier": "id-1328072",
+                            "type": "Container",
+                            "label_hint": "Layer de Canais",
+                            "documentation_hint": "Container de canais",
+                            "nodes": [
+                              {
+                                "identifier": "id-1aaac1fc0c8e4c8288bcb62d40b4798d",
+                                "type": "Container",
+                                "label_hint": "Container de canais",
+                                "documentation_hint": "Container por tipo de canais agrupando os elementos relativos, exemplo BANKLY.\n\n- Relacionamento: qualquer elemnto dentro da Layer de canais se comunica exclusivamente apenas com os elementos da layer \"GATEWAY OUTBOUND\"",
+                                "nodes": [
+                                  {
+                                    "identifier": "id-a653ed9b742343bf92dc9a1c2599fdcd",
+                                    "type": "Element",
+                                    "elementRef": "id-3db4884e4ef2449292c1953d4bda30c7"
+                                  },
+                                  {
+                                    "identifier": "id-6d6e258d7ca2407f92804f64b4d7ff46",
+                                    "type": "Element",
+                                    "elementRef": "id-1662934bb0ff40f5b4c10e88f49dd8c0"
+                                  },
+                                  {
+                                    "identifier": "id-a9832addd82c446ea7959f0e44ee89f3",
+                                    "type": "Element",
+                                    "elementRef": "id-ea78a465f32843da94bd2f5e8fdb1099"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "identifier": "id-1328068",
+                            "type": "Container",
+                            "label_hint": "Layer EXECUTION LOGIC",
+                            "documentation_hint": "Container de elementos relacionados ao fluxo da execução lógica contendo elementos do tpo container de siglas",
+                            "nodes": [
+                              {
+                                "identifier": "id-c29855f0bd6e478884815011462500ab",
+                                "type": "Label",
+                                "label_hint": "1"
+                              },
+                              {
+                                "identifier": "id-8f8ca5f03e824170afa997ebca68dbcf",
+                                "type": "Container",
+                                "label_hint": "SIGLA"
+                              },
+                              {
+                                "identifier": "id-4ad8986cdb314353b56229190c133b25",
+                                "type": "Label",
+                                "label_hint": "Sequencial de operação por siglas, 1,2,3,4,5..."
+                              },
+                              {
+                                "identifier": "id-3111c6571de948789b6448c8bf505dd5",
+                                "type": "Container",
+                                "label_hint": "Container de Siglas",
+                                "documentation_hint": "Container da sigla CMDB dos elementos exemplo ASDI: Sistema de notificações do feedback para squid, AADA-ANLT: Sigla para ambientes Analíticos em áreas referente a área de negócio do PLD, AADA-RISK: Autenticação Avançada risk usando CA Risk\n\nExemplo do datamodel de siglas:\n\n[\n\n{\n\n'u_acronym': 'AADA',\n\n'comments': 'Produto de autenticação avançada e avaliação risco',\n\n'u_install_status': 'Em Uso',\n\n'environment': 'Produção',\n\n'u_service_classification': 'Serviço de gestão de tecnologia',\n\n'u_tower': 'Prevenção Autenticação e Autorização - CORE',\n\n'u_squad_name': 'Prevenção Crimes Financeiros',\n\n'u_tribe_name': 'Serviço de Não Avalia Infraestrutura',\n\n'sys_cla': 'u_syste'\n\n},\n\n...",
+                                "nodes": [
+                                  {
+                                    "identifier": "id-2931c65da2db441da5b1998641c6aa5d",
+                                    "type": "Element",
+                                    "elementRef": "id-054a6684fc7c404f8c9d3d8718379a6d"
+                                  },
+                                  {
+                                    "identifier": "id-0f7ba3b0297f41499e1b4709cfead71e",
+                                    "type": "Element",
+                                    "elementRef": "id-dafb5e39b03847c5beb7155f873d14de"
+                                  }
+                                ]
+                              },
+                              {
+                                "identifier": "id-7a9ca719a6d34ed8bd32ce45bbb6ecdc",
+                                "type": "Label",
+                                "label_hint": "1"
+                              },
+                              {
+                                "identifier": "id-2fad2ab0cc2045fd84f36c2be410ef16",
+                                "type": "Label",
+                                "label_hint": "Sequencial de operação por siglas, 1,2,3,4,5..."
+                              },
+                              {
+                                "identifier": "id-30fbc75f93ce42708d6ead87abfeed3a",
+                                "type": "Container",
+                                "label_hint": "Container de Siglas",
+                                "documentation_hint": "Container da sigla CMDB dos elementos exemplo ASDI: Sistema de notificações do feedback para squid, AADA-ANLT: Sigla para ambientes Analíticos em áreas referente a área de negócio do PLD, AADA-RISK: Autenticação Avançada risk usando CA Risk\n\nExemplo do datamodel de siglas:\n\n[\n\n{\n\n'u_acronym': 'AADA',\n\n'comments': 'Produto de autenticação avançada e avaliação risco',\n\n'u_install_status': 'Em Uso',\n\n'environment': 'Produção',\n\n'u_service_classification': 'Serviço de gestão de tecnologia',\n\n'u_tower': 'Prevenção Autenticação e Autorização - CORE',\n\n'u_squad_name': 'Prevenção Crimes Financeiros',\n\n'u_tribe_name': 'Serviço de Não Avalia Infraestrutura',\n\n'sys_cla': 'u_syste'\n\n},\n\n...\n\n]",
+                                "nodes": [
+                                  {
+                                    "identifier": "id-1a6bd4fd6bd74261b3c540956158deb5",
+                                    "type": "Element",
+                                    "elementRef": "id-ff4420a980a4408ca3f37e186600eba5"
+                                  },
+                                  {
+                                    "identifier": "id-54e453a7f6b24796b66c40fe48bc819e",
+                                    "type": "Element",
+                                    "elementRef": "id-248825a7f0514d0883e8e72f271c6cdf"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "identifier": "id-482165",
+                            "type": "Label",
+                            "viewRef": "id-154903",
+                            "label_hint": "Visão de contexto - {SolutionName}"
+                          },
+                          {
+                            "identifier": "id-482164",
+                            "type": "Label",
+                            "viewRef": "id-219315",
+                            "label_hint": "Visão de negócio - {SolutionName}"
+                          },
+                          {
+                            "identifier": "id-482166",
+                            "type": "Element",
+                            "elementRef": "id-415459"
+                          }
+                        ],
+                        "connections": [
+                          {
+                            "identifier": "id-8f9e260702bb40278eae9461343d17bd",
+                            "type": "Relationship",
+                            "relationshipRef": "id-2eba8673d6ac473ab9436dc6db8a0d6d",
+                            "source": "id-37712ad4563449c6a7d771388b253e00",
+                            "target": "id-4b5442cf99744cdcaabc0a40319345e6"
+                          },
+                          {
+                            "identifier": "id-005a476687b44c678c73af259df5aea0",
+                            "type": "Relationship",
+                            "relationshipRef": "id-f751e171b27b4a7d9fef48c1c98be4c7",
+                            "source": "id-8249df6b00904220bbd97049f96d13e8",
+                            "target": "id-0f7ba3b0297f41499e1b4709cfead71e"
+                          },
+                          {
+                            "identifier": "id-e37fea33a07c4beb9c0b345b497e1c72",
+                            "type": "Relationship",
+                            "relationshipRef": "id-eb8e066c2e25497abf12ed0d9be60aea",
+                            "source": "id-a653ed9b742343bf92dc9a1c2599fdcd",
+                            "target": "id-8249df6b00904220bbd97049f96d13e8"
+                          },
+                          {
+                            "identifier": "id-2f15bad28f7943f3a77316b1e500eda8",
+                            "type": "Relationship",
+                            "relationshipRef": "id-e71170cc00c4413cb7c298469733418b",
+                            "source": "id-2931c65da2db441da5b1998641c6aa5d",
+                            "target": "id-6d6c7c9cc5d849128a73781698f56bfd"
+                          },
+                          {
+                            "identifier": "id-9b72a95b796647a194ee4098dd5faf9b",
+                            "type": "Relationship",
+                            "relationshipRef": "id-5208d4b53f39489c875385ae1d18b89a",
+                            "source": "id-0f7ba3b0297f41499e1b4709cfead71e",
+                            "target": "id-2931c65da2db441da5b1998641c6aa5d"
+                          },
+                          {
+                            "identifier": "id-8d66e5f9dd3546fbbe20a201b5ee6295",
+                            "type": "Relationship",
+                            "relationshipRef": "id-f87a6ce51213455d936c5cf5f09fa565",
+                            "source": "id-0f7ba3b0297f41499e1b4709cfead71e",
+                            "target": "id-54e453a7f6b24796b66c40fe48bc819e"
+                          },
+                          {
+                            "identifier": "id-e3d4a96c4dd74425bcb2c1e871f6adb0",
+                            "type": "Relationship",
+                            "relationshipRef": "id-3d4a5b0c678e4befa1746f3172082d37",
+                            "source": "id-1a6bd4fd6bd74261b3c540956158deb5",
+                            "target": "id-6e3ca600781546f892a18495d735a525"
+                          },
+                          {
+                            "identifier": "id-d5723ac9a8734eba8f24861213a90e8a",
+                            "type": "Relationship",
+                            "relationshipRef": "id-9477c6ff875f4173a25aad33ad44f6ce",
+                            "source": "id-54e453a7f6b24796b66c40fe48bc819e",
+                            "target": "id-1a6bd4fd6bd74261b3c540956158deb5"
+                          },
+                          {
+                            "identifier": "id-cfd8cfd456864685b2ce8e4567b2ee66",
+                            "type": "Relationship",
+                            "relationshipRef": "id-2225e175d1354879b7ec60544b87f732",
+                            "source": "id-54e453a7f6b24796b66c40fe48bc819e",
+                            "target": "id-37712ad4563449c6a7d771388b253e00"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "text": null
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "db9639d2-83b2-45d3-9bb8-5d86bf6a11ea",
+        "timestamp": 1761773336.307473
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": "A análise do template `BV-C4-Model-SDLC` confirma sua adequação. A estrutura de layers (\"Canais\", \"Gateway Inbound\", \"Execution Logic\", \"Gateway Outbound\", \"External Integration\" e \"Data Management\") é perfeitamente compatível com o fluxo de dados da transferência PIX.\n\n### 4. Modelagem Colaborativa e Proposta Arquitetural\n\nMapearei os componentes da história de usuário para a \"Visão de Container\" do template da seguinte forma:\n\n- **Layer de Canais**: Representará os pontos de entrada do cliente.\n  - **Componente**: `Canais Digitais (Mobile & IB)`\n- **Layer Gateway Inbound**: Funcionará como a porta de entrada segura para as requisições.\n  - **Componente**: `API Gateway PIX`\n- **Layer Execution Logic**: Onde o \"Sistema de Transferências PIX\" e seus componentes principais residirão.\n  - **Componentes**: `Serviço de Transferências PIX (Orquestrador)`, `Serviço de Validação de Saldo`, `Motor Antifraude PIX`, `Serviço de Chaves PIX`, `Serviço de Autenticação Transacional`, `Serviço de Notificações`, e `Serviço de Comprovantes`.\n- **Layer Data Management**: Agrupará os repositórios de dados.\n  - **Componentes**: `PostgreSQL Transacional PIX`, `Kafka (Tópicos de Auditoria)`, e `Redis Cache (Notificações)`.\n- **Layer Gateway Outbound**: Abstrairá o acesso aos sistemas externos.\n  - **Componentes**: `Conector SPI` e `Conector DICT`.\n- **Layer External Integration**: Representará as dependências externas.\n  - **Componentes**: `SPI (BACEN)`, `DICT (BACEN)`, `Gateway de Notificações Push`, e `Conector Core Banking`.\n\nCom base neste plano, gerei uma pré-visualização do diagrama de containers para sua avaliação. Por favor, revise a imagem e o fluxo representado.\n\n**Sua aprovação é necessária para prosseguir com a geração e salvamento dos artefatos finais (JSON e XML).**"
+            },
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": {
+                "id": "adk-72c4facf-238c-4a59-a59e-441ca893d231",
+                "args": {
+                  "datamodel": "\n{\n    \"model_identifier\": \"id-65a4951d-6114-409d-9562-9a80710d5866\",\n    \"elements\": [\n        {\n            \"identifier\": \"id-3db4884e4ef2449292c1953d4bda30c7\",\n            \"name\": \"Canais Digitais (Mobile & IB)\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Representa os canais de front-end (Mobile Banking App e Internet Banking) por onde o cliente inicia a transferência PIX.\"\n        },\n        {\n            \"identifier\": \"id-35719f23fe184d95ad5d2190c6f202be\",\n            \"name\": \"API Gateway PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Gateway de entrada que expõe os serviços do PIX de forma segura e gerenciada para os canais.\"\n        },\n        {\n            \"identifier\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"name\": \"Serv. Transferências PIX\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Componente central que orquestra o fluxo da transferência, integrando os demais serviços.\"\n        },\n        {\n            \"identifier\": \"id-248825a7f0514d0883e8e72f271c6cdf\",\n            \"name\": \"Serv. Validação de Saldo\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-06d59e4560d847a8861b915405296e0a\",\n            \"name\": \"Motor Antifraude PIX\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-5816f0efb1ad40b0b1f6e67dc1fa86bb\",\n            \"name\": \"Serv. Chaves PIX\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-d32ab69807e245f0bc44735baba04623\",\n            \"name\": \"Serv. Autenticação Transacional\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-7b0c03d4f05a410da57057c7e0b1ad25\",\n            \"name\": \"Serv. Notificações PIX\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-e493478723ba461f8f0731340cdff41f\",\n            \"name\": \"Serv. Comprovantes Digitais\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-9a9b5d551e904bfcbfce12a6197943a2\",\n            \"name\": \"Serv. Auditoria PIX\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-da18b5f4b21a4bdab0c63fa99d95ba91\",\n            \"name\": \"PostgreSQL Transacional PIX\",\n            \"type\": \"DataObject\",\n            \"documentation\": \"Banco de dados que armazena o registro de todas as transações PIX.\"\n        },\n        {\n            \"identifier\": \"id-37401d37c1034a718ab785406022fc9c\",\n            \"name\": \"Kafka (Tópicos de Auditoria)\",\n            \"type\": \"DataObject\",\n            \"documentation\": \"Plataforma de streaming de eventos utilizada para auditoria e desacoplamento de serviços.\"\n        },\n        {\n            \"identifier\": \"id-89aef989c04f448294e301fac2bb9f67\",\n            \"name\": \"Redis Cache (Notificações)\",\n            \"type\": \"DataObject\"\n        },\n        {\n            \"identifier\": \"id-a5185a2f58394a6891167652bb0b8021\",\n            \"name\": \"Conector SPI\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Componente de saída responsável pela comunicação com o SPI do BACEN.\"\n        },\n        {\n            \"identifier\": \"id-42f016f285604cbca15dbafb7438ac18\",\n            \"name\": \"Conector DICT\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Componente de saída responsável pela comunicação com o DICT do BACEN.\"\n        },\n        {\n            \"identifier\": \"id-1662934bb0ff40f5b4c10e88f49dd8c0\",\n            \"name\": \"SPI (BACEN)\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Sistema de Pagamentos Instantâneos do Banco Central.\"\n        },\n        {\n            \"identifier\": \"id-ea78a465f32843da94bd2f5e8fdb1099\",\n            \"name\": \"DICT (BACEN)\",\n            \"type\": \"ApplicationComponent\",\n            \"documentation\": \"Diretório de Identificadores de Contas Transacionais do Banco Central.\"\n        },\n        {\n            \"identifier\": \"id-c2dc90e4f7d74f3c919e2ea0c71dc054\",\n            \"name\": \"Gateway de Notificações Push\",\n            \"type\": \"ApplicationComponent\"\n        },\n        {\n            \"identifier\": \"id-a4e5d61e2fad4c96b8775d3fba9061ba\",\n            \"name\": \"Conector Core Banking\",\n            \"type\": \"ApplicationComponent\"\n        }\n    ],\n    \"relations\": [\n        {\n            \"identifier\": \"id-eb8e066c2e25497abf12ed0d9be60aea\",\n            \"source\": \"id-3db4884e4ef2449292c1953d4bda30c7\", \n            \"target\": \"id-35719f23fe184d95ad5d2190c6f202be\", \n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-f751e171b27b4a7d9fef48c1c98be4c7\",\n            \"source\": \"id-35719f23fe184d95ad5d2190c6f202be\", \n            \"target\": \"id-dafb5e39b03847c5beb7155f873d14de\", \n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-1\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-248825a7f0514d0883e8e72f271c6cdf\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-2\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-06d59e4560d847a8861b915405296e0a\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-3\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-5816f0efb1ad40b0b1f6e67dc1fa86bb\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-4\",\n            \"source\": \"id-5816f0efb1ad40b0b1f6e67dc1fa86bb\",\n            \"target\": \"id-42f016f285604cbca15dbafb7438ac18\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-d43696f3b326435d9389cacc19e73197\",\n            \"source\": \"id-42f016f285604cbca15dbafb7438ac18\",\n            \"target\": \"id-ea78a465f32843da94bd2f5e8fdb1099\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-5\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-d32ab69807e245f0bc44735baba04623\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-6\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-a5185a2f58394a6891167652bb0b8021\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-21b2d80dcea847cd92f828666d5f3a49\",\n            \"source\": \"id-a5185a2f58394a6891167652bb0b8021\",\n            \"target\": \"id-1662934bb0ff40f5b4c10e88f49dd8c0\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-7\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-da18b5f4b21a4bdab0c63fa99d95ba91\",\n            \"type\": \"Access\"\n        },\n        {\n            \"identifier\": \"id-new-flow-8\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-37401d37c1034a718ab785406022fc9c\",\n            \"type\": \"Access\"\n        },\n        {\n            \"identifier\": \"id-new-flow-9\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-7b0c03d4f05a410da57057c7e0b1ad25\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-10\",\n            \"source\": \"id-7b0c03d4f05a410da57057c7e0b1ad25\",\n            \"target\": \"id-c2dc90e4f7d74f3c919e2ea0c71dc054\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-11\",\n            \"source\": \"id-7b0c03d4f05a410da57057c7e0b1ad25\",\n            \"target\": \"id-a4e5d61e2fad4c96b8775d3fba9061ba\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-12\",\n            \"source\": \"id-7b0c03d4f05a410da57057c7e0b1ad25\",\n            \"target\": \"id-89aef989c04f448294e301fac2bb9f67\",\n            \"type\": \"Access\"\n        },\n        {\n            \"identifier\": \"id-new-flow-13\",\n            \"source\": \"id-dafb5e39b03847c5beb7155f873d14de\",\n            \"target\": \"id-e493478723ba461f8f0731340cdff41f\",\n            \"type\": \"Flow\"\n        },\n        {\n            \"identifier\": \"id-new-flow-14\",\n            \"source\": \"id-e493478723ba461f8f0731340cdff41f\",\n            \"target\": \"id-9a9b5d551e904bfcbfce12a6197943a2\",\n            \"type\": \"Flow\"\n        }\n    ],\n    \"organizations\": [],\n    \"views\": [\n        {\n            \"identifier\": \"id-171323\",\n            \"name\": \"Visão de Container - Sistema de Transferências PIX\"\n        }\n    ]\n}\n",
+                  "view_filter": "id-171323",
+                  "session_state": "",
+                  "template_path": "BV-C4-Model-SDLC\\layout_template.xml"
+                },
+                "name": "generate_layout_preview"
+              },
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": null
+            }
+          ],
+          "role": "model"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": "STOP",
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 3358
+            }
+          ],
+          "cached_content_token_count": 3358,
+          "candidates_token_count": 3998,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 3998
+            }
+          ],
+          "prompt_token_count": 11439,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 13005
+            }
+          ],
+          "thoughts_token_count": 931,
+          "tool_use_prompt_token_count": null,
+          "tool_use_prompt_tokens_details": null,
+          "total_token_count": 16368,
+          "traffic_type": "ON_DEMAND"
+        },
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": -0.04646797046594586,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": [],
+        "branch": null,
+        "id": "e06368fb-cb29-44b6-8f79-320c101f365c",
+        "timestamp": 1761773336.310548
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": {
+                "will_continue": null,
+                "scheduling": null,
+                "parts": null,
+                "id": "adk-72c4facf-238c-4a59-a59e-441ca893d231",
+                "name": "generate_layout_preview",
+                "response": {
+                  "status": "ok",
+                  "artifact": "layout_preview",
+                  "view_count": 2,
+                  "message": "Pré-visualização armazenada com sucesso."
+                }
+              },
+              "text": null
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "65243e49-f70a-4c28-951f-97bbde910df6",
+        "timestamp": 1761773384.763352
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": {
+                "id": "adk-cb662646-3e13-4845-8405-8421a145efa0",
+                "args": {
+                  "view_filter": "id-171323",
+                  "session_state": ""
+                },
+                "name": "load_layout_preview"
+              },
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": null,
+              "text": null
+            }
+          ],
+          "role": "model"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": "STOP",
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 12239
+            }
+          ],
+          "cached_content_token_count": 12239,
+          "candidates_token_count": 19,
+          "candidates_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 19
+            }
+          ],
+          "prompt_token_count": 15462,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 17957
+            }
+          ],
+          "thoughts_token_count": null,
+          "tool_use_prompt_token_count": null,
+          "tool_use_prompt_tokens_details": null,
+          "total_token_count": 15481,
+          "traffic_type": "ON_DEMAND"
+        },
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": -0.014986337799774973,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": [],
+        "branch": null,
+        "id": "0eabe821-9d2c-4a58-b29d-c86bde5d3fad",
+        "timestamp": 1761773384.767321
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "video_metadata": null,
+              "thought": null,
+              "inline_data": null,
+              "file_data": null,
+              "function_call": null,
+              "code_execution_result": null,
+              "executable_code": null,
+              "function_response": {
+                "will_continue": null,
+                "scheduling": null,
+                "parts": null,
+                "id": "adk-cb662646-3e13-4845-8405-8421a145efa0",
+                "name": "load_layout_preview",
+                "response": {
+                  "status": "ok",
+                  "view_count": 1,
+                  "previews": [
+                    {
+                      "view_id": "id-171323",
+                      "view_name": "Visão de Container - {SolutionName}",
+                      "inline_markdown": "![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                      "inline_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                      "download_markdown": "[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                      "download_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                      "inline_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg",
+                      "download_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg"
+                    }
+                  ],
+                  "artifacts": [
+                    {
+                      "type": "image",
+                      "mime_type": "image/svg+xml",
+                      "encoding": "file",
+                      "path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg",
+                      "uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                      "filename": "id_171323_layout.svg"
+                    }
+                  ],
+                  "messages": [
+                    "### Visão de Container - {SolutionName}\n\n![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)\n\n[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)"
+                  ],
+                  "message": "### Visão de Container - {SolutionName}\n\n![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)\n\n[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                  "primary_preview": {
+                    "view_id": "id-171323",
+                    "view_name": "Visão de Container - {SolutionName}",
+                    "inline_markdown": "![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                    "inline_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                    "download_markdown": "[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                    "download_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                    "inline_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg",
+                    "download_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg"
+                  }
+                }
+              },
+              "text": null
+            }
+          ],
+          "role": "user"
+        },
+        "grounding_metadata": null,
+        "partial": null,
+        "turn_complete": null,
+        "finish_reason": null,
+        "error_code": null,
+        "error_message": null,
+        "interrupted": null,
+        "custom_metadata": null,
+        "usage_metadata": null,
+        "live_session_resumption_update": null,
+        "input_transcription": null,
+        "output_transcription": null,
+        "avg_logprobs": null,
+        "logprobs_result": null,
+        "cache_metadata": null,
+        "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+        "author": "diagramador",
+        "actions": {
+          "skip_summarization": null,
+          "state_delta": {},
+          "artifact_delta": {},
+          "transfer_to_agent": null,
+          "escalate": null,
+          "requested_auth_configs": {},
+          "requested_tool_confirmations": {},
+          "compaction": null
+        },
+        "long_running_tool_ids": null,
+        "branch": null,
+        "id": "1e198f7e-7846-4a43-9f5a-3e3b51c51d74",
+        "timestamp": 1761773390.966069
+      }
+    ],
+    "last_update_time": 1761773390.966069
+  },
+  "event": {
+    "content": {
+      "parts": [
+        {
+          "video_metadata": null,
+          "thought": null,
+          "inline_data": null,
+          "file_data": null,
+          "function_call": null,
+          "code_execution_result": null,
+          "executable_code": null,
+          "function_response": {
+            "will_continue": null,
+            "scheduling": null,
+            "parts": null,
+            "id": "adk-cb662646-3e13-4845-8405-8421a145efa0",
+            "name": "load_layout_preview",
+            "response": {
+              "status": "ok",
+              "view_count": 1,
+              "previews": [
+                {
+                  "view_id": "id-171323",
+                  "view_name": "Visão de Container - {SolutionName}",
+                  "inline_markdown": "![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                  "inline_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                  "download_markdown": "[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                  "download_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                  "inline_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg",
+                  "download_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg"
+                }
+              ],
+              "artifacts": [
+                {
+                  "type": "image",
+                  "mime_type": "image/svg+xml",
+                  "encoding": "file",
+                  "path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg",
+                  "uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                  "filename": "id_171323_layout.svg"
+                }
+              ],
+              "messages": [
+                "### Visão de Container - {SolutionName}\n\n![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)\n\n[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)"
+              ],
+              "message": "### Visão de Container - {SolutionName}\n\n![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)\n\n[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+              "primary_preview": {
+                "view_id": "id-171323",
+                "view_name": "Visão de Container - {SolutionName}",
+                "inline_markdown": "![Visão de Container - {SolutionName}](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                "inline_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                "download_markdown": "[Abrir diagrama em SVG](file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg)",
+                "download_uri": "file:///D:/Repo/Github/GFT/wndt-gft/DynamicsAgents-Agente-Diagramador/outputs/id_171323_layout.svg",
+                "inline_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg",
+                "download_path": "D:\\Repo\\Github\\GFT\\wndt-gft\\DynamicsAgents-Agente-Diagramador\\outputs\\id_171323_layout.svg"
+              }
+            }
+          },
+          "text": null
+        }
+      ],
+      "role": "user"
+    },
+    "grounding_metadata": null,
+    "partial": null,
+    "turn_complete": null,
+    "finish_reason": null,
+    "error_code": null,
+    "error_message": null,
+    "interrupted": null,
+    "custom_metadata": null,
+    "usage_metadata": null,
+    "live_session_resumption_update": null,
+    "input_transcription": null,
+    "output_transcription": null,
+    "avg_logprobs": null,
+    "logprobs_result": null,
+    "cache_metadata": null,
+    "invocation_id": "e-2995bdc1-4a0d-4d41-8fc6-1341e67435a3",
+    "author": "diagramador",
+    "actions": {
+      "skip_summarization": null,
+      "state_delta": {},
+      "artifact_delta": {},
+      "transfer_to_agent": null,
+      "escalate": null,
+      "requested_auth_configs": {},
+      "requested_tool_confirmations": {},
+      "compaction": null
+    },
+    "long_running_tool_ids": null,
+    "branch": null,
+    "id": "1e198f7e-7846-4a43-9f5a-3e3b51c51d74",
+    "timestamp": 1761773390.966069
+  },
+  "artifacts": []
+}
