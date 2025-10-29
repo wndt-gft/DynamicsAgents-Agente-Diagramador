@@ -66,6 +66,12 @@ def _error_response(message: str, *, code: str | None = None) -> Dict[str, Any]:
     return payload
 
 
+def _placeholder_token(value: str, fallback: str = "preview") -> str:
+    token = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value).strip())
+    token = token.strip("-")
+    return token or fallback
+
+
 def _resolve_package_path(path: Path) -> Path:
     """Resolve a resource path relative to the package when needed."""
 
@@ -2053,6 +2059,33 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
     if isinstance(artifact_payload, MutableMapping):
         variant["artifact"] = dict(artifact_payload)
 
+    placeholder_source: Optional[str] = None
+    if isinstance(local_path, str) and local_path.strip():
+        placeholder_source = Path(local_path).name
+    elif isinstance(artifact_payload, MutableMapping):
+        candidate_name = artifact_payload.get("filename") or artifact_payload.get("name")
+        if isinstance(candidate_name, str) and candidate_name.strip():
+            placeholder_source = candidate_name
+
+    if placeholder_source:
+        token_base = _placeholder_token(placeholder_source, fallback="preview").lower()
+        placeholders = {
+            "link": f"{{diagramador:{token_base}:link}}",
+            "image": f"{{diagramador:{token_base}:img}}",
+            "path": f"{{diagramador:{token_base}:path}}",
+        }
+        existing = variant.get("placeholders")
+        if isinstance(existing, MutableMapping):
+            combined = dict(existing)
+            combined.update(placeholders)
+            variant["placeholders"] = combined
+        else:
+            variant["placeholders"] = placeholders
+        if variant.get("inline_markdown") or variant.get("inline_uri"):
+            variant.setdefault("inline_placeholder", placeholders["image"])
+        if variant.get("download_markdown") or variant.get("download_uri"):
+            variant.setdefault("download_placeholder", placeholders["link"])
+
     if not variant.get("inline_markdown") and not variant.get("download_uri"):
         return None
 
@@ -2148,6 +2181,8 @@ def _summarize_layout_previews(
             summary["inline_uri"] = primary_inline["inline_uri"]
         if "local_path" in primary_inline:
             summary["inline_path"] = primary_inline["local_path"]
+        if "inline_placeholder" in primary_inline:
+            summary["inline_placeholder"] = primary_inline["inline_placeholder"]
 
         primary_download = svg_variant or variants[0]
         if "download_markdown" in primary_download:
@@ -2156,6 +2191,8 @@ def _summarize_layout_previews(
             summary["download_uri"] = primary_download["download_uri"]
         if "local_path" in primary_download:
             summary["download_path"] = primary_download["local_path"]
+        if "download_placeholder" in primary_download:
+            summary["download_placeholder"] = primary_download["download_placeholder"]
 
         summaries.append(summary)
 
@@ -2379,6 +2416,15 @@ def generate_layout_preview(
             "download_markdown": response.get("download_markdown"),
             "download_uri": primary_download_uri,
         }
+
+        inline_placeholder = primary.get("inline_placeholder")
+        download_placeholder = primary.get("download_placeholder")
+        if isinstance(inline_placeholder, str) and inline_placeholder.strip():
+            response["inline_placeholder"] = inline_placeholder
+            response["primary_preview"]["inline_placeholder"] = inline_placeholder
+        if isinstance(download_placeholder, str) and download_placeholder.strip():
+            response["download_placeholder"] = download_placeholder
+            response["primary_preview"]["download_placeholder"] = download_placeholder
 
         if primary_summary_markdown:
             response.setdefault("preview_messages", preview_messages)

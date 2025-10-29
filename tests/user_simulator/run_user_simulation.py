@@ -606,19 +606,46 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     event_timestamp = _utcnow().isoformat()
                     tool_interactions = _extract_tool_interactions(event, sanitized_payload)
 
+                    artifacts_records = _persist_artifacts(
+                        runner,
+                        artefacts_dir,
+                        event,
+                        user_id=session.user_id,
+                        session_id=session.id,
+                    )
+                    if inline_artifacts:
+                        artifacts_records.extend(inline_artifacts)
+
+                    replacements = _build_artifact_replacements(
+                        artifacts_records, run_dir=run_dir
+                    )
+                    sanitized_payload = _apply_response_replacements(
+                        sanitized_payload, replacements
+                    )
+                    inline_notes = [
+                        _apply_replacements_to_text(note, replacements)
+                        for note in inline_notes
+                    ]
+                    preview_text = _extract_text_from_event(sanitized_payload)
+                    preview = _shorten_cli_preview(preview_text)
+                    author = getattr(event, "author", "agent") or "agent"
+
                     session_log.write(
                         "**Agente Diagramador**\n"
                         "----------------------\n"
                         f"Horário: {event_timestamp}\n"
-                        f"{_extract_text_from_event(sanitized_payload) or '[sem texto disponível]'}\n\n"
+                        f"{preview_text or '[sem texto disponível]'}\n\n"
                     )
                     if tool_interactions:
                         session_log.write("**Uso de ferramentas**\n")
                         session_log.write("---------------------\n")
                         for interaction in tool_interactions:
                             action = "chamada" if interaction.direction == "call" else "resposta"
+                            detail = _apply_replacements_to_text(
+                                interaction.detail, replacements
+                            )
                             session_log.write(
-                                f"- {interaction.name} ({action}): {interaction.detail}\n"
+                                f"- {interaction.name} ({action}): {detail}\n"
                             )
                         session_log.write("\n")
                     session_log.write(
@@ -632,16 +659,16 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         for note in inline_notes:
                             session_log.write(f"- {note}\n")
                         session_log.write("\n")
-                    preview = _shorten_cli_preview(
-                        _extract_text_from_event(sanitized_payload)
-                    )
-                    author = getattr(event, "author", "agent") or "agent"
+
                     _emit_cli(f"   ↳ {author}: {preview}")
                     if tool_interactions:
                         for interaction in tool_interactions:
                             action = "chamada" if interaction.direction == "call" else "resposta"
+                            detail = _apply_replacements_to_text(
+                                interaction.detail, replacements
+                            )
                             _emit_cli(
-                                f"      ↳ ferramenta {interaction.name} ({action}): {interaction.detail}"
+                                f"      ↳ ferramenta {interaction.name} ({action}): {detail}"
                             )
 
                     snapshot = asyncio.run(
@@ -653,16 +680,6 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         event_index=event_index, event=event
                     )
                     state_path = run_dir / state_filename
-
-                    artifacts_records = _persist_artifacts(
-                        runner,
-                        artefacts_dir,
-                        event,
-                        user_id=session.user_id,
-                        session_id=session.id,
-                    )
-                    if inline_artifacts:
-                        artifacts_records.extend(inline_artifacts)
 
                     if artifacts_records:
                         session_log.write("**Artefatos armazenados**\n")
@@ -681,7 +698,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         index=event_index,
                         step=step.name,
                         author=event.author,
-                        summary=_extract_text_from_event(sanitized_payload),
+                        summary=preview_text,
                         event_payload=sanitized_payload,
                         session_state_path=state_path,
                         tools=list(tool_interactions),
@@ -696,16 +713,16 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         artifacts=artifacts_records,
                     )
 
-                    if event.author != "user":
-                        text = _extract_text_from_event(sanitized_payload)
-                        if text:
-                            final_agent_text.append(text)
-                            agent_responses.append(text)
+                    if event.author != "user" and preview_text:
+                        final_agent_text.append(preview_text)
+                        agent_responses.append(preview_text)
                     if artifacts_records:
                         for record_artifact in artifacts_records:
+                            saved_uri = _apply_replacements_to_text(
+                                record_artifact.absolute_path.as_uri(), replacements
+                            )
                             _emit_cli(
-                                "      ↳ artefato salvo: "
-                                f"{record_artifact.absolute_path.as_uri()}"
+                                f"      ↳ artefato salvo: {saved_uri}"
                             )
             except genai_errors.ClientError as exc:  # pragma: no cover - requer ambiente real
                 model_error = _serialize_model_error(exc)
@@ -1088,6 +1105,103 @@ def _extract_inline_artifacts_from_payload(
 
     processed_payload = _process(payload, "event") if isinstance(payload, MutableMapping) else payload
     return processed_payload, extracted, notes
+
+
+def _apply_replacements_to_text(
+    text: str | None, replacements: MutableMapping[str, str] | dict[str, str]
+) -> str:
+    if text is None:
+        return ""
+    if not replacements:
+        return text
+
+    result = text
+    for needle, replacement in replacements.items():
+        if not needle:
+            continue
+        result = result.replace(needle, replacement)
+    return result
+
+
+def _apply_response_replacements(
+    payload: Any, replacements: MutableMapping[str, str] | dict[str, str]
+) -> Any:
+    if not replacements:
+        return payload
+
+    def _transform(node: Any) -> Any:
+        if isinstance(node, MutableMapping):
+            for key, value in list(node.items()):
+                node[key] = _transform(value)
+            return node
+        if isinstance(node, list):
+            for index, item in enumerate(list(node)):
+                node[index] = _transform(item)
+            return node
+        if isinstance(node, str):
+            return _apply_replacements_to_text(node, replacements)
+        return node
+
+    return _transform(payload)
+
+
+def _build_artifact_replacements(
+    artifacts: Sequence[ArtifactRecord], *, run_dir: Path
+) -> dict[str, str]:
+    replacements: dict[str, str] = {}
+    if not artifacts:
+        return replacements
+
+    default_svg_link: str | None = None
+    default_png_embed: str | None = None
+
+    for artifact in artifacts:
+        absolute_path = artifact.absolute_path
+        try:
+            relative_path = absolute_path.relative_to(run_dir)
+            relative_uri = f"./{relative_path.as_posix()}"
+        except ValueError:
+            relative_uri = absolute_path.as_uri()
+
+        absolute_str = str(absolute_path)
+        replacements.setdefault(absolute_path.as_uri(), relative_uri)
+        replacements.setdefault(absolute_str, relative_uri)
+        replacements.setdefault(absolute_str.replace("\\", "/"), relative_uri)
+        replacements.setdefault(absolute_str.replace("\\", "\\\\"), relative_uri)
+
+        display_name = artifact.filename
+        token_base = _sanitize_token(display_name, fallback="artifact").lower()
+        link_markup = f"[Abrir {display_name}]({relative_uri})"
+        replacements.setdefault(f"{{diagramador:{token_base}:link}}", link_markup)
+        replacements.setdefault(f"{{diagramador:{token_base}:path}}", relative_uri)
+        replacements.setdefault(f"{{diagramador:{token_base}:uri}}", relative_uri)
+        replacements.setdefault(f"{{diagramador:{token_base}:markdown_link}}", link_markup)
+
+        suffix = absolute_path.suffix.lower()
+        if suffix == ".svg":
+            svg_embed = f"![{display_name}]({relative_uri})"
+            replacements.setdefault(f"{{diagramador:{token_base}:img}}", svg_embed)
+            replacements.setdefault(f"{{diagramador:{token_base}:image}}", svg_embed)
+            replacements.setdefault(f"{{diagramador:{token_base}:embed}}", svg_embed)
+            if default_svg_link is None:
+                default_svg_link = link_markup
+        elif suffix in {".png", ".jpg", ".jpeg", ".gif", ".webp"}:
+            image_markup = f"![{display_name}]({relative_uri})"
+            replacements.setdefault(f"{{diagramador:{token_base}:img}}", image_markup)
+            replacements.setdefault(f"{{diagramador:{token_base}:image}}", image_markup)
+            if suffix == ".png" and default_png_embed is None:
+                default_png_embed = image_markup
+
+        replacements.setdefault(f"{{diagramador:{token_base}:relative_path}}", relative_uri)
+        replacements.setdefault(f"{{diagramador:{token_base}:filename}}", display_name)
+
+    if default_svg_link:
+        replacements.setdefault("{diagramador_svg_link}", default_svg_link)
+        replacements.setdefault("{link_diagrama_svg_base64}", default_svg_link)
+    if default_png_embed:
+        replacements.setdefault("{diagram_img_png}", default_png_embed)
+
+    return replacements
 
 
 def _guess_extension(mime_type: str | None, filename: str) -> str:
