@@ -320,8 +320,7 @@ def test_generate_mermaid_preview_converts_html_line_breaks():
 
     lines = mermaid_source.split("\n")
     assert lines[0].strip().startswith("flowchart")
-    assert lines[1].startswith("view_html[")
-    assert "<br/>" in lines[1]
+    assert lines[1].startswith("title ")
 
     node_line = next(line for line in lines if "node_html" in line and "[")
     assert "<br/>" in node_line
@@ -621,7 +620,7 @@ def test_generate_mermaid_preview_appends_statement_terminators():
 
     for line in mermaid_lines:
         stripped = line.strip()
-        if not stripped or stripped.startswith("%%"):
+        if not stripped or stripped.startswith("%%") or stripped.startswith("title "):
             continue
         assert stripped.endswith(";")
 

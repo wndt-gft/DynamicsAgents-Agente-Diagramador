@@ -2253,6 +2253,8 @@ def _gather_node_metadata(
     title = next((candidate for candidate in label_candidates if candidate), "Elemento")
 
     node_type = node.get("type") or (element_entry.get("type") if element_entry else None)
+    if not node_type and blueprint_node:
+        node_type = blueprint_node.get("type")
 
     node_doc, template_doc = _merge_node_documentation(node, blueprint_node)
     if not node_doc and element_entry:
@@ -2554,7 +2556,7 @@ def _build_view_mermaid(
         if normalized_direction not in {"TB", "TD", "LR", "RL"}:
             normalized_direction = "TB"
         lines = [f"flowchart {normalized_direction}"]
-        lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
+        lines.append(f"title {_mermaid_escape(view_name)}")
 
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
@@ -2758,9 +2760,11 @@ def _build_view_mermaid(
 
     initial_context: Dict[str, Any] = {"external": False}
 
+    root_parent_alias = None if use_layout else (None if use_c4 else view_alias)
+
     for node in _node_children(view):
         if isinstance(node, dict):
-            _process_node(node, view_alias if not use_c4 else None, 1, dict(initial_context))
+            _process_node(node, root_parent_alias, 1, dict(initial_context))
 
     link_style_statements: List[str] = []
     edge_index = 0
