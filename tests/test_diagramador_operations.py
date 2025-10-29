@@ -143,7 +143,8 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     preview = get_cached_artifact(
         session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
     )
-    assert preview["view_count"] >= 1
+    datamodel_view_count = len(json.loads(sample_payload)["views"]["diagrams"])
+    assert preview["view_count"] == datamodel_view_count
     layout_payloads = [view.get("layout_preview") for view in preview["views"]]
     if any(payload is None for payload in layout_payloads):
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
@@ -153,6 +154,11 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert all(payload["inline_markdown"].startswith("![") for payload in layout_payloads)
     assert preview.get("preview_summaries")
     assert preview.get("artifacts")
+    primary_preview = preview.get("primary_preview")
+    assert primary_preview
+    assert primary_preview["inline_markdown"].startswith("![")
+    assert primary_preview["download_markdown"].startswith("[Baixar")
+    assert primary_preview["download_uri"].startswith("data:image/")
 
     summaries = result.get("previews")
     assert summaries
@@ -163,6 +169,11 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert result.get("message")
     assert result.get("inline_markdown", "").startswith("![")
     assert result.get("download_markdown", "").startswith("[Baixar")
+    primary_status_preview = result.get("primary_preview")
+    assert primary_status_preview
+    assert primary_status_preview["inline_markdown"].startswith("![")
+    assert primary_status_preview["download_markdown"].startswith("[Baixar")
+    assert primary_status_preview["download_uri"].startswith("data:image/")
     messages = result.get("preview_messages")
     assert messages and all(message.startswith("###") for message in messages)
 
@@ -192,6 +203,9 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
     assert preview.get("message")
     assert preview.get("inline_markdown", "").startswith("![")
     assert preview.get("download_markdown", "").startswith("[Baixar")
+    primary_preview = preview.get("primary_preview")
+    assert primary_preview
+    assert primary_preview["download_uri"].startswith("data:image/svg+xml;base64,")
     messages = preview.get("preview_messages")
     assert messages and all(msg.startswith("###") for msg in messages)
 
@@ -224,6 +238,9 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
     assert result.get("inline_markdown", "").startswith("![")
     assert result.get("download_markdown", "").startswith("[Baixar")
     assert result.get("preview_messages")
+    primary_preview = result.get("primary_preview")
+    assert primary_preview
+    assert primary_preview["inline_markdown"].startswith("![")
 
 
 def test_generate_layout_preview_filters_views_with_string(sample_payload, session_state):
@@ -250,6 +267,9 @@ def test_generate_layout_preview_filters_views_with_string(sample_payload, sessi
     summaries = result.get("previews")
     assert summaries and len(summaries) == 1
     assert summaries[0]["download_markdown"].startswith("[Baixar")
+    primary_preview = result.get("primary_preview")
+    assert primary_preview
+    assert primary_preview["inline_markdown"].startswith("![")
 
 
 def test_finalize_generates_preview_with_view_focus(sample_payload, session_state):

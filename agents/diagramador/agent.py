@@ -54,19 +54,19 @@ def _coerce_session_state(
     if isinstance(session_state, str):
         payload = session_state.strip()
         if not payload:
-            return None, True
+            return {}, True
         try:
             decoded = json.loads(payload)
         except json.JSONDecodeError:
             logger.warning("Falha ao decodificar session_state fornecido como string.")
-            return None, True
+            return {}, True
         if isinstance(decoded, MutableMapping):
             return decoded, True
         logger.warning(
             "session_state string decodificada não representa um mapeamento: %s",
             type(decoded).__name__,
         )
-        return None, True
+        return {}, True
 
     logger.warning(
         "Tipo de session_state não suportado recebido (%s); será ignorado.",

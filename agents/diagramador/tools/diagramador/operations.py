@@ -2198,6 +2198,8 @@ def generate_layout_preview(
     processed_ids: set[str] = set()
     layout_output_dir: Path | None = None
 
+    restrict_to_datamodel_views = not filter_tokens and bool(datamodel_view_map)
+
     def _attach_layout_preview(view_payload: Dict[str, Any]) -> Dict[str, Any]:
         nonlocal layout_output_dir
         layout_info = view_payload.get("layout")
@@ -2222,6 +2224,8 @@ def generate_layout_preview(
             continue
         view_id = view.get("id")
         view_key = str(view_id) if view_id else f"template_{len(results) + 1}"
+        if restrict_to_datamodel_views and view_id and str(view_id) not in datamodel_view_map:
+            continue
         override_view = datamodel_view_map.get(str(view_id)) if view_id else None
         merged_view = (
             _merge_view_diagram(view, override_view) if override_view else copy.deepcopy(view)
@@ -2300,18 +2304,36 @@ def generate_layout_preview(
         response["preview_messages"] = preview_messages
         response["message"] = "\n\n".join(preview_messages)
 
+    if preview_summaries:
         primary = preview_summaries[0]
         primary_inline = primary.get("inline_markdown")
         primary_download = primary.get("download_markdown")
+        primary_download_uri = primary.get("download_uri")
+        primary_summary_markdown = _preview_summary_markdown(primary)
+
         if isinstance(primary_inline, str) and primary_inline.strip():
             response["inline_markdown"] = primary_inline
         if isinstance(primary_download, str) and primary_download.strip():
             response["download_markdown"] = primary_download
-        elif isinstance(primary.get("download_uri"), str) and primary["download_uri"].strip():
+        elif isinstance(primary_download_uri, str) and primary_download_uri.strip():
             response["download_markdown"] = (
                 primary.get("download_markdown")
-                or f"[Baixar pré-visualização]({primary['download_uri']})"
+                or f"[Baixar pré-visualização]({primary_download_uri})"
             )
+
+        response["primary_preview"] = {
+            "view_id": primary.get("view_id"),
+            "view_name": primary.get("view_name"),
+            "inline_markdown": response.get("inline_markdown"),
+            "download_markdown": response.get("download_markdown"),
+            "download_uri": primary_download_uri,
+        }
+
+        if primary_summary_markdown:
+            response.setdefault("preview_messages", preview_messages)
+            if not response.get("message"):
+                response["message"] = primary_summary_markdown
+            response["primary_message"] = primary_summary_markdown
 
     if template_metadata:
         response["template"] = template_metadata
@@ -2344,6 +2366,13 @@ def generate_layout_preview(
             status_payload["inline_markdown"] = primary_inline
         if primary_download:
             status_payload["download_markdown"] = primary_download
+
+        primary_preview = response.get("primary_preview")
+        if isinstance(primary_preview, MutableMapping):
+            status_payload["primary_preview"] = dict(primary_preview)
+            primary_message = response.get("primary_message")
+            if isinstance(primary_message, str) and primary_message.strip():
+                status_payload["message"] = primary_message
 
         return status_payload
 
