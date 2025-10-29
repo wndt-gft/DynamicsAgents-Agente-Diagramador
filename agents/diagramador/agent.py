@@ -54,8 +54,19 @@ def list_templates(directory: str = ""):
     return _list_templates(directory or None)
 
 
-def describe_template(template_path: str, *, session_state: Dict[str, Any] | None = None):
-    return _describe_template(template_path, session_state=session_state)
+def describe_template(
+    template_path: str,
+    *,
+    session_state: Dict[str, Any] | None = None,
+    view_identifier: str = "",
+    view_name: str = "",
+):
+    return _describe_template(
+        template_path,
+        session_state=session_state,
+        view_identifier=view_identifier or None,
+        view_name=view_name or None,
+    )
 
 
 def generate_mermaid_preview(

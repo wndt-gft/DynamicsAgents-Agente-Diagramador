@@ -32,6 +32,9 @@ SAMPLE_DATAMODEL = operations._resolve_package_path(
 )
 ALTERNATIVE_TEMPLATE_PATH = "agents/BV-C4-Model-SDLC/layout_template.xml"
 
+CONTAINER_VIEW_ID = "id-171323"
+CONTAINER_VIEW_NAME = "Visão de Container - {SolutionName}"
+
 
 @pytest.fixture()
 def sample_payload() -> str:
@@ -82,6 +85,20 @@ def test_list_templates_uses_default_when_custom_dir_missing():
     assert Path(result["directory"]).resolve() == default_dir.resolve()
 
 
+def test_list_templates_includes_view_metadata():
+    result = list_templates()
+    entry = next(
+        template
+        for template in result["templates"]
+        if Path(template["path"]).name == SAMPLE_TEMPLATE.name
+    )
+    views = entry.get("views", [])
+    assert views, "template deve expor metadados de visões"
+    names = {view.get("name") for view in views}
+    assert CONTAINER_VIEW_NAME in names
+    assert any(view.get("documentation") for view in views)
+
+
 def test_describe_template_stores_blueprint(session_state):
     guidance = describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
     assert guidance["model"]["identifier"]
@@ -89,6 +106,37 @@ def test_describe_template_stores_blueprint(session_state):
     cache = bucket[BLUEPRINT_CACHE_KEY]
     resolved = str(SAMPLE_TEMPLATE.resolve())
     assert resolved in cache
+
+
+def test_describe_template_filters_view_by_identifier(session_state):
+    guidance = describe_template(
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_identifier=CONTAINER_VIEW_ID,
+    )
+    diagrams = guidance["views"]["diagrams"]
+    assert len(diagrams) == 1
+    assert diagrams[0]["identifier"] == CONTAINER_VIEW_ID
+
+
+def test_describe_template_filters_view_by_name(session_state):
+    guidance = describe_template(
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_name=CONTAINER_VIEW_NAME,
+    )
+    diagrams = guidance["views"]["diagrams"]
+    assert len(diagrams) == 1
+    assert diagrams[0]["name"] == CONTAINER_VIEW_NAME
+
+
+def test_describe_template_filter_raises_for_unknown_view(session_state):
+    with pytest.raises(ValueError):
+        describe_template(
+            str(SAMPLE_TEMPLATE),
+            session_state=session_state,
+            view_identifier="unknown-view",
+        )
 
 
 def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state):

@@ -3442,7 +3442,12 @@ def generate_archimate_diagram(
 
 
 def list_templates(directory: str | None = None) -> Dict[str, Any]:
-    """Lista templates ArchiMate disponíveis no diretório informado."""
+    """Lista templates ArchiMate disponíveis no diretório informado.
+
+    Além dos metadados do modelo, cada template retornado inclui um resumo das
+    visões disponíveis (nome e documentação) para facilitar a seleção pelos
+    agentes especialistas.
+    """
 
     templates_dir = _resolve_templates_dir(directory)
     if not templates_dir.exists():
@@ -3458,6 +3463,31 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
             ns = {"a": ARCHIMATE_NS}
             name_el = root.find("a:name", ns)
             documentation_el = root.find("a:documentation", ns)
+
+            views_summary: List[Dict[str, Any]] = []
+            views_root = root.find("a:views", ns)
+            if views_root is not None:
+                for view_el in views_root.findall("a:diagrams/a:view", ns):
+                    view_entry: Dict[str, Any] = {}
+                    identifier = view_el.get("identifier")
+                    if identifier:
+                        view_entry["identifier"] = identifier
+
+                    name_payload = _text_payload(view_el.find("a:name", ns))
+                    name_text = _payload_text(name_payload)
+                    if name_text:
+                        view_entry["name"] = name_text
+
+                    documentation_payload = _text_payload(
+                        view_el.find("a:documentation", ns)
+                    )
+                    documentation_text = _payload_text(documentation_payload)
+                    if documentation_text:
+                        view_entry["documentation"] = documentation_text
+
+                    if view_entry:
+                        views_summary.append(view_entry)
+
             metadata = {
                 "path": str(template_path.resolve()),
                 "relative_path": str(template_path.relative_to(templates_dir)),
@@ -3465,6 +3495,9 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
                 "model_name": _text_payload(name_el),
                 "documentation": _text_payload(documentation_el),
             }
+            if views_summary:
+                metadata["views"] = views_summary
+
             discovered.append(metadata)
         except ET.ParseError:
             logger.warning("Template inválido ignorado", extra={"path": str(template_path)})
@@ -3480,8 +3513,15 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
 def describe_template(
     template_path: str,
     session_state: Optional[MutableMapping[str, Any]] = None,
+    *,
+    view_identifier: Optional[str] = None,
+    view_name: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Retorna a estrutura detalhada de um template ArchiMate."""
+    """Retorna a estrutura detalhada de um template ArchiMate.
+
+    Quando ``view_identifier`` ou ``view_name`` são informados, apenas a
+    hierarquia da visão correspondente é retornada.
+    """
 
     template = _resolve_package_path(Path(template_path))
 
@@ -3490,7 +3530,46 @@ def describe_template(
 
     blueprint = _parse_template_blueprint(template)
     store_blueprint(session_state, template, blueprint)
-    guidance = _build_guidance_from_blueprint(blueprint)
+
+    filtered_blueprint = blueprint
+    if view_identifier or view_name:
+        view_identifier_normalized = (
+            view_identifier.lower().strip() if view_identifier else None
+        )
+        view_name_fingerprint = _fingerprint_text(view_name) if view_name else None
+
+        views_payload = copy.deepcopy(blueprint.get("views") or {})
+        diagrams = list(views_payload.get("diagrams") or [])
+
+        matched: List[Dict[str, Any]] = []
+        for diagram in diagrams:
+            diagram_id = (diagram.get("id") or diagram.get("identifier") or "").strip()
+            diagram_name = _payload_text(diagram.get("name")) or ""
+            diagram_name_fingerprint = _fingerprint_text(diagram_name)
+
+            matches_identifier = (
+                bool(view_identifier_normalized)
+                and diagram_id.lower() == view_identifier_normalized
+            )
+            matches_name = (
+                bool(view_name_fingerprint)
+                and diagram_name_fingerprint == view_name_fingerprint
+            )
+
+            if matches_identifier or matches_name:
+                matched.append(copy.deepcopy(diagram))
+
+        if not matched:
+            target = view_identifier or view_name or ""
+            raise ValueError(
+                f"Visão '{target}' não encontrada no template informado."
+            )
+
+        views_payload["diagrams"] = matched
+        filtered_blueprint = copy.deepcopy(blueprint)
+        filtered_blueprint["views"] = views_payload
+
+    guidance = _build_guidance_from_blueprint(filtered_blueprint)
     guidance["model"]["path"] = str(template.resolve())
     return guidance
 __all__ = [
