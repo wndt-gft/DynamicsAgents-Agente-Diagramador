@@ -2031,7 +2031,11 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
     if isinstance(inline_markdown, str) and inline_markdown.strip():
         variant["inline_markdown"] = inline_markdown
 
-    download_uri = payload.get("download_uri") or payload.get("data_uri")
+    inline_uri = payload.get("inline_uri")
+    if isinstance(inline_uri, str) and inline_uri.strip():
+        variant["inline_uri"] = inline_uri.strip()
+
+    download_uri = payload.get("download_uri")
     if isinstance(download_uri, str) and download_uri.strip():
         variant["download_uri"] = download_uri
         download_markdown = payload.get("download_markdown")
@@ -2040,6 +2044,10 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
             label_text = str(label).upper() if label else "PREVIEW"
             download_markdown = f"[Baixar {label_text}]({download_uri})"
         variant["download_markdown"] = download_markdown
+
+    local_path = payload.get("local_path")
+    if isinstance(local_path, str) and local_path.strip():
+        variant["local_path"] = local_path.strip()
 
     artifact_payload = payload.get("artifact")
     if isinstance(artifact_payload, MutableMapping):
@@ -2136,12 +2144,18 @@ def _summarize_layout_previews(
         primary_inline = png_variant or variants[0]
         if "inline_markdown" in primary_inline:
             summary["inline_markdown"] = primary_inline["inline_markdown"]
+        if "inline_uri" in primary_inline:
+            summary["inline_uri"] = primary_inline["inline_uri"]
+        if "local_path" in primary_inline:
+            summary["inline_path"] = primary_inline["local_path"]
 
         primary_download = svg_variant or variants[0]
         if "download_markdown" in primary_download:
             summary["download_markdown"] = primary_download["download_markdown"]
         if "download_uri" in primary_download:
             summary["download_uri"] = primary_download["download_uri"]
+        if "local_path" in primary_download:
+            summary["download_path"] = primary_download["local_path"]
 
         summaries.append(summary)
 
@@ -2470,6 +2484,9 @@ def load_layout_preview(
         inline_markdown = summary.get("inline_markdown")
         download_markdown = summary.get("download_markdown")
         download_uri = summary.get("download_uri")
+        inline_uri = summary.get("inline_uri")
+        inline_path = summary.get("inline_path")
+        download_path = summary.get("download_path")
 
         normalized_download_md: str | None
         if isinstance(download_markdown, str) and download_markdown.strip():
@@ -2488,10 +2505,16 @@ def load_layout_preview(
 
         if isinstance(inline_markdown, str) and inline_markdown.strip():
             preview_entry["inline_markdown"] = inline_markdown.strip()
+        if isinstance(inline_uri, str) and inline_uri.strip():
+            preview_entry["inline_uri"] = inline_uri.strip()
         if normalized_download_md:
             preview_entry["download_markdown"] = normalized_download_md
         if isinstance(download_uri, str) and download_uri.strip():
             preview_entry["download_uri"] = download_uri.strip()
+        if isinstance(inline_path, str) and inline_path.strip():
+            preview_entry["inline_path"] = inline_path.strip()
+        if isinstance(download_path, str) and download_path.strip():
+            preview_entry["download_path"] = download_path.strip()
 
         response["previews"].append(preview_entry)
 
