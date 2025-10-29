@@ -2073,6 +2073,8 @@ def _summarize_layout_previews(
             continue
 
         variants: List[Dict[str, Any]] = []
+        png_variant: Dict[str, Any] | None = None
+        svg_variant: Dict[str, Any] | None = None
         for candidate in (preview_payload, preview_payload.get("png")):
             variant = _build_preview_variant(candidate)
             if not variant:
@@ -2088,6 +2090,11 @@ def _summarize_layout_previews(
                     seen_artifacts.add(key)
                     artifacts.append(dict(artifact_payload))
             variants.append(variant)
+            format_hint = str(variant.get("format") or "").lower()
+            if format_hint == "png" and png_variant is None:
+                png_variant = variant
+            if format_hint == "svg" and svg_variant is None:
+                svg_variant = variant
 
         if not variants:
             continue
@@ -2098,13 +2105,15 @@ def _summarize_layout_previews(
             "variants": variants,
         }
 
-        primary = variants[0]
-        if "inline_markdown" in primary:
-            summary["inline_markdown"] = primary["inline_markdown"]
-        if "download_markdown" in primary:
-            summary["download_markdown"] = primary["download_markdown"]
-        if "download_uri" in primary:
-            summary["download_uri"] = primary["download_uri"]
+        primary_inline = png_variant or variants[0]
+        if "inline_markdown" in primary_inline:
+            summary["inline_markdown"] = primary_inline["inline_markdown"]
+
+        primary_download = svg_variant or variants[0]
+        if "download_markdown" in primary_download:
+            summary["download_markdown"] = primary_download["download_markdown"]
+        if "download_uri" in primary_download:
+            summary["download_uri"] = primary_download["download_uri"]
 
         summaries.append(summary)
 

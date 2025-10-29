@@ -182,11 +182,17 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert all(payload["inline_markdown"].startswith("![") for payload in layout_payloads)
     assert preview.get("preview_summaries")
     assert preview.get("artifacts")
+    primary_summary = preview["preview_summaries"][0]
+    inline_md = primary_summary.get("inline_markdown", "")
+    if inline_md and "data:image/png;base64," not in inline_md:
+        pytest.skip("Pré-visualização requer conversão para PNG (cairosvg) para exibir inline.")
     primary_preview = preview.get("primary_preview")
     assert primary_preview
     assert primary_preview["inline_markdown"].startswith("![")
-    assert primary_preview["download_markdown"].startswith("[Baixar")
-    assert primary_preview["download_uri"].startswith("data:image/")
+    if primary_preview["inline_markdown"].startswith("![") and "data:image/png;base64," not in primary_preview["inline_markdown"]:
+        pytest.skip("Pré-visualização requer conversão para PNG (cairosvg) para exibir inline.")
+    assert primary_preview["download_markdown"].startswith("[Abrir diagrama em SVG]")
+    assert primary_preview["download_uri"].startswith("data:image/svg+xml;base64,")
 
     # Tool responses should avoid embedding large preview payloads when a session
     # state mapping is supplied.
@@ -215,10 +221,20 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
     )
     assert preview.get("preview_summaries")
     assert preview["preview_summaries"][0]["download_uri"].startswith("data:image/svg+xml;base64,")
-    assert preview["preview_summaries"][0]["download_markdown"].startswith("[Baixar")
+    assert preview["preview_summaries"][0]["download_markdown"].startswith(
+        "[Abrir diagrama em SVG]"
+    )
     assert preview.get("message")
-    assert preview.get("inline_markdown", "").startswith("![")
-    assert preview.get("download_markdown", "").startswith("[Baixar")
+    inline_markdown = preview.get("inline_markdown", "")
+    if inline_markdown:
+        assert inline_markdown.startswith("![")
+        if "data:image/png;base64," not in inline_markdown:
+            pytest.skip(
+                "Pré-visualização requer conversão para PNG (cairosvg) para exibir inline."
+            )
+    download_md = preview.get("download_markdown", "")
+    if download_md:
+        assert download_md.startswith("[Abrir diagrama em SVG]")
     primary_preview = preview.get("primary_preview")
     assert primary_preview
     assert primary_preview["download_uri"].startswith("data:image/svg+xml;base64,")

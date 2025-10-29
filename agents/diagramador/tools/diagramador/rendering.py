@@ -369,7 +369,7 @@ def render_view_layout(
 
     svg_b64 = base64.b64encode(svg_bytes).decode("ascii")
     svg_data_uri = _make_data_uri("image/svg+xml", svg_bytes)
-    download_markdown = f"[Baixar SVG]({svg_data_uri})"
+    download_markdown = f"[Abrir diagrama em SVG]({svg_data_uri})"
 
     inline_markup = (
         f"![{_escape_markdown_alt(view_name or view_alias)}]({svg_data_uri})"
@@ -408,6 +408,9 @@ def render_view_layout(
             png_b64 = base64.b64encode(png_bytes).decode("ascii")
             png_data_uri = _make_data_uri("image/png", png_bytes)
             png_download = f"[Baixar PNG]({png_data_uri})"
+            png_inline = (
+                f"![{_escape_markdown_alt(view_name or view_alias)}]({png_data_uri})"
+            )
             payload["png"] = {
                 "format": "png",
                 "local_path": str(png_path.resolve()),
@@ -415,9 +418,7 @@ def render_view_layout(
                 "data_uri": png_data_uri,
                 "download_uri": png_data_uri,
                 "download_markdown": png_download,
-                "inline_markdown": (
-                    f"![{_escape_markdown_alt(view_name or view_alias)}]({png_data_uri})"
-                ),
+                "inline_markdown": png_inline,
                 "download_filename": png_path.name,
                 "artifact": {
                     "type": "image",
@@ -428,6 +429,9 @@ def render_view_layout(
                 },
             }
             payload["artifacts"].append(payload["png"]["artifact"])
+            payload["inline_markdown"] = png_inline
+            payload["inline_data_uri"] = png_data_uri
+            payload["inline_format"] = "png"
 
     return payload
 
