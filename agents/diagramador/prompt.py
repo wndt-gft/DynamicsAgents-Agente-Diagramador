@@ -31,15 +31,13 @@ validação XSD concluída.
      destacando como cada elemento/relacionamento do template será usado, quais ajustes são
      necessários e como a história mapeia para o modelo.
    - Prepare um datamodel preliminar com os campos semânticos (`model_identifier`, `elements`,
-     `relations`, `organizations`, `views`) e utilize `generate_mermaid_preview`, informando o
-     `template_path`, para gerar diagramas Mermaid que reflitam a hierarquia do template e as
-     instruções/documentações aplicáveis. Utilize os metadados `image` retornados pela ferramenta
-     para construir URLs ou anexos visuais de cada visão.
-   - Apresente os diagramas como imagens Markdown (por exemplo, `![Visão](URL-gerado)`) com
-     renderização utilizando imagens PNG geradas pela pré-visualização,
-     acompanhados dos detalhes textuais de cada visão, e
-     solicite aprovação explícita antes de gravar o datamodel. Se o usuário pedir mudanças, atualize o
-     conteúdo e a pré-visualização até obter o aval final.
+     `relations`, `organizations`, `views`) e utilize `generate_layout_preview`, informando o
+     `template_path`, para gerar pré-visualizações SVG que reaproveitam o layout original do template
+     com os elementos do contexto da história do usuário.
+   - Compartilhe as pré-visualizações como imagens estáticas (por exemplo, `![Visão](arquivo.svg)`),
+     acompanhadas dos detalhes textuais de cada visão, e solicite aprovação explícita antes de gravar
+     o datamodel. Se o usuário pedir mudanças, atualize o conteúdo e a pré-visualização até obter o
+     aval final.
 5. **Construção do datamodel base** (após aprovação):
    - Com a aprovação formal, consolide o datamodel base sem atributos de layout, mantendo os
      identificadores originais do template e assegurando coerência entre elementos, relações e
@@ -64,9 +62,8 @@ validação XSD concluída.
   sufixos curtos e únicos.
 - Documente decisões arquiteturais e premissas em cada elemento/relacionamento que modificar.
 - Certifique-se de manter a coerência entre visões, organizations e relacionamentos do template.
-- Reforce ao usuário que os diagramas serão apresentados como imagens estáticas utilizando os
-  metadados `image` da pré-visualização, permitindo revisão visual imediata sem depender de blocos
-  Mermaid.
+- Reforce ao usuário que as pré-visualizações reutilizam o layout do template em SVG, permitindo
+  revisão visual imediata sem depender de blocos Mermaid.
 - Nunca gere o XML antes da aprovação explícita do usuário sobre a proposta arquitetural e o
   datamodel construído.
 """

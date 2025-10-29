@@ -16,7 +16,7 @@ from .tools.diagramador import (
     describe_template as _describe_template,
     finalize_datamodel as _finalize_datamodel,
     generate_archimate_diagram as _generate_archimate_diagram,
-    generate_mermaid_preview as _generate_mermaid_preview,
+    generate_layout_preview as _generate_layout_preview,
     list_templates as _list_templates,
     save_datamodel as _save_datamodel,
 )
@@ -50,7 +50,7 @@ def describe_template(template_path: str, session_state: dict | None = None):
     return _describe_template(template_path, session_state=session_state)
 
 
-def generate_mermaid_preview(
+def generate_layout_preview(
     datamodel: str = "",
     template_path: str = "",
     *,
@@ -63,7 +63,7 @@ def generate_mermaid_preview(
     else:
         filter_payload = view_filter
 
-    return _generate_mermaid_preview(
+    return _generate_layout_preview(
         datamodel or None,
         template_path=template_path or None,
         session_state=session_state,
@@ -120,7 +120,7 @@ diagramador_agent = Agent(
     tools=[
         _make_tool(list_templates, name="list_templates"),
         _make_tool(describe_template, name="describe_template"),
-        _make_tool(generate_mermaid_preview, name="generate_mermaid_preview"),
+        _make_tool(generate_layout_preview, name="generate_layout_preview"),
         _make_tool(finalize_datamodel, name="finalize_datamodel"),
         _make_tool(save_datamodel, name="save_datamodel"),
         _make_tool(

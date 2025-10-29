@@ -8,7 +8,10 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
 
-import svgwrite
+try:
+    import svgwrite
+except ModuleNotFoundError:  # pragma: no cover - ambiente mínimo
+    svgwrite = None
 
 try:  # pragma: no cover - fallback caso CairoSVG não esteja disponível
     import cairosvg  # type: ignore
@@ -189,6 +192,9 @@ def render_view_layout(
     output_dir: Path,
 ) -> Optional[Dict[str, Any]]:
     """Renderiza uma visão utilizando as coordenadas originais do template."""
+
+    if svgwrite is None:
+        return None
 
     if not layout:
         return None
