@@ -112,7 +112,7 @@ def test_describe_template_filters_views(session_state):
 
 def test_agent_wrapper_describe_template_uses_session_state(session_state):
     response = diagramador_agent_module.describe_template(
-        str(SAMPLE_TEMPLATE), None, session_state=session_state
+        str(SAMPLE_TEMPLATE), "", session_state=session_state
     )
     assert response["status"] == "ok"
     assert response["artifact"] == SESSION_ARTIFACT_TEMPLATE_GUIDANCE

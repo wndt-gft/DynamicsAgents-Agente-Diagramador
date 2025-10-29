@@ -80,20 +80,53 @@ def _make_tool(function, *, name: str | None = None):
     return tool
 
 
-def list_templates(directory: str | None, session_state: str | None):
+def _empty_string_to_none(value: Any) -> Any | None:
+    """Converte strings vazias em ``None`` mantendo outros valores inalterados."""
+
+    if value is None:
+        return None
+
+    if isinstance(value, str):
+        if not value.strip():
+            return None
+        return value
+
+    return value
+
+
+def _normalize_bool_flag(value: Any) -> bool | None:
+    """Interpreta strings vindas da orquestração como sinalizadores booleanos."""
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        normalized = value.strip().casefold()
+        if not normalized or normalized in {"none", "null", "default"}:
+            return None
+        if normalized in {"true", "1", "yes", "sim"}:
+            return True
+        if normalized in {"false", "0", "no", "nao", "não"}:
+            return False
+
+    return None
+
+
+def list_templates(directory: str, session_state: str):
     """Wrapper to keep the public signature simple for automatic calling."""
 
     coerced_state = _coerce_session_state(session_state)
-    return _list_templates(directory or None, session_state=coerced_state)
+    normalized_directory: Any | None = _empty_string_to_none(directory)
+    return _list_templates(normalized_directory, session_state=coerced_state)
 
 
 def describe_template(
     template_path: str,
-    view_filter: str | list[str] | None,
-    session_state: str | None,
+    view_filter: str,
+    session_state: str,
 ):
     coerced_state = _coerce_session_state(session_state)
-    filter_payload = view_filter or None
+    filter_payload: Any | None = _empty_string_to_none(view_filter)
     return _describe_template(
         template_path,
         view_filter=filter_payload,
@@ -102,29 +135,33 @@ def describe_template(
 
 
 def generate_layout_preview(
-    datamodel: str | None,
-    template_path: str | None,
-    *,
-    view_filter: str | list[str] | None,
-    session_state: str | None,
+    datamodel: str,
+    template_path: str,
+    view_filter: str,
+    session_state: str,
 ):
     coerced_state = _coerce_session_state(session_state)
-    filter_payload: Any | None = view_filter or None
+    datamodel_payload: Any | None = datamodel
+    if isinstance(datamodel, str) and not datamodel.strip():
+        datamodel_payload = None
+
+    template_payload: Any | None = _empty_string_to_none(template_path)
+    filter_payload: Any | None = _empty_string_to_none(view_filter)
 
     return _generate_layout_preview(
-        datamodel or None,
-        template_path=template_path or None,
+        datamodel_payload,
+        template_path=template_payload,
         session_state=coerced_state,
         view_filter=filter_payload,
     )
 
 
 def load_layout_preview(
-    view_filter: str | list[str] | None,
-    session_state: str | None,
+    view_filter: str,
+    session_state: str,
 ):
     coerced_state = _coerce_session_state(session_state)
-    filter_payload: Any | None = view_filter or None
+    filter_payload: Any | None = _empty_string_to_none(view_filter)
     return _load_layout_preview(
         view_filter=filter_payload,
         session_state=coerced_state,
@@ -134,7 +171,7 @@ def load_layout_preview(
 def finalize_datamodel(
     datamodel: str,
     template_path: str,
-    session_state: str | None,
+    session_state: str,
 ):
     coerced_state = _coerce_session_state(session_state)
     return _finalize_datamodel(
@@ -145,32 +182,37 @@ def finalize_datamodel(
 
 
 def save_datamodel(
-    datamodel: str | None,
-    filename: str | None,
-    session_state: str | None,
+    datamodel: str,
+    filename: str,
+    session_state: str,
 ):
-    target = filename or DEFAULT_DATAMODEL_FILENAME
-    payload: Any | None = datamodel or None
+    target = _empty_string_to_none(filename) or DEFAULT_DATAMODEL_FILENAME
+    payload: Any | None = datamodel
+    if isinstance(datamodel, str) and not datamodel.strip():
+        payload = None
     coerced_state = _coerce_session_state(session_state)
     return _save_datamodel(payload, target, session_state=coerced_state)
 
 
 def generate_archimate_diagram(
-    model_json_path: str | None,
-    output_filename: str | None,
-    template_path: str | None,
-    validate: bool | None,
-    xsd_dir: str | None,
-    session_state: str | None,
+    model_json_path: str,
+    output_filename: str,
+    template_path: str,
+    validate: str,
+    xsd_dir: str,
+    session_state: str,
 ):
-    target_output = output_filename or DEFAULT_DIAGRAM_FILENAME
+    target_output = _empty_string_to_none(output_filename) or DEFAULT_DIAGRAM_FILENAME
     coerced_state = _coerce_session_state(session_state)
+    validate_flag = _normalize_bool_flag(validate)
+    if validate_flag is None:
+        validate_flag = True
     return _generate_archimate_diagram(
-        model_json_path or None,
+        _empty_string_to_none(model_json_path),
         output_filename=target_output,
-        template_path=template_path or None,
-        validate=True if validate is None else validate,
-        xsd_dir=xsd_dir or None,
+        template_path=_empty_string_to_none(template_path),
+        validate=validate_flag,
+        xsd_dir=_empty_string_to_none(xsd_dir),
         session_state=coerced_state,
     )
 
