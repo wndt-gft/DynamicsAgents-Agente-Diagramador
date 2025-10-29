@@ -57,6 +57,15 @@ SESSION_ARTIFACT_SAVED_DATAMODEL = "saved_datamodel"
 SESSION_ARTIFACT_ARCHIMATE_XML = "archimate_xml"
 
 
+def _error_response(message: str, *, code: str | None = None) -> Dict[str, Any]:
+    """Padroniza respostas de erro para tools."""
+
+    payload: Dict[str, Any] = {"status": "error", "message": message}
+    if code:
+        payload["code"] = code
+    return payload
+
+
 def _resolve_package_path(path: Path) -> Path:
     """Resolve a resource path relative to the package when needed."""
 
@@ -2396,14 +2405,23 @@ def load_layout_preview(
     """Recupera pré-visualizações armazenadas no estado de sessão."""
 
     if session_state is None:
-        raise ValueError(
-            "session_state é obrigatório para recuperar a pré-visualização armazenada."
+        logger.warning(
+            "load_layout_preview chamado sem session_state; retornando erro padronizado."
+        )
+        return _error_response(
+            "session_state é obrigatório para recuperar a pré-visualização armazenada.",
+            code="missing_session_state",
         )
 
     cached = get_cached_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW)
     if not isinstance(cached, MutableMapping):
-        raise ValueError(
-            "Nenhuma pré-visualização foi armazenada anteriormente neste estado de sessão."
+        logger.warning(
+            "load_layout_preview não encontrou artefato em sessão para o identificador %s.",
+            SESSION_ARTIFACT_LAYOUT_PREVIEW,
+        )
+        return _error_response(
+            "Nenhuma pré-visualização foi armazenada anteriormente neste estado de sessão.",
+            code="preview_not_found",
         )
 
     filter_tokens = _normalize_view_filter(view_filter)
@@ -2429,8 +2447,12 @@ def load_layout_preview(
             if artifacts_fallback and not artifacts_payload:
                 artifacts_payload = [dict(item) for item in artifacts_fallback]
         else:
-            raise ValueError(
-                "A pré-visualização armazenada não contém resumos para apresentação."
+            logger.error(
+                "Artefato de pré-visualização não possui resumos nem visões serializadas."
+            )
+            return _error_response(
+                "A pré-visualização armazenada não contém resumos para apresentação.",
+                code="preview_invalid",
             )
 
     filtered_summaries: list[Dict[str, Any]] = []
@@ -2442,8 +2464,12 @@ def load_layout_preview(
         filtered_summaries.append(dict(summary))
 
     if not filtered_summaries:
-        raise ValueError(
-            "Nenhuma pré-visualização corresponde ao filtro informado ou ao foco armazenado."
+        logger.info(
+            "Nenhuma pré-visualização corresponde ao filtro informado ou foco atual."
+        )
+        return _error_response(
+            "Nenhuma pré-visualização corresponde ao filtro informado ou ao foco armazenado.",
+            code="preview_not_matched",
         )
 
     response: Dict[str, Any] = {

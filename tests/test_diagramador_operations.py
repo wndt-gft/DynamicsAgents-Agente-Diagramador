@@ -283,6 +283,7 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
     load_result = load_layout_preview(
         view_filter="id-154903, id-12345", session_state=session_state
     )
+    assert load_result["status"] == "ok"
     assert load_result["view_count"] == 1
     preview_entry = load_result["previews"][0]
     assert preview_entry["view_id"] == "id-154903"
@@ -290,6 +291,7 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
     load_result = load_layout_preview(
         view_filter="id-154903", session_state=session_state
     )
+    assert load_result["status"] == "ok"
     assert load_result["view_count"] == 1
     preview_entry = load_result["previews"][0]
     assert preview_entry["view_id"] == "id-154903"
@@ -363,8 +365,15 @@ def test_finalize_generates_preview_with_view_focus(sample_payload, session_stat
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
 
     load_result = load_layout_preview(session_state=session_state)
+    assert load_result["status"] == "ok"
     assert load_result["view_count"] == 1
     assert load_result["previews"][0]["view_id"] == "id-154903"
+
+
+def test_load_layout_preview_without_session_state_returns_error():
+    result = load_layout_preview()
+    assert result["status"] == "error"
+    assert "session_state" in result["message"]
 
 
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload, session_state):

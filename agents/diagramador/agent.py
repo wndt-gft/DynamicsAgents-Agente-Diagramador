@@ -128,11 +128,6 @@ def load_layout_preview(
     session_state: str = "",
 ):
     coerced_state = _coerce_session_state(session_state)
-    if coerced_state is None:
-        raise ValueError(
-            "session_state é obrigatório para recuperar a pré-visualização armazenada."
-        )
-
     filter_payload: Any | None = view_filter or None
     return _load_layout_preview(
         view_filter=filter_payload,
