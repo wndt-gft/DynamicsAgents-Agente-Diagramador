@@ -35,6 +35,8 @@ from .rendering import render_view_layout
 from .session import (
     get_cached_artifact,
     get_cached_blueprint,
+    get_view_focus,
+    set_view_focus,
     store_artifact,
     store_blueprint,
 )
@@ -1871,6 +1873,11 @@ def finalize_datamodel(
     }
 
     if session_state is not None:
+        generate_layout_preview(
+            final_json,
+            str(template),
+            session_state=session_state,
+        )
         store_artifact(
             session_state,
             SESSION_ARTIFACT_FINAL_DATAMODEL,
@@ -1951,6 +1958,25 @@ def _normalize_view_filter(view_filter: object) -> set[str]:
     return normalized
 
 
+def _view_token_candidates(source: Optional[Dict[str, Any]]) -> set[str]:
+    tokens: set[str] = set()
+    if not isinstance(source, dict):
+        return tokens
+    for key in ("id", "identifier", "name", "alias"):
+        value = source.get(key)
+        if isinstance(value, str):
+            candidate = value.strip()
+            if candidate:
+                tokens.add(candidate.casefold())
+    return tokens
+
+
+def _session_view_filter(session_state: MutableMapping | None) -> set[str]:
+    if session_state is None:
+        return set()
+    return {token for token in get_view_focus(session_state) if token}
+
+
 def _view_matches_filter(
     view: Optional[Dict[str, Any]],
     blueprint_view: Optional[Dict[str, Any]],
@@ -1959,17 +1985,9 @@ def _view_matches_filter(
     if not view_filter:
         return True
 
-    tokens: List[str] = []
-    for source in (view, blueprint_view):
-        if not isinstance(source, dict):
-            continue
-        for key in ("id", "identifier", "name", "alias"):
-            value = source.get(key)
-            if isinstance(value, str):
-                candidate = value.strip()
-                if candidate:
-                    tokens.append(candidate.casefold())
-    return any(token in view_filter for token in tokens)
+    tokens = _view_token_candidates(view)
+    tokens.update(_view_token_candidates(blueprint_view))
+    return bool(tokens & view_filter)
 
 
 def generate_layout_preview(
@@ -2019,7 +2037,12 @@ def generate_layout_preview(
 
     datamodel_views = _normalize_view_diagrams(payload.get("views"))
     blueprint_views = _normalize_view_diagrams(template.get("views"))
+    explicit_filter = view_filter is not None
     filter_tokens = _normalize_view_filter(view_filter)
+    if explicit_filter:
+        set_view_focus(session_state, sorted(filter_tokens))
+    elif session_state is not None and not filter_tokens:
+        filter_tokens = _session_view_filter(session_state)
 
     datamodel_view_map: Dict[str, Dict[str, Any]] = {}
     datamodel_node_maps: Dict[str, Dict[str, Any]] = {}
@@ -2265,6 +2288,28 @@ def list_templates(
                 "model_name": _text_payload(name_el),
                 "documentation": _text_payload(documentation_el),
             }
+            views_metadata: List[Dict[str, Any]] = []
+            for view in root.findall("a:views/a:diagrams/a:view", ns):
+                view_entry: Dict[str, Any] = {}
+                view_id = view.get("identifier")
+                if view_id:
+                    view_entry["identifier"] = view_id
+                view_name = _text_payload(view.find("a:name", ns))
+                name_text = _payload_text(view_name)
+                if name_text:
+                    view_entry["name"] = name_text
+                doc_text = _payload_text(
+                    _text_payload(view.find("a:documentation", ns))
+                )
+                if doc_text:
+                    view_entry["documentation"] = doc_text
+                viewpoint_ref = view.get("viewpoint") or view.get("viewpointRef")
+                if viewpoint_ref:
+                    view_entry["viewpoint"] = viewpoint_ref
+                if view_entry:
+                    views_metadata.append(view_entry)
+            if views_metadata:
+                metadata["views"] = views_metadata
             discovered.append(metadata)
         except ET.ParseError:
             logger.warning("Template inválido ignorado", extra={"path": str(template_path)})
@@ -2293,6 +2338,7 @@ def list_templates(
 
 def describe_template(
     template_path: str,
+    view_filter: str | Sequence | None = None,
     session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Retorna a estrutura detalhada de um template ArchiMate."""
@@ -2302,10 +2348,63 @@ def describe_template(
     if not template.exists():
         raise FileNotFoundError(f"Template não encontrado: {template}")
 
+    explicit_filter = view_filter is not None
+    filter_tokens = _normalize_view_filter(view_filter)
+    if not filter_tokens:
+        if explicit_filter and session_state is not None:
+            set_view_focus(session_state, [])
+        if session_state is not None:
+            filter_tokens = _session_view_filter(session_state)
+
     blueprint = _parse_template_blueprint(template)
     store_blueprint(session_state, template, blueprint)
+
+    matching_identifiers: set[str] = set()
+    matching_tokens: set[str] = set()
+    if filter_tokens:
+        for diagram in blueprint.get("views", {}).get("diagrams", []):
+            if not isinstance(diagram, dict):
+                continue
+            candidates = _view_token_candidates(diagram)
+            if candidates & filter_tokens:
+                identifier = diagram.get("id") or diagram.get("identifier")
+                if isinstance(identifier, str):
+                    identifier_text = identifier.strip()
+                    if identifier_text:
+                        matching_identifiers.add(identifier_text)
+                matching_tokens.update(candidates)
+        if not matching_identifiers and not matching_tokens:
+            raise ValueError(
+                "Nenhuma visão do template corresponde ao filtro informado."
+            )
+        set_view_focus(session_state, sorted(filter_tokens))
+
     guidance = _build_guidance_from_blueprint(blueprint)
     guidance["model"]["path"] = str(template.resolve())
+
+    if filter_tokens:
+        views_section = guidance.get("views")
+        if isinstance(views_section, dict):
+            diagrams = views_section.get("diagrams")
+            if isinstance(diagrams, list):
+                filtered_diagrams: List[Dict[str, Any]] = []
+                for diagram in diagrams:
+                    tokens = _view_token_candidates(diagram)
+                    identifier = diagram.get("identifier")
+                    include = False
+                    if isinstance(identifier, str):
+                        identifier_text = identifier.strip()
+                        if identifier_text and identifier_text in matching_identifiers:
+                            include = True
+                    if not include and tokens & (matching_tokens or filter_tokens):
+                        include = True
+                    if include:
+                        filtered_diagrams.append(diagram)
+                if not filtered_diagrams:
+                    raise ValueError(
+                        "Nenhuma visão simplificada corresponde ao filtro informado."
+                    )
+                views_section["diagrams"] = filtered_diagrams
 
     if session_state is not None:
         store_artifact(

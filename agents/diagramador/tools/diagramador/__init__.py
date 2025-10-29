@@ -35,8 +35,10 @@ from .session import (
     get_cached_artifact,
     get_cached_blueprint,
     get_session_bucket,
+    get_view_focus,
     store_artifact,
     store_blueprint,
+    set_view_focus,
 )
 
 __all__ = [
@@ -68,6 +70,8 @@ __all__ = [
     "get_cached_artifact",
     "get_cached_blueprint",
     "get_session_bucket",
+    "get_view_focus",
     "store_artifact",
     "store_blueprint",
+    "set_view_focus",
 ]

@@ -118,9 +118,18 @@ def list_templates(directory: str = "", session_state: str = ""):
     return _attach_session_state(result, coerced_state, should_serialize)
 
 
-def describe_template(template_path: str, session_state: str = ""):
+def describe_template(
+    template_path: str,
+    view_filter: str = "",
+    session_state: str = "",
+):
     coerced_state, should_serialize = _coerce_session_state(session_state)
-    result = _describe_template(template_path, session_state=coerced_state)
+    filter_payload = view_filter or None
+    result = _describe_template(
+        template_path,
+        view_filter=filter_payload,
+        session_state=coerced_state,
+    )
     return _attach_session_state(result, coerced_state, should_serialize)
 
 

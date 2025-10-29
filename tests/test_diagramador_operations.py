@@ -27,6 +27,7 @@ from tools.diagramador import (
     generate_archimate_diagram,
     generate_layout_preview,
     get_cached_artifact,
+    get_view_focus,
     list_templates,
     save_datamodel,
 )
@@ -60,6 +61,11 @@ def test_list_templates_returns_entries(session_state):
     assert listing["count"] > 0
     paths = {Path(entry["path"]).name for entry in listing["templates"]}
     assert SAMPLE_TEMPLATE.name in paths
+    sample_entry = next(
+        entry for entry in listing["templates"] if Path(entry["path"]).name == SAMPLE_TEMPLATE.name
+    )
+    assert sample_entry.get("views")
+    assert any(view.get("name") for view in sample_entry["views"])
 
 
 def test_describe_template_stores_blueprint(session_state):
@@ -74,6 +80,24 @@ def test_describe_template_stores_blueprint(session_state):
     cache = bucket[BLUEPRINT_CACHE_KEY]
     resolved = str(SAMPLE_TEMPLATE.resolve())
     assert resolved in cache
+
+
+def test_describe_template_filters_views(session_state):
+    result = describe_template(
+        str(SAMPLE_TEMPLATE),
+        view_filter="id-154903",
+        session_state=session_state,
+    )
+    assert result["status"] == "ok"
+
+    guidance = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_TEMPLATE_GUIDANCE
+    )
+    diagrams = guidance["views"]["diagrams"]
+    assert len(diagrams) == 1
+    assert diagrams[0]["identifier"] == "id-154903"
+    focus_tokens = get_view_focus(session_state)
+    assert focus_tokens == ["id-154903".casefold()]
 
 
 def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state):
@@ -93,6 +117,10 @@ def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state)
     )
     assert artifact["element_count"] > 0
     assert "json" in artifact
+    preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
+    )
+    assert preview is not None
 
 
 def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
@@ -175,6 +203,36 @@ def test_generate_layout_preview_filters_views_with_string(sample_payload, sessi
     )
     assert preview["view_count"] == 1
     assert preview["views"][0]["id"] == "id-154903"
+
+
+def test_finalize_generates_preview_with_view_focus(sample_payload, session_state):
+    describe_template(
+        str(SAMPLE_TEMPLATE),
+        view_filter="id-154903",
+        session_state=session_state,
+    )
+    finalize_datamodel(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+    preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
+    )
+    assert preview["view_count"] == 1
+    assert preview["views"][0]["id"] == "id-154903"
+
+    result = generate_layout_preview(
+        None,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+    assert result["status"] == "ok"
+    updated_preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
+    )
+    assert updated_preview["view_count"] == 1
+    assert updated_preview["views"][0]["id"] == "id-154903"
 
 
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload, session_state):

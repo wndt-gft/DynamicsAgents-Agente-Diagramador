@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import Any, Dict, MutableMapping, Optional
+from typing import Any, Dict, Iterable, MutableMapping, Optional
 
 SESSION_STATE_ROOT = "diagramador"
 BLUEPRINT_CACHE_KEY = "template_blueprints"
 ARTIFACTS_CACHE_KEY = "artifacts"
+VIEW_FOCUS_KEY = "view_focus"
 
 __all__ = [
     "SESSION_STATE_ROOT",
@@ -19,6 +20,8 @@ __all__ = [
     "store_blueprint",
     "get_cached_artifact",
     "store_artifact",
+    "get_view_focus",
+    "set_view_focus",
 ]
 
 
@@ -109,3 +112,52 @@ def get_cached_artifact(
 
     payload = artifacts.get(key)
     return copy.deepcopy(payload)
+
+
+def set_view_focus(
+    session_state: Optional[MutableMapping[str, Any]],
+    tokens: Iterable[str],
+) -> None:
+    """Persist normalized view filter tokens into the session bucket."""
+
+    if session_state is None:
+        return
+
+    bucket = get_session_bucket(session_state)
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for token in tokens:
+        text = str(token).strip()
+        if not text:
+            continue
+        lowered = text.casefold()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        normalized.append(lowered)
+
+    if normalized:
+        bucket[VIEW_FOCUS_KEY] = normalized
+    else:
+        bucket.pop(VIEW_FOCUS_KEY, None)
+
+
+def get_view_focus(
+    session_state: Optional[MutableMapping[str, Any]],
+) -> list[str]:
+    """Return the stored view focus tokens (in lowercase) from the session bucket."""
+
+    if session_state is None:
+        return []
+
+    bucket = get_session_bucket(session_state)
+    payload = bucket.get(VIEW_FOCUS_KEY)
+
+    if isinstance(payload, list):
+        return [str(item).strip().casefold() for item in payload if str(item).strip()]
+
+    if isinstance(payload, str):
+        stripped = payload.strip()
+        return [stripped.casefold()] if stripped else []
+
+    return []
