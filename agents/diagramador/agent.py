@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import logging
 import warnings
+from collections.abc import MutableMapping
 from typing import Any
 
 from google.adk import Agent
@@ -30,6 +33,73 @@ diagramador_description = (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
+def _coerce_session_state(
+    session_state: Any,
+) -> tuple[MutableMapping[str, Any] | None, bool]:
+    """Normalize session state payloads for tool execution.
+
+    Returns a tuple with the coerced mapping (or ``None``) and a flag indicating
+    whether the state should be serialized back in the tool response.
+    """
+
+    if session_state is None:
+        return None, False
+
+    if isinstance(session_state, MutableMapping):
+        return session_state, False
+
+    if isinstance(session_state, str):
+        payload = session_state.strip()
+        if not payload:
+            return None, True
+        try:
+            decoded = json.loads(payload)
+        except json.JSONDecodeError:
+            logger.warning("Falha ao decodificar session_state fornecido como string.")
+            return None, True
+        if isinstance(decoded, MutableMapping):
+            return decoded, True
+        logger.warning(
+            "session_state string decodificada não representa um mapeamento: %s",
+            type(decoded).__name__,
+        )
+        return None, True
+
+    logger.warning(
+        "Tipo de session_state não suportado recebido (%s); será ignorado.",
+        type(session_state).__name__,
+    )
+    return None, True
+
+
+def _attach_session_state(
+    result: Any,
+    session_state: MutableMapping[str, Any] | None,
+    should_serialize: bool,
+) -> Any:
+    """Embed the (possibly updated) session state in the tool response."""
+
+    if not should_serialize or session_state is None:
+        return result
+
+    try:
+        serialized = json.dumps(session_state)
+    except TypeError:
+        logger.warning(
+            "Não foi possível serializar o session_state para retorno; ignorando."
+        )
+        return result
+
+    if isinstance(result, dict):
+        result = dict(result)
+        result.setdefault("session_state", serialized)
+
+    return result
+
+
 def _make_tool(function, *, name: str | None = None):
     tool = FunctionTool(function)
     tool_name = name or getattr(function, "__tool_name__", None)
@@ -40,14 +110,18 @@ def _make_tool(function, *, name: str | None = None):
     return tool
 
 
-def list_templates(directory: str = "", session_state: dict | None = None):
+def list_templates(directory: str = "", session_state: Any = None):
     """Wrapper to keep the public signature simple for automatic calling."""
 
-    return _list_templates(directory or None, session_state=session_state)
+    coerced_state, should_serialize = _coerce_session_state(session_state)
+    result = _list_templates(directory or None, session_state=coerced_state)
+    return _attach_session_state(result, coerced_state, should_serialize)
 
 
-def describe_template(template_path: str, session_state: dict | None = None):
-    return _describe_template(template_path, session_state=session_state)
+def describe_template(template_path: str, session_state: Any = None):
+    coerced_state, should_serialize = _coerce_session_state(session_state)
+    result = _describe_template(template_path, session_state=coerced_state)
+    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 def generate_layout_preview(
@@ -55,42 +129,48 @@ def generate_layout_preview(
     template_path: str = "",
     *,
     view_filter: str = "",
-    session_state: dict | None = None,
+    session_state: Any = None,
 ):
+    coerced_state, should_serialize = _coerce_session_state(session_state)
     filter_payload: Any | None
     if not view_filter:
         filter_payload = None
     else:
         filter_payload = view_filter
 
-    return _generate_layout_preview(
+    result = _generate_layout_preview(
         datamodel or None,
         template_path=template_path or None,
-        session_state=session_state,
+        session_state=coerced_state,
         view_filter=filter_payload,
     )
+    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 def finalize_datamodel(
     datamodel: str,
     template_path: str,
-    session_state: dict | None = None,
+    session_state: Any = None,
 ):
-    return _finalize_datamodel(
+    coerced_state, should_serialize = _coerce_session_state(session_state)
+    result = _finalize_datamodel(
         datamodel,
         template_path,
-        session_state=session_state,
+        session_state=coerced_state,
     )
+    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 def save_datamodel(
     datamodel: str = "",
     filename: str = DEFAULT_DATAMODEL_FILENAME,
-    session_state: dict | None = None,
+    session_state: Any = None,
 ):
     target = filename or DEFAULT_DATAMODEL_FILENAME
     payload: Any | None = datamodel or None
-    return _save_datamodel(payload, target, session_state=session_state)
+    coerced_state, should_serialize = _coerce_session_state(session_state)
+    result = _save_datamodel(payload, target, session_state=coerced_state)
+    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 def generate_archimate_diagram(
@@ -99,17 +179,19 @@ def generate_archimate_diagram(
     template_path: str = "",
     validate: bool = True,
     xsd_dir: str = "",
-    session_state: dict | None = None,
+    session_state: Any = None,
 ):
     target_output = output_filename or DEFAULT_DIAGRAM_FILENAME
-    return _generate_archimate_diagram(
+    coerced_state, should_serialize = _coerce_session_state(session_state)
+    result = _generate_archimate_diagram(
         model_json_path or None,
         output_filename=target_output,
         template_path=template_path or None,
         validate=validate,
         xsd_dir=xsd_dir or None,
-        session_state=session_state,
+        session_state=coerced_state,
     )
+    return _attach_session_state(result, coerced_state, should_serialize)
 
 
 diagramador_agent = Agent(
