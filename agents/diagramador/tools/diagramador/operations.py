@@ -12,7 +12,8 @@ import re
 import textwrap
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
+from collections.abc import Iterable, MutableMapping
+from typing import Any, Dict, List, Optional, Tuple
 from xml.etree import ElementTree as ET
 
 from google.genai import types
@@ -1688,7 +1689,7 @@ def _content_to_text(content: types.Content | str | bytes) -> str:
 def save_datamodel(
     datamodel: types.Content | str | bytes | None,
     filename: str = DEFAULT_DATAMODEL_FILENAME,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Persiste o datamodel JSON formatado no diretório `outputs/`.
 
@@ -1782,7 +1783,7 @@ def save_datamodel(
 def finalize_datamodel(
     datamodel: types.Content | str | bytes,
     template_path: str,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Aplica os atributos completos do template a um datamodel aprovado pelo usuário."""
 
@@ -1974,7 +1975,7 @@ def _view_matches_filter(
 def generate_layout_preview(
     datamodel: types.Content | str | bytes | None,
     template_path: str | None = None,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
     view_filter: Optional[Any] = None,
 ) -> Dict[str, Any]:
     payload: Optional[Dict[str, Any]] = None
@@ -2152,7 +2153,7 @@ def generate_archimate_diagram(
     template_path: str | None = None,
     validate: bool = True,
     xsd_dir: str | None = None,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Gera o XML ArchiMate utilizando o template padrão e valida com os XSDs oficiais."""
 
@@ -2239,7 +2240,7 @@ def generate_archimate_diagram(
 
 def list_templates(
     directory: str | None = None,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Lista templates ArchiMate disponíveis no diretório informado."""
 
@@ -2292,7 +2293,7 @@ def list_templates(
 
 def describe_template(
     template_path: str,
-    session_state: Optional[MutableMapping[str, Any]] = None,
+    session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Retorna a estrutura detalhada de um template ArchiMate."""
 
