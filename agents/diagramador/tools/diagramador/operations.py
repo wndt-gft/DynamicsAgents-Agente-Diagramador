@@ -1981,8 +1981,6 @@ def _view_token_candidates(source: Optional[Dict[str, Any]]) -> set[str]:
 
 
 def _session_view_filter(session_state: MutableMapping | None) -> set[str]:
-    if session_state is None:
-        return set()
     return {token for token in get_view_focus(session_state) if token}
 
 
@@ -2169,15 +2167,6 @@ def generate_layout_preview(
     session_state: MutableMapping | None = None,
     view_filter: str | Sequence | None = None,
 ) -> Dict[str, Any]:
-    if session_state is None:
-        logger.warning(
-            "generate_layout_preview chamado sem session_state; retornando erro padronizado."
-        )
-        return _error_response(
-            "session_state é obrigatório para armazenar a pré-visualização gerada.",
-            code="missing_session_state",
-        )
-
     payload: Optional[Dict[str, Any]] = None
 
     if datamodel is not None:
@@ -2187,7 +2176,7 @@ def generate_layout_preview(
         except json.JSONDecodeError as exc:
             logger.error("Datamodel inválido para pré-visualização de layout", exc_info=exc)
             raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
-    elif session_state is not None:
+    else:
         cached = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
         if isinstance(cached, MutableMapping):
             payload = copy.deepcopy(cached.get("datamodel"))
@@ -2409,15 +2398,6 @@ def load_layout_preview(
     session_state: MutableMapping | None = None,
 ) -> Dict[str, Any]:
     """Recupera pré-visualizações armazenadas no estado de sessão."""
-
-    if session_state is None:
-        logger.warning(
-            "load_layout_preview chamado sem session_state; retornando erro padronizado."
-        )
-        return _error_response(
-            "session_state é obrigatório para recuperar a pré-visualização armazenada.",
-            code="missing_session_state",
-        )
 
     cached = get_cached_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW)
     if not isinstance(cached, MutableMapping):

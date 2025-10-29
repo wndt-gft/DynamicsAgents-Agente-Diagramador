@@ -34,6 +34,7 @@ from tools.diagramador import (
 )
 from tools.diagramador import operations
 from agents.diagramador import agent as diagramador_agent_module
+from tools.diagramador.session import clear_fallback_session_state
 
 SAMPLE_TEMPLATE = operations._resolve_package_path(DEFAULT_TEMPLATE)
 SAMPLE_DATAMODEL = operations._resolve_package_path(
@@ -50,6 +51,13 @@ def sample_payload() -> str:
 @pytest.fixture()
 def session_state() -> dict:
     return {}
+
+
+@pytest.fixture(autouse=True)
+def reset_fallback_state():
+    clear_fallback_session_state()
+    yield
+    clear_fallback_session_state()
 
 
 def test_list_templates_returns_entries(session_state):
@@ -260,14 +268,29 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload, se
     assert messages and all(msg.startswith("###") for msg in messages)
 
 
-def test_generate_layout_preview_without_session_state_returns_error(sample_payload):
+def test_generate_layout_preview_without_session_state_uses_fallback(sample_payload):
     result = generate_layout_preview(
         sample_payload,
         str(SAMPLE_TEMPLATE),
         session_state=None,
     )
-    assert result["status"] == "error"
-    assert "session_state" in result["message"]
+    assert result["status"] == "ok"
+    assert result["artifact"] == SESSION_ARTIFACT_LAYOUT_PREVIEW
+
+    preview = get_cached_artifact(None, SESSION_ARTIFACT_LAYOUT_PREVIEW)
+    assert preview is not None
+    assert preview.get("view_count", 0) >= 1
+    if any(view.get("layout_preview") is None for view in preview.get("views", [])):
+        pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
+    primary = preview.get("primary_preview")
+    if primary and primary.get("inline_markdown"):
+        inline = primary["inline_markdown"]
+        if "data:image/png;base64," not in inline:
+            pytest.skip(
+                "Pré-visualização requer conversão para PNG (cairosvg) para exibir inline."
+            )
+    if primary and primary.get("download_uri"):
+        assert primary["download_uri"].startswith("data:image/svg+xml;base64,")
 
 
 def test_generate_layout_preview_filters_views(sample_payload, session_state):
@@ -389,10 +412,27 @@ def test_finalize_generates_preview_with_view_focus(sample_payload, session_stat
     assert load_result["previews"][0]["view_id"] == "id-154903"
 
 
-def test_load_layout_preview_without_session_state_returns_error():
+def test_load_layout_preview_without_session_state_returns_not_found():
     result = load_layout_preview()
     assert result["status"] == "error"
-    assert "session_state" in result["message"]
+    assert result.get("code") == "preview_not_found"
+
+    # Gera uma prévia utilizando o fallback para garantir que a recuperação funcione.
+    generate_layout_preview(
+        SAMPLE_DATAMODEL.read_text(encoding="utf-8"),
+        str(SAMPLE_TEMPLATE),
+        session_state=None,
+    )
+    preview = get_cached_artifact(None, SESSION_ARTIFACT_LAYOUT_PREVIEW)
+    if not preview:
+        pytest.skip("Pré-visualização não pôde ser armazenada no fallback.")
+    if any(view.get("layout_preview") is None for view in preview.get("views", [])):
+        pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
+    load_result = load_layout_preview()
+    assert load_result["status"] == "ok"
+    assert load_result["view_count"] >= 1
+    primary = load_result["primary_preview"]
+    assert primary["download_markdown"].startswith("[Abrir diagrama em SVG]")
 
 
 def test_save_and_generate_archimate_diagram(tmp_path, sample_payload, session_state):

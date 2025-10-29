@@ -11,6 +11,8 @@ BLUEPRINT_CACHE_KEY = "template_blueprints"
 ARTIFACTS_CACHE_KEY = "artifacts"
 VIEW_FOCUS_KEY = "view_focus"
 
+_FALLBACK_SESSION_STATE: Dict[str, Any] = {}
+
 __all__ = [
     "SESSION_STATE_ROOT",
     "BLUEPRINT_CACHE_KEY",
@@ -22,20 +24,25 @@ __all__ = [
     "store_artifact",
     "get_view_focus",
     "set_view_focus",
+    "clear_fallback_session_state",
 ]
 
 
 def get_session_bucket(session_state: Optional[MutableMapping[str, Any]]) -> Dict[str, Any]:
     """Obtém (ou cria) o bucket raiz do agente dentro do estado de sessão."""
 
+    state_mapping: MutableMapping[str, Any]
     if session_state is None:
-        return {}
-    if SESSION_STATE_ROOT not in session_state:
-        session_state[SESSION_STATE_ROOT] = {}
-    bucket = session_state[SESSION_STATE_ROOT]
+        state_mapping = _FALLBACK_SESSION_STATE
+    else:
+        state_mapping = session_state
+
+    if SESSION_STATE_ROOT not in state_mapping:
+        state_mapping[SESSION_STATE_ROOT] = {}
+    bucket = state_mapping[SESSION_STATE_ROOT]
     if not isinstance(bucket, MutableMapping):
         bucket = {}
-        session_state[SESSION_STATE_ROOT] = bucket
+        state_mapping[SESSION_STATE_ROOT] = bucket
     return bucket  # type: ignore[return-value]
 
 
@@ -67,8 +74,6 @@ def store_blueprint(
 ) -> None:
     """Armazena uma cópia do blueprint de template no estado de sessão."""
 
-    if session_state is None:
-        return
     bucket = get_session_bucket(session_state)
     cache = bucket.setdefault(BLUEPRINT_CACHE_KEY, {})
     if not isinstance(cache, MutableMapping):
@@ -83,10 +88,7 @@ def store_artifact(
     key: str,
     payload: Any,
 ) -> None:
-    """Persist a deep copy of an artifact inside the session bucket."""
-
-    if session_state is None:
-        return
+    """Persist a deep copy of an artifact inside o bucket da sessão."""
 
     bucket = get_session_bucket(session_state)
     artifacts = bucket.setdefault(ARTIFACTS_CACHE_KEY, {})
@@ -102,9 +104,6 @@ def get_cached_artifact(
 ) -> Any:
     """Retrieve a deep copy of an artifact stored in the session bucket."""
 
-    if session_state is None:
-        return None
-
     bucket = get_session_bucket(session_state)
     artifacts = bucket.get(ARTIFACTS_CACHE_KEY)
     if not isinstance(artifacts, MutableMapping):
@@ -119,9 +118,6 @@ def set_view_focus(
     tokens: Iterable[str],
 ) -> None:
     """Persist normalized view filter tokens into the session bucket."""
-
-    if session_state is None:
-        return
 
     bucket = get_session_bucket(session_state)
     normalized: list[str] = []
@@ -147,9 +143,6 @@ def get_view_focus(
 ) -> list[str]:
     """Return the stored view focus tokens (in lowercase) from the session bucket."""
 
-    if session_state is None:
-        return []
-
     bucket = get_session_bucket(session_state)
     payload = bucket.get(VIEW_FOCUS_KEY)
 
@@ -161,3 +154,9 @@ def get_view_focus(
         return [stripped.casefold()] if stripped else []
 
     return []
+
+
+def clear_fallback_session_state() -> None:
+    """Reseta o bucket de fallback utilizado quando nenhum estado explícito é fornecido."""
+
+    _FALLBACK_SESSION_STATE.clear()
