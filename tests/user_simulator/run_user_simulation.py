@@ -354,6 +354,8 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                 + "\n"
             )
 
+            abort_step = False
+
             try:
                 for event in runner.run(
                     user_id=session.user_id,
@@ -430,10 +432,10 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     + "\n"
                 )
                 session_log.flush()
-                break
+                abort_step = True
 
-        if model_error:
-            break
+            if abort_step:
+                break
 
     flow_result = {
         "case_id": flow.case_id,
