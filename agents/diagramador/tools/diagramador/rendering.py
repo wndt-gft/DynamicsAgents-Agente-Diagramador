@@ -7,7 +7,6 @@ import math
 import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
-from html import escape as html_escape
 
 try:
     import svgwrite
@@ -35,6 +34,16 @@ def _slugify_identifier(value: Optional[str]) -> str:
     cleaned = re.sub(r"[^0-9A-Za-z_.-]", "_", normalized)
     cleaned = cleaned.strip("._")
     return cleaned or "view"
+
+
+def _escape_markdown_alt(text: Optional[str]) -> str:
+    if not text:
+        return "Pré-visualização"
+
+    escaped = text.replace("\\", "\\\\")
+    for char in ("[", "]", "(", ")"):
+        escaped = escaped.replace(char, f"\\{char}")
+    return escaped.strip() or "Pré-visualização"
 
 
 def _color_to_rgba(color: Optional[Dict[str, Any]], default: str) -> str:
@@ -360,16 +369,11 @@ def render_view_layout(
 
     svg_b64 = base64.b64encode(svg_bytes).decode("ascii")
     svg_data_uri = _make_data_uri("image/svg+xml", svg_bytes)
-    escaped_name = html_escape(view_name or "")
-    download_markdown = (
-        f'<a href="{svg_data_uri}" download="{svg_path.name}">Baixar SVG</a>'
-    )
+    download_markdown = f"[Baixar SVG]({svg_data_uri})"
 
-    inline_markup = svg_markup
-    if escaped_name:
-        inline_markup = (
-            f"<figure><figcaption>{escaped_name}</figcaption>{svg_markup}</figure>"
-        )
+    inline_markup = (
+        f"![{_escape_markdown_alt(view_name or view_alias)}]({svg_data_uri})"
+    )
 
     payload: Dict[str, Any] = {
         "format": "svg",
@@ -403,9 +407,7 @@ def render_view_layout(
             png_path.write_bytes(png_bytes)
             png_b64 = base64.b64encode(png_bytes).decode("ascii")
             png_data_uri = _make_data_uri("image/png", png_bytes)
-            png_download = (
-                f'<a href="{png_data_uri}" download="{png_path.name}">Baixar PNG</a>'
-            )
+            png_download = f"[Baixar PNG]({png_data_uri})"
             payload["png"] = {
                 "format": "png",
                 "local_path": str(png_path.resolve()),
@@ -414,7 +416,7 @@ def render_view_layout(
                 "download_uri": png_data_uri,
                 "download_markdown": png_download,
                 "inline_markdown": (
-                    f'<img alt="{escaped_name or view_name}" src="{png_data_uri}" />'
+                    f"![{_escape_markdown_alt(view_name or view_alias)}]({png_data_uri})"
                 ),
                 "download_filename": png_path.name,
                 "artifact": {
