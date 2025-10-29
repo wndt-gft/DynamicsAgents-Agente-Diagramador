@@ -151,6 +151,18 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert all(Path(payload["local_path"]).exists() for payload in layout_payloads)
     assert all(payload["data_uri"].startswith("data:image/svg+xml;base64,") for payload in layout_payloads)
     assert all(payload["inline_markdown"].startswith("![") for payload in layout_payloads)
+    assert preview.get("preview_summaries")
+    assert preview.get("artifacts")
+
+    summaries = result.get("previews")
+    assert summaries
+    assert all(summary["inline_markdown"].startswith("![") for summary in summaries)
+    assert all(summary["download_uri"].startswith("data:image/") for summary in summaries)
+    assert all(summary["download_markdown"].startswith("[Baixar") for summary in summaries)
+
+    artifacts = result.get("artifacts")
+    assert artifacts
+    assert all(artifact.get("mime_type") for artifact in artifacts)
 
 
 def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
@@ -168,6 +180,9 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
         for view in preview["views"]
         if view.get("layout_preview")
     )
+    assert preview.get("preview_summaries")
+    assert preview["preview_summaries"][0]["download_uri"].startswith("data:image/svg+xml;base64,")
+    assert preview["preview_summaries"][0]["download_markdown"].startswith("[Baixar")
 
 
 def test_generate_layout_preview_filters_views(sample_payload, session_state):
@@ -189,6 +204,11 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
     )
     assert preview["view_count"] == 1
     assert preview["views"][0]["id"] == "id-154903"
+    if preview["views"][0].get("layout_preview") is None:
+        pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
+    summaries = result.get("previews")
+    assert summaries and len(summaries) == 1
+    assert summaries[0]["download_uri"].startswith("data:image/svg+xml;base64,")
 
 
 def test_generate_layout_preview_filters_views_with_string(sample_payload, session_state):
@@ -210,6 +230,11 @@ def test_generate_layout_preview_filters_views_with_string(sample_payload, sessi
     )
     assert preview["view_count"] == 1
     assert preview["views"][0]["id"] == "id-154903"
+    if preview["views"][0].get("layout_preview") is None:
+        pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
+    summaries = result.get("previews")
+    assert summaries and len(summaries) == 1
+    assert summaries[0]["download_markdown"].startswith("[Baixar")
 
 
 def test_finalize_generates_preview_with_view_focus(sample_payload, session_state):

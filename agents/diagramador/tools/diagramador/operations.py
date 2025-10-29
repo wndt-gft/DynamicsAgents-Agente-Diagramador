@@ -1990,6 +1990,92 @@ def _view_matches_filter(
     return bool(tokens & view_filter)
 
 
+def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(payload, MutableMapping):
+        return None
+
+    variant: Dict[str, Any] = {}
+    format_hint = payload.get("format")
+    if isinstance(format_hint, str):
+        variant["format"] = format_hint
+
+    inline_markdown = payload.get("inline_markdown")
+    if isinstance(inline_markdown, str) and inline_markdown.strip():
+        variant["inline_markdown"] = inline_markdown
+
+    download_uri = payload.get("download_uri") or payload.get("data_uri")
+    if isinstance(download_uri, str) and download_uri.strip():
+        variant["download_uri"] = download_uri
+        download_markdown = payload.get("download_markdown")
+        if not isinstance(download_markdown, str) or not download_markdown.strip():
+            label = payload.get("format")
+            label_text = str(label).upper() if label else "PREVIEW"
+            download_markdown = f"[Baixar {label_text}]({download_uri})"
+        variant["download_markdown"] = download_markdown
+
+    artifact_payload = payload.get("artifact")
+    if isinstance(artifact_payload, MutableMapping):
+        variant["artifact"] = dict(artifact_payload)
+
+    if not variant.get("inline_markdown") and not variant.get("download_uri"):
+        return None
+
+    return variant
+
+
+def _summarize_layout_previews(
+    views: Sequence[Dict[str, Any]]
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    summaries: List[Dict[str, Any]] = []
+    artifacts: List[Dict[str, Any]] = []
+    seen_artifacts: set[tuple[Any, Any, Any]] = set()
+
+    for view_payload in views:
+        if not isinstance(view_payload, MutableMapping):
+            continue
+        preview_payload = view_payload.get("layout_preview")
+        if not isinstance(preview_payload, MutableMapping):
+            continue
+
+        variants: List[Dict[str, Any]] = []
+        for candidate in (preview_payload, preview_payload.get("png")):
+            variant = _build_preview_variant(candidate)
+            if not variant:
+                continue
+            artifact_payload = variant.get("artifact")
+            if isinstance(artifact_payload, MutableMapping):
+                key = (
+                    artifact_payload.get("filename"),
+                    artifact_payload.get("mime_type"),
+                    artifact_payload.get("encoding"),
+                )
+                if key not in seen_artifacts:
+                    seen_artifacts.add(key)
+                    artifacts.append(dict(artifact_payload))
+            variants.append(variant)
+
+        if not variants:
+            continue
+
+        summary: Dict[str, Any] = {
+            "view_id": view_payload.get("id") or view_payload.get("identifier"),
+            "view_name": view_payload.get("name"),
+            "variants": variants,
+        }
+
+        primary = variants[0]
+        if "inline_markdown" in primary:
+            summary["inline_markdown"] = primary["inline_markdown"]
+        if "download_markdown" in primary:
+            summary["download_markdown"] = primary["download_markdown"]
+        if "download_uri" in primary:
+            summary["download_uri"] = primary["download_uri"]
+
+        summaries.append(summary)
+
+    return summaries, artifacts
+
+
 def generate_layout_preview(
     datamodel: types.Content | str | bytes | None,
     template_path: str | None = None,
@@ -2152,6 +2238,14 @@ def generate_layout_preview(
         "views": results,
     }
 
+    preview_summaries, preview_artifacts = _summarize_layout_previews(results)
+
+    if preview_summaries:
+        response["preview_summaries"] = preview_summaries
+
+    if preview_artifacts:
+        response["artifacts"] = preview_artifacts
+
     if template_metadata:
         response["template"] = template_metadata
 
@@ -2161,11 +2255,19 @@ def generate_layout_preview(
             SESSION_ARTIFACT_LAYOUT_PREVIEW,
             response,
         )
-        return {
+        status_payload: Dict[str, Any] = {
             "status": "ok",
             "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW,
             "view_count": len(results),
         }
+
+        if preview_summaries:
+            status_payload["previews"] = preview_summaries
+
+        if preview_artifacts:
+            status_payload["artifacts"] = preview_artifacts
+
+        return status_payload
 
     return response
 

@@ -357,7 +357,8 @@ def render_view_layout(
     svg_path.write_bytes(svg_bytes)
 
     svg_b64 = base64.b64encode(svg_bytes).decode("ascii")
-    svg_data_uri = f"data:image/svg+xml;base64,{svg_b64}"
+    svg_data_uri = _make_data_uri("image/svg+xml", svg_bytes)
+    download_markdown = f"[Baixar SVG]({svg_data_uri})"
 
     payload: Dict[str, Any] = {
         "format": "svg",
@@ -366,6 +367,8 @@ def render_view_layout(
         "height": height,
         "base64": svg_b64,
         "data_uri": svg_data_uri,
+        "download_uri": svg_data_uri,
+        "download_markdown": download_markdown,
         "inline_markdown": f"![{view_name}]({svg_data_uri})",
         "artifact": {
             "type": "image",
@@ -375,6 +378,7 @@ def render_view_layout(
             "filename": svg_path.name,
         },
     }
+    payload["artifacts"] = [payload["artifact"]]
 
     if cairosvg is not None:  # pragma: no cover - depende de lib externa
         try:
@@ -385,12 +389,15 @@ def render_view_layout(
             png_path = output_dir / f"{slug}_layout.png"
             png_path.write_bytes(png_bytes)
             png_b64 = base64.b64encode(png_bytes).decode("ascii")
-            png_data_uri = f"data:image/png;base64,{png_b64}"
+            png_data_uri = _make_data_uri("image/png", png_bytes)
+            png_download = f"[Baixar PNG]({png_data_uri})"
             payload["png"] = {
                 "format": "png",
                 "local_path": str(png_path.resolve()),
                 "base64": png_b64,
                 "data_uri": png_data_uri,
+                "download_uri": png_data_uri,
+                "download_markdown": png_download,
                 "inline_markdown": f"![{view_name}]({png_data_uri})",
                 "artifact": {
                     "type": "image",
@@ -400,6 +407,7 @@ def render_view_layout(
                     "filename": png_path.name,
                 },
             }
+            payload["artifacts"].append(payload["png"]["artifact"])
 
     return payload
 
