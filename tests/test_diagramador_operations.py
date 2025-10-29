@@ -130,6 +130,8 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
         str(SAMPLE_TEMPLATE),
         session_state=session_state,
     )
+    datamodel_view_count = len(json.loads(sample_payload)["views"]["diagrams"])
+
     with mock.patch(
         "tools.diagramador.operations._parse_template_blueprint",
         side_effect=AssertionError("template parse should not run when cached"),
@@ -140,10 +142,14 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
             session_state=session_state,
         )
     assert result["status"] == "ok"
+    assert result["artifact"] == SESSION_ARTIFACT_LAYOUT_PREVIEW
+    assert result["view_count"] == datamodel_view_count
+    assert set(result.keys()) <= {"status", "artifact", "view_count", "message"}
+    if "message" in result:
+        assert result["message"] == "Pré-visualização armazenada com sucesso."
     preview = get_cached_artifact(
         session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
     )
-    datamodel_view_count = len(json.loads(sample_payload)["views"]["diagrams"])
     assert preview["view_count"] == datamodel_view_count
     layout_payloads = [view.get("layout_preview") for view in preview["views"]]
     if any(payload is None for payload in layout_payloads):
@@ -160,26 +166,14 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert primary_preview["download_markdown"].startswith("[Baixar")
     assert primary_preview["download_uri"].startswith("data:image/")
 
-    summaries = result.get("previews")
-    assert summaries
-    assert all(summary["inline_markdown"].startswith("![") for summary in summaries)
-    assert all(summary["download_uri"].startswith("data:image/") for summary in summaries)
-    assert all(summary["download_markdown"].startswith("[Baixar") for summary in summaries)
-
-    assert result.get("message")
-    assert result.get("inline_markdown", "").startswith("![")
-    assert result.get("download_markdown", "").startswith("[Baixar")
-    primary_status_preview = result.get("primary_preview")
-    assert primary_status_preview
-    assert primary_status_preview["inline_markdown"].startswith("![")
-    assert primary_status_preview["download_markdown"].startswith("[Baixar")
-    assert primary_status_preview["download_uri"].startswith("data:image/")
-    messages = result.get("preview_messages")
-    assert messages and all(message.startswith("###") for message in messages)
-
-    artifacts = result.get("artifacts")
-    assert artifacts
-    assert all(artifact.get("mime_type") for artifact in artifacts)
+    # Tool responses should avoid embedding large preview payloads when a session
+    # state mapping is supplied.
+    assert "previews" not in result
+    assert "inline_markdown" not in result
+    assert "download_markdown" not in result
+    assert "preview_messages" not in result
+    assert "primary_preview" not in result
+    assert "artifacts" not in result
 
 
 def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
@@ -224,6 +218,11 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
         view_filter=["id-154903"],
     )
     assert result["status"] == "ok"
+    assert result["artifact"] == SESSION_ARTIFACT_LAYOUT_PREVIEW
+    assert result["view_count"] == 1
+    assert set(result.keys()) <= {"status", "artifact", "view_count", "message"}
+    if "message" in result:
+        assert result["message"] == "Pré-visualização armazenada com sucesso."
     preview = get_cached_artifact(
         session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
     )
@@ -231,16 +230,8 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
     assert preview["views"][0]["id"] == "id-154903"
     if preview["views"][0].get("layout_preview") is None:
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
-    summaries = result.get("previews")
-    assert summaries and len(summaries) == 1
-    assert summaries[0]["download_uri"].startswith("data:image/svg+xml;base64,")
-    assert result.get("message")
-    assert result.get("inline_markdown", "").startswith("![")
-    assert result.get("download_markdown", "").startswith("[Baixar")
-    assert result.get("preview_messages")
-    primary_preview = result.get("primary_preview")
-    assert primary_preview
-    assert primary_preview["inline_markdown"].startswith("![")
+    assert "previews" not in result
+    assert "primary_preview" not in result
 
 
 def test_generate_layout_preview_filters_views_with_string(sample_payload, session_state):
@@ -257,6 +248,11 @@ def test_generate_layout_preview_filters_views_with_string(sample_payload, sessi
         view_filter="id-154903,  id-12345",
     )
     assert result["status"] == "ok"
+    assert result["artifact"] == SESSION_ARTIFACT_LAYOUT_PREVIEW
+    assert result["view_count"] == 1
+    assert set(result.keys()) <= {"status", "artifact", "view_count", "message"}
+    if "message" in result:
+        assert result["message"] == "Pré-visualização armazenada com sucesso."
     preview = get_cached_artifact(
         session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
     )
@@ -264,12 +260,8 @@ def test_generate_layout_preview_filters_views_with_string(sample_payload, sessi
     assert preview["views"][0]["id"] == "id-154903"
     if preview["views"][0].get("layout_preview") is None:
         pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
-    summaries = result.get("previews")
-    assert summaries and len(summaries) == 1
-    assert summaries[0]["download_markdown"].startswith("[Baixar")
-    primary_preview = result.get("primary_preview")
-    assert primary_preview
-    assert primary_preview["inline_markdown"].startswith("![")
+    assert "previews" not in result
+    assert "primary_preview" not in result
 
 
 def test_finalize_generates_preview_with_view_focus(sample_payload, session_state):
@@ -295,6 +287,11 @@ def test_finalize_generates_preview_with_view_focus(sample_payload, session_stat
         session_state=session_state,
     )
     assert result["status"] == "ok"
+    assert result["artifact"] == SESSION_ARTIFACT_LAYOUT_PREVIEW
+    assert result["view_count"] == 1
+    assert set(result.keys()) <= {"status", "artifact", "view_count", "message"}
+    if "message" in result:
+        assert result["message"] == "Pré-visualização armazenada com sucesso."
     updated_preview = get_cached_artifact(
         session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
     )

@@ -2344,35 +2344,15 @@ def generate_layout_preview(
             SESSION_ARTIFACT_LAYOUT_PREVIEW,
             response,
         )
+
         status_payload: Dict[str, Any] = {
             "status": "ok",
             "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW,
             "view_count": len(results),
         }
 
-        if preview_summaries:
-            status_payload["previews"] = preview_summaries
-
-        if preview_artifacts:
-            status_payload["artifacts"] = preview_artifacts
-
         if preview_messages:
-            status_payload["preview_messages"] = preview_messages
-            status_payload["message"] = "\n\n".join(preview_messages)
-
-        primary_inline = response.get("inline_markdown")
-        primary_download = response.get("download_markdown")
-        if primary_inline:
-            status_payload["inline_markdown"] = primary_inline
-        if primary_download:
-            status_payload["download_markdown"] = primary_download
-
-        primary_preview = response.get("primary_preview")
-        if isinstance(primary_preview, MutableMapping):
-            status_payload["primary_preview"] = dict(primary_preview)
-            primary_message = response.get("primary_message")
-            if isinstance(primary_message, str) and primary_message.strip():
-                status_payload["message"] = primary_message
+            status_payload["message"] = "Pré-visualização armazenada com sucesso."
 
         return status_payload
 
