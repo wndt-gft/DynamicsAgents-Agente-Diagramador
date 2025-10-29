@@ -17,6 +17,10 @@ templates e controle de versões em JSON/XML.
   `generate_mermaid_preview`, `get_mermaid_preview` e `finalize_datamodel`.
 - As ferramentas `list_templates` e `save_datamodel` são de uso **exclusivo** do Diagramador;
   coordene seu uso evitando sobreposição com os sub-agentes.
+- Sempre consulte os metadados de visão (`views[].role`, `views[].name`, documentação) para
+  mapear cada visão ao especialista correto (context → visao_contexto, container → visao_container,
+  technical → visao_tecnica). Registre no estado da sessão quais visões foram confirmadas para
+  evitar delegações incorretas.
 - A geração do XML (`generate_archimate_diagram`) deve ser delegada ao especialista da visão após a
   aprovação do preview.
 
@@ -41,7 +45,8 @@ templates e controle de versões em JSON/XML.
    - Após a geração, utilize `get_mermaid_preview` para recuperar o conteúdo completo salvo em
      sessão, evitando respostas extensas das ferramentas.
    - Reforce que o especialista informe `view_name`/`view_identifier` ao chamar `generate_mermaid_preview`
-     para que apenas a visão sob sua responsabilidade seja gerada.
+     para que apenas a visão sob sua responsabilidade seja gerada. Quando a visão selecionada possuir
+     o campo `role`, valide se corresponde ao especialista atual antes de delegar.
    - Exija que cada diagrama Mermaid seja gerado no estilo **C4** apropriado à visão (C4Context,
      C4Container ou C4Component), replicando limites, agrupamentos e elementos do layout original.
    - Garanta que cada sub-agente armazene no estado da sessão os elementos aprovados para reutilizar
@@ -98,7 +103,9 @@ registrando descobertas relevantes no estado da sessão.
    - Recupere o conteúdo detalhado com `get_mermaid_preview`, utilizando o identificador retornado
      para acessar Mermaid, imagem e metadados diretamente do estado da sessão.
    - Ao chamar `generate_mermaid_preview`, informe `view_name` (e `view_identifier`, se disponível)
-     correspondente à visão do template para limitar o preview apenas ao seu escopo.
+     correspondente à visão do template para limitar o preview apenas ao seu escopo. Se os metadados
+     indicarem um `role` diferente daquele atendido pelo especialista, alerte o Diagramador antes de
+     prosseguir.
    - Garanta que o Mermaid utilize o estilo **C4** correspondente (C4Context, C4Container ou
      C4Component), reproduzindo visualmente o layout do template, incluindo agrupamentos e limites.
    - Compartilhe o resultado com o agente Diagramador para revisão do usuário.

@@ -97,6 +97,8 @@ def test_list_templates_includes_view_metadata():
     names = {view.get("name") for view in views}
     assert CONTAINER_VIEW_NAME in names
     assert any(view.get("documentation") for view in views)
+    container_entry = next(view for view in views if view.get("name") == CONTAINER_VIEW_NAME)
+    assert container_entry.get("role") == "container"
 
 
 def test_describe_template_stores_blueprint(session_state):
@@ -117,6 +119,7 @@ def test_describe_template_filters_view_by_identifier(session_state):
     diagrams = guidance["views"]["diagrams"]
     assert len(diagrams) == 1
     assert diagrams[0]["identifier"] == CONTAINER_VIEW_ID
+    assert diagrams[0].get("role")
 
 
 def test_describe_template_filters_view_by_name(session_state):
@@ -128,6 +131,7 @@ def test_describe_template_filters_view_by_name(session_state):
     diagrams = guidance["views"]["diagrams"]
     assert len(diagrams) == 1
     assert diagrams[0]["name"] == CONTAINER_VIEW_NAME
+    assert diagrams[0].get("role")
 
 
 def test_describe_template_filter_raises_for_unknown_view(session_state):
@@ -137,6 +141,16 @@ def test_describe_template_filter_raises_for_unknown_view(session_state):
             session_state=session_state,
             view_identifier="unknown-view",
         )
+
+
+def test_describe_template_includes_role_metadata(session_state):
+    guidance = describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    diagrams = guidance.get("views", {}).get("diagrams", [])
+    assert diagrams, "describe_template deve retornar a hierarquia de visões"
+    role_by_name = {
+        entry.get("name"): entry.get("role") for entry in diagrams if entry.get("name")
+    }
+    assert role_by_name.get(CONTAINER_VIEW_NAME) == "container"
 
 
 def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state):
@@ -547,6 +561,54 @@ def test_generate_mermaid_preview_falls_back_to_flowchart_on_c4_error(
         view["mermaid"].startswith("flowchart")
         for view in stored_preview["views"]
     )
+
+
+def test_generate_mermaid_preview_removes_styles_after_repeated_errors(
+    sample_payload, session_state, stub_mermaid_validation
+):
+    error_response = mock.Mock()
+    error_response.raise_for_status = mock.Mock()
+    error_response.text = (
+        '<svg aria-roledescription="error"><text>Syntax error</text></svg>'
+    )
+    ok_response = mock.Mock()
+    ok_response.raise_for_status = mock.Mock()
+    ok_response.text = "<svg id='mermaidInkSvg'></svg>"
+
+    stub_mermaid_validation.side_effect = [
+        error_response,
+        error_response,
+        ok_response,
+        ok_response,
+        ok_response,
+    ]
+
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    preview = generate_mermaid_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_name=CONTAINER_VIEW_NAME,
+    )
+    stored_preview = _load_full_preview(preview, session_state=session_state)
+
+    mermaid_sources = [view["mermaid"] for view in stored_preview["views"]]
+    assert all("style " not in source for source in mermaid_sources)
+    assert all("linkStyle" not in source for source in mermaid_sources)
+
+
+def test_generate_mermaid_preview_filters_by_role_hint(session_state):
+    describe_template(str(SAMPLE_TEMPLATE), session_state=session_state)
+    datamodel = {"model_identifier": "role_hint_demo"}
+    preview = generate_mermaid_preview(
+        json.dumps(datamodel),
+        str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+        view_metadata={"role": "container"},
+    )
+    stored = _load_full_preview(preview, session_state=session_state)
+    roles = {view.get("role") for view in stored["views"]}
+    assert roles == {"container"}
 
 
 def test_generate_mermaid_preview_ignores_template_only_nodes(sample_payload):

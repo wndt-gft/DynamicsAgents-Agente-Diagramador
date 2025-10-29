@@ -539,6 +539,148 @@ def _fingerprint_text(value: Any) -> Optional[str]:
     return tokens.lower()
 
 
+def _normalize_role_token(value: Any) -> Optional[str]:
+    """Converte diferentes pistas de visão em uma categoria canônica."""
+
+    text = _normalize_text(value)
+    if not text:
+        return None
+
+    normalized = unicodedata.normalize("NFKD", text)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.lower()
+    normalized = normalized.replace("-", " ").replace("_", " ")
+    normalized = re.sub(r"[^a-z0-9\s]", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    if not normalized:
+        return None
+
+    if "context" in normalized:
+        return "context"
+    if "container" in normalized or "conteiner" in normalized:
+        return "container"
+    if normalized in {"vt", "visao tecnica"}:
+        return "technical"
+    if any(token in normalized for token in ("tecnica", "tcnica", "tecnico", "tcnico", "technical")):
+        return "technical"
+    if any(token in normalized for token in ("component", "componente", "componentes")):
+        return "technical"
+
+    return None
+
+
+def _classify_view_role(*values: Any) -> Optional[str]:
+    """Determina a categoria de visão (contexto, container, técnica)."""
+
+    for value in values:
+        if isinstance(value, dict):
+            yield_role = _normalize_role_token(value.get("role"))
+            if yield_role:
+                return yield_role
+            nested_candidates = [
+                value.get("name"),
+                value.get("title"),
+                value.get("label"),
+                value.get("description"),
+                value.get("documentation"),
+                value.get("type"),
+            ]
+            for candidate in nested_candidates:
+                role = _normalize_role_token(candidate)
+                if role:
+                    return role
+        else:
+            role = _normalize_role_token(value)
+            if role:
+                return role
+    return None
+
+
+def _resolve_view_role(
+    view: Dict[str, Any], fallback: Optional[Dict[str, Any]] = None
+) -> Optional[str]:
+    """Garante que uma visão possua um rótulo de categoria consistente."""
+
+    existing = _normalize_role_token(view.get("role"))
+    if existing:
+        view["role"] = existing
+        if fallback is not None and fallback.get("role") != existing:
+            fallback["role"] = existing
+        return existing
+
+    candidates: List[Any] = [
+        view.get("role"),
+        view.get("type"),
+        view.get("viewType"),
+        _normalize_text(view.get("name")),
+        _normalize_text(view.get("documentation")),
+        view.get("id") or view.get("identifier"),
+    ]
+
+    if fallback:
+        candidates.extend(
+            [
+                fallback.get("role"),
+                fallback.get("type"),
+                fallback.get("viewType"),
+                _normalize_text(fallback.get("name")),
+                _normalize_text(fallback.get("documentation")),
+                fallback.get("id") or fallback.get("identifier"),
+            ]
+        )
+
+    role = _classify_view_role(*candidates)
+    if role:
+        view["role"] = role
+        if fallback is not None and not _normalize_role_token(fallback.get("role")):
+            fallback["role"] = role
+    return role
+
+
+def _view_role_matches(view: Dict[str, Any], target: str) -> bool:
+    normalized_target = _normalize_role_token(target) or (
+        target.lower().strip() if isinstance(target, str) else None
+    )
+    if not normalized_target:
+        return False
+    candidate = _normalize_role_token(view.get("role"))
+    if not candidate:
+        candidate = _resolve_view_role(view)
+    return candidate == normalized_target
+
+
+def _view_role_from_metadata(
+    view_name: Optional[str],
+    view_identifier: Optional[str],
+    view_metadata: Optional[Dict[str, Any]],
+) -> Optional[str]:
+    hints: List[Any] = []
+    if view_metadata:
+        if isinstance(view_metadata, dict):
+            keys = (
+                "role",
+                "scope",
+                "category",
+                "type",
+                "view_role",
+                "view_scope",
+                "viewType",
+                "viewKind",
+            )
+            for key in keys:
+                hints.append(view_metadata.get(key))
+            hints.extend(
+                view_metadata.get(key)
+                for key in ("name", "title", "label", "description")
+            )
+        else:
+            hints.append(view_metadata)
+
+    hints.append(view_name)
+    hints.append(view_identifier)
+    return _classify_view_role(*hints)
+
+
 def _truncate_text(text: str, limit: int = 160) -> str:
     if len(text) <= limit:
         return text
@@ -1067,6 +1209,16 @@ def _simplify_view_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
     doc_text = _payload_text(diagram.get("documentation"))
     if doc_text:
         simplified["documentation"] = doc_text
+
+    role = _classify_view_role(
+        simplified.get("name"),
+        simplified.get("identifier"),
+        simplified.get("documentation"),
+        diagram.get("role"),
+        diagram.get("type"),
+    )
+    if role:
+        simplified["role"] = role
 
     nodes = [
         _simplify_view_node(node)
@@ -2101,9 +2253,14 @@ def _node_children(node: Dict[str, Any]) -> List[Dict[str, Any]]:
     return []
 
 
-def _standardize_view_tree(tree: Dict[str, Any]) -> None:
+def _standardize_view_tree(
+    tree: Dict[str, Any], *, is_root: bool = False, blueprint: Optional[Dict[str, Any]] = None
+) -> None:
     if not isinstance(tree, dict):
         return
+
+    if is_root:
+        _resolve_view_role(tree, blueprint)
 
     for child in list(_node_children(tree)):
         if isinstance(child, dict):
@@ -2502,6 +2659,7 @@ def _build_view_mermaid(
     datamodel_connection_map: Dict[str, Dict[str, Any]] | None,
     *,
     prefer_c4: bool = True,
+    allow_styles: bool = True,
 ) -> Dict[str, Any]:
     used_aliases: set[str] = set()
     alias_map: Dict[str, str] = {}
@@ -2535,6 +2693,7 @@ def _build_view_mermaid(
     )
 
     view_kind = _detect_view_kind(view, view_blueprint) if prefer_c4 else None
+    view_role = _resolve_view_role(view, view_blueprint)
     use_layout = bool(datamodel_node_map)
     use_c4 = bool(view_kind) and not use_layout
     view_alias = _unique_alias(
@@ -2565,6 +2724,8 @@ def _build_view_mermaid(
     style_seen: Dict[str, str] = {}
 
     def _register_style(alias: str, node: Dict[str, Any]) -> None:
+        if not allow_styles:
+            return
         directives = _extract_node_style(node)
         if not directives:
             return
@@ -2833,7 +2994,7 @@ def _build_view_mermaid(
             else:
                 lines.append(f"{source_alias} --> {target_alias}")
             style_directives = _extract_connection_style(connection)
-            if style_directives:
+            if style_directives and allow_styles:
                 style_parts = []
                 for key_name in ("stroke", "color"):
                     value = style_directives.get(key_name)
@@ -2845,9 +3006,9 @@ def _build_view_mermaid(
                     )
             edge_index += 1
 
-    if style_statements:
+    if style_statements and allow_styles:
         lines.extend(style_statements)
-    if link_style_statements:
+    if link_style_statements and allow_styles:
         lines.extend(link_style_statements)
 
     mermaid_source = _finalize_mermaid_lines(lines)
@@ -2865,6 +3026,7 @@ def _build_view_mermaid(
         "template_documentation": template_view_documentation,
         "comments": view_comments,
         "template_comments": template_view_comments,
+        "role": view_role,
         "mermaid": mermaid_source,
         "image": image_payload,
         "nodes": node_details,
@@ -3118,10 +3280,23 @@ def generate_mermaid_preview(
                 datamodel_views.extend(_normalize_view_diagrams(extra_payload))
         datamodel_views = _deduplicate_views(datamodel_views)
     for view in datamodel_views:
-        _standardize_view_tree(view)
+        _standardize_view_tree(view, is_root=True)
     blueprint_views = _normalize_view_diagrams(template.get("views"))
     for view in blueprint_views:
-        _standardize_view_tree(view)
+        _standardize_view_tree(view, is_root=True)
+
+    role_hint = _view_role_from_metadata(view_name, view_identifier, view_metadata)
+    if role_hint:
+        role_filtered_datamodel = [
+            view for view in datamodel_views if _view_role_matches(view, role_hint)
+        ]
+        role_filtered_blueprint = [
+            view for view in blueprint_views if _view_role_matches(view, role_hint)
+        ]
+        if role_filtered_datamodel or not datamodel_views:
+            datamodel_views = role_filtered_datamodel
+        if role_filtered_blueprint:
+            blueprint_views = role_filtered_blueprint
 
     filtered_blueprint = _filter_views_by_selectors(blueprint_views, selectors)
     filtered_datamodel = _filter_views_by_selectors(datamodel_views, selectors)
@@ -3180,6 +3355,7 @@ def generate_mermaid_preview(
         datamodel_nodes: Dict[str, Dict[str, Any]] | None,
         datamodel_connections: Dict[str, Dict[str, Any]] | None,
     ) -> Dict[str, Any]:
+        _resolve_view_role(view_payload, template_view)
         try:
             return _build_view_mermaid(
                 view_payload,
@@ -3204,17 +3380,37 @@ def generate_mermaid_preview(
                 view_name,
                 exc_info=exc,
             )
-            return _build_view_mermaid(
-                view_payload,
-                template_view,
-                element_lookup,
-                relation_lookup,
-                blueprint_nodes,
-                blueprint_connections,
-                datamodel_nodes,
-                datamodel_connections,
-                prefer_c4=False,
-            )
+            try:
+                return _build_view_mermaid(
+                    view_payload,
+                    template_view,
+                    element_lookup,
+                    relation_lookup,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    datamodel_nodes,
+                    datamodel_connections,
+                    prefer_c4=False,
+                )
+            except ValueError as sanitized_exc:
+                logger.warning(
+                    "Falha ao validar Mermaid em fluxo padrão para a visão '%s'. "
+                    "Removendo estilos e tentando novamente.",
+                    view_name,
+                    exc_info=sanitized_exc,
+                )
+                return _build_view_mermaid(
+                    view_payload,
+                    template_view,
+                    element_lookup,
+                    relation_lookup,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    datamodel_nodes,
+                    datamodel_connections,
+                    prefer_c4=False,
+                    allow_styles=False,
+                )
 
     if datamodel_views:
         for view in datamodel_views:
@@ -3331,6 +3527,7 @@ def generate_mermaid_preview(
                     "connections": connections_summary,
                 },
                 "index": index,
+                "role": view.get("role"),
                 "has_mermaid": bool(view.get("mermaid")),
                 "has_image": bool(view.get("image")),
             }
@@ -3484,6 +3681,14 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
                     documentation_text = _payload_text(documentation_payload)
                     if documentation_text:
                         view_entry["documentation"] = documentation_text
+
+                    role = _classify_view_role(
+                        view_entry.get("name"),
+                        view_entry.get("identifier"),
+                        documentation_text,
+                    )
+                    if role:
+                        view_entry["role"] = role
 
                     if view_entry:
                         views_summary.append(view_entry)
