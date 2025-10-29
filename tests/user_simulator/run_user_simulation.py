@@ -13,10 +13,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
 try:
     from google.adk.runners import InMemoryRunner  # type: ignore[attr-defined]
     from google.adk.agents.run_config import RunConfig  # type: ignore[attr-defined]
@@ -39,6 +35,10 @@ except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em amb
     ) from exc
 except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
     raise SystemExit("Falha ao carregar google-genai. Verifique a instalação.") from exc
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from agents.diagramador.agent import get_root_agent  # noqa: E402
 from agents.diagramador.prompt import ORCHESTRATOR_PROMPT  # noqa: E402
