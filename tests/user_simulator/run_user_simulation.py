@@ -10,11 +10,12 @@ import os
 import re
 import sys
 import textwrap
+from collections.abc import MutableMapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Literal, Sequence
 
 
 try:
@@ -221,6 +222,15 @@ class ArtifactRecord:
 
 
 @dataclass
+class ToolInteractionRecord:
+    """Representa o uso de uma ferramenta durante um evento do agente."""
+
+    name: str
+    direction: Literal["call", "response"]
+    detail: str
+
+
+@dataclass
 class EventRecord:
     index: int
     step: str
@@ -228,6 +238,7 @@ class EventRecord:
     summary: str
     event_payload: dict[str, Any]
     session_state_path: Path
+    tools: list[ToolInteractionRecord] = field(default_factory=list)
     artifacts: list[ArtifactRecord] = field(default_factory=list)
 
 
@@ -305,6 +316,82 @@ def _scrub_thought_signature(payload: Any) -> Any:
     if isinstance(payload, list):
         return [_scrub_thought_signature(item) for item in payload]
     return payload
+
+
+def _truncate_json(value: Any, *, limit: int = 200) -> str:
+    """Converte um payload em JSON compacto limitado a ``limit`` caracteres."""
+
+    try:
+        text = json.dumps(value, ensure_ascii=False)
+    except TypeError:
+        text = str(value)
+
+    if len(text) > limit:
+        return text[: limit - 1].rstrip() + "…"
+    return text
+
+
+def _extract_tool_interactions(
+    event: Any, sanitized_payload: dict[str, Any]
+) -> list[ToolInteractionRecord]:
+    """Extrai interações de ferramentas presentes no evento."""
+
+    interactions: list[ToolInteractionRecord] = []
+
+    def _append_interaction(name: str | None, direction: Literal["call", "response"], detail: Any):
+        if not name:
+            name = "function_call" if direction == "call" else "function_response"
+        scrubbed_detail = _scrub_thought_signature(detail)
+        interactions.append(
+            ToolInteractionRecord(
+                name=str(name),
+                direction=direction,
+                detail=_truncate_json(scrubbed_detail, limit=240),
+            )
+        )
+
+    try:
+        if hasattr(event, "get_function_calls"):
+            for call in event.get_function_calls() or []:
+                _append_interaction(
+                    getattr(call, "name", None),
+                    "call",
+                    getattr(call, "args", None),
+                )
+        if hasattr(event, "get_function_responses"):
+            for response in event.get_function_responses() or []:
+                _append_interaction(
+                    getattr(response, "name", None),
+                    "response",
+                    getattr(response, "response", None),
+                )
+    except Exception:
+        # fallback to payload structure when ADK helpers não estão disponíveis
+        pass
+
+    if interactions:
+        return interactions
+
+    # Fallback baseado no payload serializado em caso de objetos simples.
+    parts = sanitized_payload.get("content", {}).get("parts", [])
+    for part in parts if isinstance(parts, Sequence) else []:
+        if isinstance(part, MutableMapping):
+            if part.get("function_call"):
+                call = part["function_call"]
+                _append_interaction(
+                    call.get("name") if isinstance(call, MutableMapping) else None,
+                    "call",
+                    call.get("args") if isinstance(call, MutableMapping) else None,
+                )
+            if part.get("function_response"):
+                response = part["function_response"]
+                _append_interaction(
+                    response.get("name") if isinstance(response, MutableMapping) else None,
+                    "response",
+                    response.get("response") if isinstance(response, MutableMapping) else None,
+                )
+
+    return interactions
 
 
 def _build_user_message(step: StepDefinition, user_history: str) -> str:
@@ -466,11 +553,24 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     event_payload = event.model_dump(mode="json")
                     sanitized_payload = _scrub_thought_signature(event_payload)
                     event_timestamp = _utcnow().isoformat()
+                    tool_interactions = _extract_tool_interactions(event, sanitized_payload)
+
                     session_log.write(
                         "**Agente Diagramador**\n"
                         "----------------------\n"
                         f"Horário: {event_timestamp}\n"
                         f"{_extract_text_from_event(sanitized_payload) or '[sem texto disponível]'}\n\n"
+                    )
+                    if tool_interactions:
+                        session_log.write("**Uso de ferramentas**\n")
+                        session_log.write("---------------------\n")
+                        for interaction in tool_interactions:
+                            action = "chamada" if interaction.direction == "call" else "resposta"
+                            session_log.write(
+                                f"- {interaction.name} ({action}): {interaction.detail}\n"
+                            )
+                        session_log.write("\n")
+                    session_log.write(
                         "```json\n"
                         f"{json.dumps(sanitized_payload, ensure_ascii=False, indent=2)}\n"
                         "```\n\n"
@@ -480,6 +580,12 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     )
                     author = getattr(event, "author", "agent") or "agent"
                     _emit_cli(f"   ↳ {author}: {preview}")
+                    if tool_interactions:
+                        for interaction in tool_interactions:
+                            action = "chamada" if interaction.direction == "call" else "resposta"
+                            _emit_cli(
+                                f"      ↳ ferramenta {interaction.name} ({action}): {interaction.detail}"
+                            )
 
                     snapshot = asyncio.run(
                         _fetch_session_snapshot(
@@ -504,9 +610,10 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         index=len(events) + 1,
                         step=step.name,
                         author=event.author,
-                        summary=_extract_text_from_event(event_payload),
-                        event_payload=event_payload,
+                        summary=_extract_text_from_event(sanitized_payload),
+                        event_payload=sanitized_payload,
                         session_state_path=state_path,
+                        tools=list(tool_interactions),
                         artifacts=artifacts_records,
                     )
                     events.append(record)
@@ -519,7 +626,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     )
 
                     if event.author != "user":
-                        text = _extract_text_from_event(event_payload)
+                        text = _extract_text_from_event(sanitized_payload)
                         if text:
                             final_agent_text.append(text)
                             agent_responses.append(text)
@@ -633,6 +740,19 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
         )
     summary_path.write_text(summary_text, encoding="utf-8")
 
+    results_md_path = run_dir / "RESULTS.md"
+    results_md_path.write_text(
+        _generate_results_markdown(
+            flow=flow,
+            run_dir=run_dir,
+            events=events,
+            expectation_reports=expectation_reports,
+            flow_result=flow_result,
+            model_error=model_error,
+        ),
+        encoding="utf-8",
+    )
+
     asyncio.run(runner.close())
 
     _emit_cli("🏁 Simulação concluída.")
@@ -684,10 +804,21 @@ def _write_session_state_snapshot(
     event_payload: dict[str, Any],
     artifacts: Iterable[ArtifactRecord],
 ) -> None:
+    session_payload: dict[str, Any] = {}
+    if hasattr(snapshot, "model_dump"):
+        try:
+            session_payload = snapshot.model_dump(mode="json")  # type: ignore[call-arg]
+        except TypeError:
+            session_payload = snapshot.model_dump()  # type: ignore[misc]
+    elif isinstance(snapshot, MutableMapping):
+        session_payload = dict(snapshot)
+
+    session_payload = _scrub_thought_signature(session_payload)
+
     payload = {
         "timestamp": _utcnow().isoformat(),
-        "session": snapshot.model_dump(mode="json") if hasattr(snapshot, "model_dump") else {},
-        "event": event_payload,
+        "session": session_payload,
+        "event": _scrub_thought_signature(event_payload),
         "artifacts": [
             {
                 "filename": artifact.filename,
@@ -764,7 +895,13 @@ def _persist_artifacts(
                     mirror_path.parent.mkdir(parents=True, exist_ok=True)
                     mirror_path.write_bytes(raw_bytes)
         else:
-            serialized_text = json.dumps(part.model_dump(mode="json"), ensure_ascii=False, indent=2)
+            try:
+                model_payload = part.model_dump(mode="json")  # type: ignore[call-arg]
+            except TypeError:
+                model_payload = part.model_dump()  # type: ignore[misc]
+            serialized_text = json.dumps(
+                _scrub_thought_signature(model_payload), ensure_ascii=False, indent=2
+            )
             target_path.write_text(serialized_text, encoding="utf-8")
             for mirror_path in mirror_paths:
                 try:
@@ -803,6 +940,360 @@ def _guess_extension(mime_type: str | None, filename: str) -> str:
     if filename.lower().endswith(".json"):
         return ".json"
     return ".bin"
+
+
+def _escape_markdown_cell(text: str) -> str:
+    return text.replace("|", "\\|").replace("\n", "<br/>")
+
+
+def _format_tool_cell(tools: Sequence[ToolInteractionRecord]) -> str:
+    if not tools:
+        return "—"
+    entries = [
+        f"{tool.name} ({'chamada' if tool.direction == 'call' else 'resposta'})"
+        for tool in tools
+    ]
+    return "<br/>".join(_escape_markdown_cell(entry) for entry in entries)
+
+
+def _format_artifact_cell(artifacts: Sequence[ArtifactRecord]) -> str:
+    if not artifacts:
+        return "—"
+    entries = [f"{artifact.filename} (v{artifact.version})" for artifact in artifacts]
+    return "<br/>".join(_escape_markdown_cell(entry) for entry in entries)
+
+
+def _aggregate_tool_usage(events: Sequence[EventRecord]) -> list[tuple[str, int, int]]:
+    usage: dict[str, dict[str, int]] = {}
+    for event in events:
+        for tool in event.tools:
+            counters = usage.setdefault(tool.name, {"call": 0, "response": 0})
+            counters[tool.direction] += 1
+    aggregated: list[tuple[str, int, int]] = []
+    for tool_name, counters in sorted(usage.items()):
+        aggregated.append((tool_name, counters.get("call", 0), counters.get("response", 0)))
+    return aggregated
+
+
+def _compute_quality_stats(
+    expectation_reports: Sequence[ExpectationReport],
+) -> tuple[float | None, list[dict[str, Any]]]:
+    detailed: list[dict[str, Any]] = []
+    collected_scores: list[float] = []
+
+    for report in expectation_reports:
+        evaluation = report.evaluation or {}
+        step_scores: dict[str, float | None] = {}
+        for key in ("relevance", "cohesion", "coherence"):
+            score = _normalize_score(evaluation.get(key))
+            step_scores[key] = score
+            if score is not None:
+                collected_scores.append(score)
+        detail = {
+            "step": report.step,
+            "expected": report.expected,
+            "responses": report.responses,
+            "evaluation": evaluation,
+            "scores": step_scores,
+            "average": None,
+        }
+        values = [value for value in step_scores.values() if value is not None]
+        if values:
+            detail["average"] = sum(values) / len(values)
+        detailed.append(detail)
+
+    overall = None
+    if collected_scores:
+        overall = sum(collected_scores) / len(collected_scores)
+
+    return overall, detailed
+
+
+def _build_bpm_diagram(
+    flow: FlowDefinition,
+    events: Sequence[EventRecord],
+    artifacts: Sequence[ArtifactRecord],
+) -> str:
+    tool_names = sorted({tool.name for event in events for tool in event.tools}) or ["(nenhuma)"]
+    event_nodes = []
+    for event in events:
+        label = _escape_markdown_cell(_shorten_cli_preview(event.summary, width=60))
+        node_id = f"EV{event.index}"
+        event_nodes.append((node_id, f"{event.step} / {event.author}", label))
+
+    artifact_nodes: list[str] = []
+
+    lines = ["```mermaid", "flowchart LR"]
+    lines.append("    subgraph Usuario")
+    lines.append("        U0([Início da simulação])")
+    step_ids: list[str] = []
+    for step in flow.steps:
+        sanitized = _sanitize_token(step.name)
+        step_id = f"U_{sanitized}"
+        step_ids.append(step_id)
+        lines.append(
+            f"        {step_id}{{Envio do passo '{_escape_markdown_cell(step.name)}'}}"
+        )
+    lines.append("    end")
+
+    lines.append("    subgraph Orquestracao")
+    lines.append("        O0[Criação da sessão InMemoryRunner]")
+    for node_id, title, label in event_nodes:
+        lines.append(f"        {node_id}[{title}\\n{label}]")
+    lines.append("    end")
+
+    lines.append("    subgraph Ferramentas")
+    for idx, tool_name in enumerate(tool_names, start=1):
+        lines.append(f"        T{idx}[[{_escape_markdown_cell(tool_name)}]]")
+    lines.append("    end")
+
+    lines.append("    subgraph Artefatos")
+    if artifacts:
+        for index, artifact in enumerate(artifacts, start=1):
+            node_id = f"AR{index}"
+            artifact_nodes.append(node_id)
+            lines.append(
+                f"        {node_id}({_escape_markdown_cell(artifact.filename)}\\n"
+                f"v{artifact.version})"
+            )
+    else:
+        lines.append("        A0((Nenhum artefato gerado))")
+        artifact_nodes.append("A0")
+    lines.append("    end")
+
+    lines.append("    subgraph Avaliacao")
+    lines.append("        E0[(Comparação com resultados esperados)]")
+    lines.append("    end")
+
+    lines.append("    subgraph Relatorios")
+    lines.append("        R0[Atualização do session.log]")
+    lines.append("        R1[Gerar structured_summary.md]")
+    lines.append("        R2[Gerar RESULTS.md]")
+    lines.append("    end")
+
+    lines.append("    U0 --> O0")
+    last_node = "O0"
+    if step_ids:
+        lines.append(f"    O0 --> {step_ids[0]}")
+        for previous, current in zip(step_ids, step_ids[1:]):
+            lines.append(f"    {previous} --> {current}")
+        last_node = step_ids[-1]
+
+    if event_nodes:
+        lines.append(f"    {last_node} --> {event_nodes[0][0]}")
+        for (current_id, _, _), (next_id, _, _) in zip(event_nodes, event_nodes[1:]):
+            lines.append(f"    {current_id} --> {next_id}")
+        lines.append(f"    {event_nodes[-1][0]} --> E0")
+        last_event = event_nodes[-1][0]
+    else:
+        lines.append(f"    {last_node} --> E0")
+        last_event = "E0"
+
+    if tool_names:
+        for idx, tool_name in enumerate(tool_names, start=1):
+            node = event_nodes[min(idx - 1, len(event_nodes) - 1)][0] if event_nodes else last_node
+            lines.append(f"    {node} -.-> T{idx}")
+
+    if artifact_nodes:
+        for artifact_node in artifact_nodes:
+            lines.append(f"    {last_event} --> {artifact_node}")
+            lines.append(f"    {artifact_node} --> R2")
+
+    lines.append("    E0 --> R0 --> R1 --> R2")
+    lines.append("```")
+    return "\n".join(lines)
+
+
+def _generate_results_markdown(
+    *,
+    flow: FlowDefinition,
+    run_dir: Path,
+    events: Sequence[EventRecord],
+    expectation_reports: Sequence[ExpectationReport],
+    flow_result: dict[str, Any],
+    model_error: dict[str, Any] | None,
+) -> str:
+    total_artifacts = sum(len(event.artifacts) for event in events)
+    all_artifacts = [artifact for event in events for artifact in event.artifacts]
+
+    overall_quality, detailed_quality = _compute_quality_stats(expectation_reports)
+
+    lines: list[str] = []
+    lines.append(f"# RESULTADOS - {flow.case_id}")
+    lines.append("")
+    lines.append("## Visão Geral")
+    lines.append("")
+    lines.append(f"- Diretório de execução: `{run_dir}`")
+    lines.append(f"- Caso: **{flow.case_id}** — {flow.description or 'sem descrição fornecida'}")
+    lines.append(f"- Usuário simulado: `{flow.user_id}`")
+    lines.append(f"- Sessão: `{flow.session_id}`")
+    lines.append(f"- Eventos processados: {len(events)}")
+    lines.append(f"- Artefatos gerados: {total_artifacts}")
+    if model_error:
+        lines.append(f"- Erro do modelo: {json.dumps(model_error, ensure_ascii=False)}")
+    lines.append("")
+
+    if flow.expected_outcomes:
+        lines.append("## Objetivos esperados do cenário")
+        lines.append("")
+        for outcome in flow.expected_outcomes:
+            lines.append(f"- {outcome}")
+        lines.append("")
+
+    lines.append("## Histórico de Interações")
+    lines.append("")
+    lines.append("| Evento | Passo | Autor | Resumo | Ferramentas | Artefatos |")
+    lines.append("| --- | --- | --- | --- | --- | --- |")
+    for event in events:
+        summary = _escape_markdown_cell(_shorten_cli_preview(event.summary, width=160))
+        lines.append(
+            "| {idx} | {step} | {author} | {summary} | {tools} | {artifacts} |".format(
+                idx=event.index,
+                step=_escape_markdown_cell(event.step),
+                author=_escape_markdown_cell(event.author),
+                summary=summary,
+                tools=_format_tool_cell(event.tools),
+                artifacts=_format_artifact_cell(event.artifacts),
+            )
+        )
+    if not events:
+        lines.append("| — | — | — | Nenhum evento registrado | — | — |")
+    lines.append("")
+
+    lines.append("## Consolidação do fluxo de execução")
+    lines.append("")
+    lines.append(
+        f"- Eventos registrados (runner): {flow_result.get('events_processed', len(events))}"
+    )
+    lines.append(
+        "- Passos processados: "
+        + (", ".join(flow_result.get("steps", [])) or "nenhum passo informado")
+    )
+    artifacts_saved = flow_result.get("artifacts_saved", [])
+    if artifacts_saved:
+        lines.append("- Artefatos por evento:")
+        for entry in artifacts_saved:
+            files = entry.get("files", [])
+            lines.append(
+                "  - Evento {idx}: {files}".format(
+                    idx=entry.get("index", "?"),
+                    files=", ".join(files) if files else "nenhum arquivo reportado",
+                )
+            )
+    else:
+        lines.append("- Nenhum artefato foi registrado pelo runner.")
+    lines.append("")
+
+    lines.append("## Uso consolidado de ferramentas")
+    lines.append("")
+    tool_usage = _aggregate_tool_usage(events)
+    if tool_usage:
+        lines.append("| Ferramenta | Chamadas | Respostas |")
+        lines.append("| --- | ---: | ---: |")
+        for tool_name, calls, responses in tool_usage:
+            lines.append(f"| {tool_name} | {calls} | {responses} |")
+    else:
+        lines.append("Nenhuma ferramenta foi acionada durante a simulação.")
+    lines.append("")
+
+    lines.append("## Artefatos gerados")
+    lines.append("")
+    if all_artifacts:
+        for artifact in all_artifacts:
+            lines.append(
+                f"- `{artifact.filename}` (v{artifact.version}) — {artifact.mime_type or 'mime desconhecido'} — "
+                f"{artifact.absolute_path}"
+            )
+    else:
+        lines.append("- Nenhum artefato foi persistido.")
+    lines.append("")
+
+    lines.append("## Avaliação de qualidade")
+    lines.append("")
+    if detailed_quality:
+        lines.append("| Passo | Veredito | Relevância | Coesão | Coerência | Score médio |")
+        lines.append("| --- | --- | --- | --- | --- | --- |")
+        for detail in detailed_quality:
+            evaluation = detail.get("evaluation") or {}
+            verdict = evaluation.get("verdict", "N/D")
+            scores = detail.get("scores") or {}
+            lines.append(
+                "| {step} | {verdict} | {rel} | {coh} | {coer} | {avg} |".format(
+                    step=_escape_markdown_cell(detail.get("step", "—")),
+                    verdict=_escape_markdown_cell(str(verdict)),
+                    rel=_format_score(scores.get("relevance")),
+                    coh=_format_score(scores.get("cohesion")),
+                    coer=_format_score(scores.get("coherence")),
+                    avg=_format_score(detail.get("average")),
+                )
+            )
+            summary_text = evaluation.get("summary")
+            if summary_text:
+                lines.append(f"> {summary_text}")
+        lines.append("")
+    else:
+        lines.append("- Avaliação automática indisponível (verifique credenciais do avaliador).")
+
+    if overall_quality is not None:
+        lines.append(
+            f"- **Qualidade consolidada**: {overall_quality * 100:.1f}% (média dos indicadores avaliados)."
+        )
+    else:
+        lines.append("- **Qualidade consolidada**: N/D")
+    lines.append("")
+
+    lines.append("## Análise detalhada")
+    lines.append("")
+    if expectation_reports:
+        for detail in detailed_quality:
+            evaluation = detail.get("evaluation") or {}
+            summary_text = evaluation.get("summary") or "Sem resumo fornecido pelo avaliador."
+            verdict = evaluation.get("verdict", "N/D")
+            lines.append(
+                f"- **{detail.get('step', 'Passo')}** — Veredito: {verdict}. "
+                f"Resumo: {summary_text}"
+            )
+    else:
+        lines.append("- Não foi possível gerar análise automática; utilize os logs para revisão manual.")
+    lines.append("")
+
+    lines.append("## Sugestões estruturadas de melhoria")
+    lines.append("")
+    lines.append("### Prompt do agente")
+    lines.append(
+        "- Revisar instruções do prompt em `agents/diagramador/prompt.py` para reforçar a geração completa do datamodel, "
+        "especialmente destacando requisitos de validação PIX e evidenciando quando nenhuma ferramenta adicional for necessária."
+    )
+    lines.append(
+        "- Incluir exemplos orientando a responder com confirmações explícitas sobre a criação de artefatos para evitar dúvidas do avaliador."
+    )
+    lines.append("")
+    lines.append("### Orquestração e agente")
+    lines.append(
+        "- Expandir `agents/diagramador/agent.py` para registrar no estado de sessão os metadados do template selecionado, facilitando reuso entre passos."  # noqa: E501
+    )
+    lines.append(
+        "- Monitorar latência de cada ferramenta via logging estruturado para identificar gargalos durante execuções reais."
+    )
+    lines.append("")
+    lines.append("### Ferramentas e geração de artefatos")
+    lines.append(
+        "- Ajustar `agents/diagramador/tools/diagramador/operations.py` para validar a existência dos arquivos no diretório `outputs/` após cada salvamento, "
+        "emitindo alertas quando nenhum artefato for criado."
+    )
+    lines.append(
+        "- Automatizar testes de ponta-a-ponta no script de simulação garantindo que `generate_archimate_diagram` seja acionado pelo menos uma vez em cada cenário crítico."
+    )
+    lines.append("")
+
+    lines.append("## Diagrama BPM do fluxo da simulação")
+    lines.append("")
+    lines.append(
+        _build_bpm_diagram(flow=flow, events=events, artifacts=all_artifacts),
+    )
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
