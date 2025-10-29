@@ -7,6 +7,7 @@ import math
 import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
+from html import escape as html_escape
 
 try:
     import svgwrite
@@ -351,14 +352,24 @@ def render_view_layout(
                 )
             )
 
-    svg_bytes = drawing.tostring().encode("utf-8")
+    svg_markup = drawing.tostring()
+    svg_bytes = svg_markup.encode("utf-8")
     slug = _slugify_identifier(view_alias or view_name)
     svg_path = output_dir / f"{slug}_layout.svg"
     svg_path.write_bytes(svg_bytes)
 
     svg_b64 = base64.b64encode(svg_bytes).decode("ascii")
     svg_data_uri = _make_data_uri("image/svg+xml", svg_bytes)
-    download_markdown = f"[Baixar SVG]({svg_data_uri})"
+    escaped_name = html_escape(view_name or "")
+    download_markdown = (
+        f'<a href="{svg_data_uri}" download="{svg_path.name}">Baixar SVG</a>'
+    )
+
+    inline_markup = svg_markup
+    if escaped_name:
+        inline_markup = (
+            f"<figure><figcaption>{escaped_name}</figcaption>{svg_markup}</figure>"
+        )
 
     payload: Dict[str, Any] = {
         "format": "svg",
@@ -369,7 +380,9 @@ def render_view_layout(
         "data_uri": svg_data_uri,
         "download_uri": svg_data_uri,
         "download_markdown": download_markdown,
-        "inline_markdown": f"![{view_name}]({svg_data_uri})",
+        "inline_markdown": inline_markup,
+        "inline_svg": svg_markup,
+        "download_filename": svg_path.name,
         "artifact": {
             "type": "image",
             "mime_type": "image/svg+xml",
@@ -390,7 +403,9 @@ def render_view_layout(
             png_path.write_bytes(png_bytes)
             png_b64 = base64.b64encode(png_bytes).decode("ascii")
             png_data_uri = _make_data_uri("image/png", png_bytes)
-            png_download = f"[Baixar PNG]({png_data_uri})"
+            png_download = (
+                f'<a href="{png_data_uri}" download="{png_path.name}">Baixar PNG</a>'
+            )
             payload["png"] = {
                 "format": "png",
                 "local_path": str(png_path.resolve()),
@@ -398,7 +413,10 @@ def render_view_layout(
                 "data_uri": png_data_uri,
                 "download_uri": png_data_uri,
                 "download_markdown": png_download,
-                "inline_markdown": f"![{view_name}]({png_data_uri})",
+                "inline_markdown": (
+                    f'<img alt="{escaped_name or view_name}" src="{png_data_uri}" />'
+                ),
+                "download_filename": png_path.name,
                 "artifact": {
                     "type": "image",
                     "mime_type": "image/png",
