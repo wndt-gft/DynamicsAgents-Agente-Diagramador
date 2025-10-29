@@ -160,6 +160,12 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert all(summary["download_uri"].startswith("data:image/") for summary in summaries)
     assert all(summary["download_markdown"].startswith("[Baixar") for summary in summaries)
 
+    assert result.get("message")
+    assert result.get("inline_markdown", "").startswith("![")
+    assert result.get("download_markdown", "").startswith("[Baixar")
+    messages = result.get("preview_messages")
+    assert messages and all(message.startswith("###") for message in messages)
+
     artifacts = result.get("artifacts")
     assert artifacts
     assert all(artifact.get("mime_type") for artifact in artifacts)
@@ -183,6 +189,11 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
     assert preview.get("preview_summaries")
     assert preview["preview_summaries"][0]["download_uri"].startswith("data:image/svg+xml;base64,")
     assert preview["preview_summaries"][0]["download_markdown"].startswith("[Baixar")
+    assert preview.get("message")
+    assert preview.get("inline_markdown", "").startswith("![")
+    assert preview.get("download_markdown", "").startswith("[Baixar")
+    messages = preview.get("preview_messages")
+    assert messages and all(msg.startswith("###") for msg in messages)
 
 
 def test_generate_layout_preview_filters_views(sample_payload, session_state):
@@ -209,6 +220,10 @@ def test_generate_layout_preview_filters_views(sample_payload, session_state):
     summaries = result.get("previews")
     assert summaries and len(summaries) == 1
     assert summaries[0]["download_uri"].startswith("data:image/svg+xml;base64,")
+    assert result.get("message")
+    assert result.get("inline_markdown", "").startswith("![")
+    assert result.get("download_markdown", "").startswith("[Baixar")
+    assert result.get("preview_messages")
 
 
 def test_generate_layout_preview_filters_views_with_string(sample_payload, session_state):

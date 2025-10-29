@@ -2023,6 +2023,41 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
     return variant
 
 
+def _preview_heading(summary: Dict[str, Any]) -> str:
+    name = summary.get("view_name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    identifier = summary.get("view_id")
+    if isinstance(identifier, str) and identifier.strip():
+        return identifier.strip()
+    return "Visão"
+
+
+def _preview_summary_markdown(summary: Dict[str, Any]) -> Optional[str]:
+    inline = summary.get("inline_markdown")
+    download_md = summary.get("download_markdown")
+    download_uri = summary.get("download_uri")
+
+    if not inline and not download_md and not download_uri:
+        return None
+
+    blocks: List[str] = []
+
+    heading = _preview_heading(summary)
+    if heading:
+        blocks.append(f"### {heading}")
+
+    if isinstance(inline, str) and inline.strip():
+        blocks.append(inline.strip())
+
+    if isinstance(download_md, str) and download_md.strip():
+        blocks.append(download_md.strip())
+    elif isinstance(download_uri, str) and download_uri.strip():
+        blocks.append(f"[Baixar pré-visualização]({download_uri.strip()})")
+
+    return "\n\n".join(blocks)
+
+
 def _summarize_layout_previews(
     views: Sequence[Dict[str, Any]]
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -2074,6 +2109,19 @@ def _summarize_layout_previews(
         summaries.append(summary)
 
     return summaries, artifacts
+
+
+def _aggregate_preview_messages(
+    summaries: Sequence[Dict[str, Any]]
+) -> List[str]:
+    messages: List[str] = []
+    for summary in summaries:
+        if not isinstance(summary, MutableMapping):
+            continue
+        markdown = _preview_summary_markdown(summary)
+        if markdown:
+            messages.append(markdown)
+    return messages
 
 
 def generate_layout_preview(
@@ -2240,11 +2288,30 @@ def generate_layout_preview(
 
     preview_summaries, preview_artifacts = _summarize_layout_previews(results)
 
+    preview_messages = _aggregate_preview_messages(preview_summaries)
+
     if preview_summaries:
         response["preview_summaries"] = preview_summaries
 
     if preview_artifacts:
         response["artifacts"] = preview_artifacts
+
+    if preview_messages:
+        response["preview_messages"] = preview_messages
+        response["message"] = "\n\n".join(preview_messages)
+
+        primary = preview_summaries[0]
+        primary_inline = primary.get("inline_markdown")
+        primary_download = primary.get("download_markdown")
+        if isinstance(primary_inline, str) and primary_inline.strip():
+            response["inline_markdown"] = primary_inline
+        if isinstance(primary_download, str) and primary_download.strip():
+            response["download_markdown"] = primary_download
+        elif isinstance(primary.get("download_uri"), str) and primary["download_uri"].strip():
+            response["download_markdown"] = (
+                primary.get("download_markdown")
+                or f"[Baixar pré-visualização]({primary['download_uri']})"
+            )
 
     if template_metadata:
         response["template"] = template_metadata
@@ -2266,6 +2333,17 @@ def generate_layout_preview(
 
         if preview_artifacts:
             status_payload["artifacts"] = preview_artifacts
+
+        if preview_messages:
+            status_payload["preview_messages"] = preview_messages
+            status_payload["message"] = "\n\n".join(preview_messages)
+
+        primary_inline = response.get("inline_markdown")
+        primary_download = response.get("download_markdown")
+        if primary_inline:
+            status_payload["inline_markdown"] = primary_inline
+        if primary_download:
+            status_payload["download_markdown"] = primary_download
 
         return status_payload
 
