@@ -1,0 +1,25 @@
+{
+  "case_id": "pix_container",
+  "description": "Simulação completa do agente Diagramador para a visão de container do caso PIX, com geração de diagrama e recomendações finais.",
+  "user_id": "sim-user-pix",
+  "session_id": "pix-container-simulation",
+  "steps": [
+    {
+      "name": "enviar_historia_pix",
+      "type": "user_history",
+      "prompt_template": "Você é um especialista de arquitetura. Utilize o template container padrão do agente Diagramador para atender à história a seguir, gerando o datamodel final, pré-visualização em SVG/PNG e diagrama XML prontos para download.\n\nHistória:\n{user_history}\n\nConfirme quando concluir cada etapa e armazene os artefatos no estado de sessão.",
+      "expect": "O agente deve selecionar a visão correta do template, finalizar o datamodel e gerar a pré-visualização com a visão de container alinhada à história."
+    },
+    {
+      "name": "detalhamento_final",
+      "type": "follow_up",
+      "message": "Liste, em formato estruturado (tópicos e subitens), o fluxo completo seguido para atender a história e apresente sugestões adicionais da própria LLM para validar o diagrama gerado e garantir que os resultados esperados sejam alcançados."
+    }
+  ],
+  "expected_outcomes": [
+    "Pré-visualização PNG embutida com link data:image/svg+xml;base64 rotulado como 'Abrir diagrama em SVG'.",
+    "Apenas a visão solicitada/confirmada deve ser renderizada.",
+    "Sessão deve conter artefatos persistidos para datamodel, preview e XML.",
+    "Resposta final com detalhamento estruturado e sugestões de próximos passos."
+  ]
+}
