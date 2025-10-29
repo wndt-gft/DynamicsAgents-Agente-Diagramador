@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+from typing import Any, Dict
+
 import warnings
 
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
 
-from .prompt import ORCHESTRATOR_PROMPT
+from .prompt import (
+    ORCHESTRATOR_PROMPT,
+    CONTEXT_VIEW_PROMPT,
+    CONTAINER_VIEW_PROMPT,
+    TECHNICAL_VIEW_PROMPT,
+)
 from .tools.diagramador import (
     DEFAULT_DATAMODEL_FILENAME,
     DEFAULT_DIAGRAM_FILENAME,
@@ -16,6 +23,7 @@ from .tools.diagramador import (
     finalize_datamodel as _finalize_datamodel,
     generate_archimate_diagram as _generate_archimate_diagram,
     generate_mermaid_preview as _generate_mermaid_preview,
+    get_mermaid_preview as _get_mermaid_preview,
     list_templates as _list_templates,
     save_datamodel as _save_datamodel,
 )
@@ -25,7 +33,8 @@ warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 diagramador_description = (
     "Agente orquestrador responsável por interpretar histórias de usuário, "
-    "gerar datamodels no padrão ArchiMate e exportar diagramas XML validados."
+    "coordenar especialistas de visão, gerar datamodels ArchiMate e exportar "
+    "diagramas XML validados."
 )
 
 
@@ -45,20 +54,60 @@ def list_templates(directory: str = ""):
     return _list_templates(directory or None)
 
 
-def describe_template(template_path: str):
-    return _describe_template(template_path, session_state=None)
-
-
-def generate_mermaid_preview(datamodel: str, template_path: str = ""):
-    return _generate_mermaid_preview(
-        datamodel,
-        template_path=template_path or None,
-        session_state=None,
+def describe_template(
+    template_path: str,
+    *,
+    session_state: Dict[str, Any] | None = None,
+    view_identifier: str = "",
+    view_name: str = "",
+):
+    return _describe_template(
+        template_path,
+        session_state=session_state,
+        view_identifier=view_identifier or None,
+        view_name=view_name or None,
     )
 
 
-def finalize_datamodel(datamodel: str, template_path: str):
-    return _finalize_datamodel(datamodel, template_path, session_state=None)
+def generate_mermaid_preview(
+    datamodel: str,
+    template_path: str = "",
+    *,
+    view_identifier: str = "",
+    view_name: str = "",
+    view_metadata: Dict[str, Any] | None = None,
+    session_state: Dict[str, Any] | None = None,
+):
+    return _generate_mermaid_preview(
+        datamodel,
+        template_path=template_path or None,
+        view_identifier=view_identifier or None,
+        view_name=view_name or None,
+        view_metadata=view_metadata,
+        session_state=session_state,
+    )
+
+
+def get_mermaid_preview(
+    preview_id: str,
+    *,
+    include_image: bool = False,
+    session_state: Dict[str, Any] | None = None,
+):
+    return _get_mermaid_preview(
+        preview_id,
+        include_image=include_image,
+        session_state=session_state,
+    )
+
+
+def finalize_datamodel(
+    datamodel: str,
+    template_path: str,
+    *,
+    session_state: Dict[str, Any] | None = None,
+):
+    return _finalize_datamodel(datamodel, template_path, session_state=session_state)
 
 
 def save_datamodel(
@@ -86,21 +135,76 @@ def generate_archimate_diagram(
     )
 
 
+def _shared_tools():
+    return [
+        _make_tool(describe_template, name="describe_template"),
+        _make_tool(generate_mermaid_preview, name="generate_mermaid_preview"),
+        _make_tool(get_mermaid_preview, name="get_mermaid_preview"),
+        _make_tool(finalize_datamodel, name="finalize_datamodel"),
+    ]
+
+
+def _diagramador_exclusive_tools():
+    return [
+        _make_tool(list_templates, name="list_templates"),
+        _make_tool(save_datamodel, name="save_datamodel"),
+    ]
+
+
+def _vision_specialist_exclusive_tools():
+    return [
+        _make_tool(
+            generate_archimate_diagram,
+            name="generate_archimate_diagram",
+        ),
+    ]
+
+
+def _diagramador_tools():
+    return _shared_tools() + _diagramador_exclusive_tools()
+
+
+def _vision_specialist_tools():
+    return _shared_tools() + _vision_specialist_exclusive_tools()
+
+
+context_view_agent = Agent(
+    model=DEFAULT_MODEL,
+    name="visao_contexto",
+    description="Especialista na Visão de Contexto, responsável por cenários externos e fronteiras.",
+    instruction=CONTEXT_VIEW_PROMPT,
+    tools=_vision_specialist_tools(),
+)
+
+
+container_view_agent = Agent(
+    model=DEFAULT_MODEL,
+    name="visao_container",
+    description="Especialista na Visão de Container, focado em containers, responsabilidades e fluxos.",
+    instruction=CONTAINER_VIEW_PROMPT,
+    tools=_vision_specialist_tools(),
+)
+
+
+technical_view_agent = Agent(
+    model=DEFAULT_MODEL,
+    name="visao_tecnica",
+    description="Especialista na Visão Técnica (VT), dedicado a componentes e decisões tecnológicas.",
+    instruction=TECHNICAL_VIEW_PROMPT,
+    tools=_vision_specialist_tools(),
+)
+
+
 diagramador_agent = Agent(
     model=DEFAULT_MODEL,
     name="diagramador",
     description=diagramador_description,
     instruction=ORCHESTRATOR_PROMPT,
-    tools=[
-        _make_tool(list_templates, name="list_templates"),
-        _make_tool(describe_template, name="describe_template"),
-        _make_tool(generate_mermaid_preview, name="generate_mermaid_preview"),
-        _make_tool(finalize_datamodel, name="finalize_datamodel"),
-        _make_tool(save_datamodel, name="save_datamodel"),
-        _make_tool(
-            generate_archimate_diagram,
-            name="generate_archimate_diagram",
-        ),
+    tools=_diagramador_tools(),
+    sub_agents=[
+        context_view_agent,
+        container_view_agent,
+        technical_view_agent,
     ],
 )
 
@@ -119,4 +223,11 @@ def get_root_agent() -> Agent:
 root_agent: Agent = diagramador_agent
 
 
-__all__ = ["diagramador_agent", "get_root_agent", "root_agent"]
+__all__ = [
+    "diagramador_agent",
+    "get_root_agent",
+    "root_agent",
+    "context_view_agent",
+    "container_view_agent",
+    "technical_view_agent",
+]

@@ -8,6 +8,8 @@ from typing import Any, Dict, MutableMapping, Optional
 
 SESSION_STATE_ROOT = "diagramador"
 BLUEPRINT_CACHE_KEY = "template_blueprints"
+PREVIEW_CACHE_KEY = "mermaid_previews"
+DATAMODEL_CACHE_KEY = "datamodel_snapshots"
 
 __all__ = [
     "SESSION_STATE_ROOT",
@@ -15,6 +17,12 @@ __all__ = [
     "get_session_bucket",
     "get_cached_blueprint",
     "store_blueprint",
+    "PREVIEW_CACHE_KEY",
+    "DATAMODEL_CACHE_KEY",
+    "store_preview",
+    "get_cached_preview",
+    "store_datamodel_snapshot",
+    "get_cached_datamodel_snapshot",
 ]
 
 
@@ -69,3 +77,75 @@ def store_blueprint(
         bucket[BLUEPRINT_CACHE_KEY] = cache
     normalized = _normalize_template_path(template_path)
     cache[normalized] = copy.deepcopy(blueprint)
+
+
+def store_preview(
+    session_state: Optional[MutableMapping[str, Any]],
+    preview_id: str,
+    payload: Dict[str, Any],
+) -> None:
+    """Armazena o resultado bruto de um preview Mermaid no estado da sessão."""
+
+    if session_state is None:
+        return
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.setdefault(PREVIEW_CACHE_KEY, {})
+    if not isinstance(cache, MutableMapping):
+        cache = {}
+        bucket[PREVIEW_CACHE_KEY] = cache
+
+    cache[preview_id] = copy.deepcopy(payload)
+
+
+def get_cached_preview(
+    session_state: Optional[MutableMapping[str, Any]], preview_id: str
+) -> Optional[Dict[str, Any]]:
+    """Recupera um preview Mermaid previamente armazenado no estado da sessão."""
+
+    if not preview_id:
+        return None
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.get(PREVIEW_CACHE_KEY)
+    if not isinstance(cache, MutableMapping):
+        return None
+
+    preview = cache.get(preview_id)
+    return copy.deepcopy(preview) if isinstance(preview, dict) else None
+
+
+def store_datamodel_snapshot(
+    session_state: Optional[MutableMapping[str, Any]],
+    key: str,
+    payload: Dict[str, Any],
+) -> None:
+    """Persiste uma cópia do datamodel associado a um identificador lógico."""
+
+    if session_state is None or not key:
+        return
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.setdefault(DATAMODEL_CACHE_KEY, {})
+    if not isinstance(cache, MutableMapping):
+        cache = {}
+        bucket[DATAMODEL_CACHE_KEY] = cache
+
+    cache[key] = copy.deepcopy(payload)
+
+
+def get_cached_datamodel_snapshot(
+    session_state: Optional[MutableMapping[str, Any]], key: str
+) -> Optional[Dict[str, Any]]:
+    """Recupera um datamodel previamente armazenado no estado da sessão."""
+
+    if not key:
+        return None
+
+    bucket = get_session_bucket(session_state)
+    cache = bucket.get(DATAMODEL_CACHE_KEY)
+    if not isinstance(cache, MutableMapping):
+        return None
+
+    payload = cache.get(key)
+    return copy.deepcopy(payload) if isinstance(payload, dict) else None

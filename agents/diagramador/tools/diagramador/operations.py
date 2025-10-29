@@ -12,9 +12,11 @@ import json
 import logging
 import re
 import textwrap
+import unicodedata
+import uuid
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Set, Tuple
 from xml.etree import ElementTree as ET
 
 from google.genai import types
@@ -38,11 +40,44 @@ from .constants import (
     XML_LANG_ATTR,
     XSI_ATTR,
 )
-from .session import get_cached_blueprint, store_blueprint
+from .session import (
+    get_cached_blueprint,
+    get_cached_datamodel_snapshot,
+    get_cached_preview,
+    store_blueprint,
+    store_datamodel_snapshot,
+    store_preview,
+)
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
 logger = logging.getLogger(__name__)
+
+
+_GLOBAL_PREVIEW_CACHE: Dict[str, Dict[str, Any]] = {}
+_GLOBAL_DATAMODEL_CACHE: Dict[str, Dict[str, Any]] = {}
+
+
+def _store_preview_fallback(preview_id: str, payload: Dict[str, Any]) -> None:
+    _GLOBAL_PREVIEW_CACHE[preview_id] = copy.deepcopy(payload)
+
+
+def _get_preview_fallback(preview_id: str) -> Optional[Dict[str, Any]]:
+    preview = _GLOBAL_PREVIEW_CACHE.get(preview_id)
+    return copy.deepcopy(preview) if isinstance(preview, dict) else None
+
+
+def _store_datamodel_snapshot_fallback(cache_key: str, payload: Dict[str, Any]) -> None:
+    if not cache_key:
+        return
+    _GLOBAL_DATAMODEL_CACHE[cache_key] = copy.deepcopy(payload)
+
+
+def _get_datamodel_snapshot_fallback(cache_key: str) -> Optional[Dict[str, Any]]:
+    if not cache_key:
+        return None
+    snapshot = _GLOBAL_DATAMODEL_CACHE.get(cache_key)
+    return copy.deepcopy(snapshot) if isinstance(snapshot, dict) else None
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -123,6 +158,73 @@ def _mermaid_mime_type(fmt: str) -> str:
     return "application/octet-stream"
 
 
+def _clamp_color_value(value: Any) -> int:
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(0, min(255, numeric))
+
+
+def _rgba_to_hex(color: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not isinstance(color, dict):
+        return None
+
+    r = _clamp_color_value(color.get("r"))
+    g = _clamp_color_value(color.get("g"))
+    b = _clamp_color_value(color.get("b"))
+
+    alpha = color.get("a")
+    if isinstance(alpha, (int, float)) and alpha <= 0:
+        return None
+
+    return f"#{r:02X}{g:02X}{b:02X}"
+
+
+def _extract_font_color(style: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not isinstance(style, dict):
+        return None
+    font = style.get("font")
+    if isinstance(font, dict):
+        return _rgba_to_hex(font.get("color"))
+    return None
+
+
+def _extract_node_style(node: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    style = node.get("style") if isinstance(node, dict) else None
+    if not isinstance(style, dict):
+        return {}
+
+    fill = _rgba_to_hex(style.get("fillColor"))
+    stroke = _rgba_to_hex(style.get("lineColor"))
+    font_color = _extract_font_color(style)
+
+    payload: Dict[str, Optional[str]] = {}
+    if fill:
+        payload["fill"] = fill
+    if stroke:
+        payload["stroke"] = stroke
+    if font_color:
+        payload["color"] = font_color
+    return payload
+
+
+def _extract_connection_style(connection: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    style = connection.get("style") if isinstance(connection, dict) else None
+    if not isinstance(style, dict):
+        return {}
+
+    stroke = _rgba_to_hex(style.get("lineColor"))
+    font_color = _extract_font_color(style)
+
+    payload: Dict[str, Optional[str]] = {}
+    if stroke:
+        payload["stroke"] = stroke
+    if font_color:
+        payload["color"] = font_color
+    return payload
+
+
 def _build_mermaid_image_payload(
     mermaid: str,
     *,
@@ -132,7 +234,7 @@ def _build_mermaid_image_payload(
 ) -> Dict[str, Any]:
     resolved_format = _resolve_mermaid_format(fmt)
     base_url = _kroki_base_url()
-    url = f"{base_url}/"
+    url = f"{base_url}/mermaid/{resolved_format}"
     mime_type = _mermaid_mime_type(resolved_format)
     request_payload = {
         "diagram_source": mermaid,
@@ -141,7 +243,6 @@ def _build_mermaid_image_payload(
     }
     headers = {
         "Accept": mime_type,
-        "Content-Type": "application/json",
     }
 
     payload: Dict[str, Any] = {
@@ -260,15 +361,76 @@ def _validate_mermaid_syntax(mermaid: str) -> None:
 
 
 def _resolve_templates_dir(directory: str | None = None) -> Path:
-    """Resolves the directory that stores template XML files."""
+    """Resolves the directory that stores template XML files.
+
+    If a custom directory is provided but cannot be located, the default
+    templates directory is returned as a graceful fallback so the agent keeps
+    operating with the bundled assets.
+    """
 
     base = Path(directory) if directory else DEFAULT_TEMPLATES_DIR
-    return _resolve_package_path(base)
+    resolved = _resolve_package_path(base)
+
+    if resolved.exists():
+        return resolved
+
+    if directory:
+        logger.warning(
+            "Diretório de templates '%s' não encontrado, utilizando diretório padrão.",
+            directory,
+        )
+        default_dir = _resolve_package_path(DEFAULT_TEMPLATES_DIR)
+        if default_dir.exists():
+            return default_dir
+
+        logger.error(
+            "Diretório padrão de templates '%s' também não foi localizado.",
+            DEFAULT_TEMPLATES_DIR,
+        )
+
+    return resolved
 
 
 _BREAK_TAG_PATTERN = re.compile(r"<\s*/?\s*br\s*/?\s*>", re.IGNORECASE)
 _INLINE_WHITESPACE_RE = re.compile(r"[ \t\f\v]+")
 _MERMAID_COMMENT_PREFIX = "%%"
+_MERMAID_NO_TERMINATOR_PREFIXES = (
+    "C4Context",
+    "C4Container",
+    "C4Component",
+    "C4Dynamic",
+    "C4Deployment",
+    "title",
+    "Person",
+    "Person_Ext",
+    "System",
+    "System_Ext",
+    "Container",
+    "Container_Ext",
+    "Component",
+    "Component_Ext",
+    "Boundary",
+    "Enterprise_Boundary",
+    "System_Boundary",
+    "Container_Boundary",
+    "Component_Boundary",
+    "Rel",
+    "Rel_D",
+    "Rel_U",
+    "Rel_R",
+    "Rel_L",
+    "Rel_Back",
+    "BiRel",
+    "UpdateElementStyle",
+    "UpdateRelStyle",
+    "SHOW_LEGEND",
+    "Hide",
+    "IncludeElement",
+    "IncludeRelationship",
+    "Lay",
+    "Lay_D",
+    "Lay_R",
+)
 
 
 def _clean_text(value: Optional[str]) -> str:
@@ -312,6 +474,18 @@ def _finalize_mermaid_lines(lines: Iterable[str]) -> str:
             finalized.append(text)
             continue
 
+        if stripped.startswith("}"):
+            finalized.append(text)
+            continue
+
+        prefix = stripped.split("(", 1)[0].strip()
+        prefixes_to_check = {prefix}
+        if " " in stripped:
+            prefixes_to_check.add(stripped.split(" ", 1)[0].strip())
+        if any(candidate in _MERMAID_NO_TERMINATOR_PREFIXES for candidate in prefixes_to_check):
+            finalized.append(text.rstrip(";"))
+            continue
+
         if not stripped.endswith(";"):
             text = f"{text};"
 
@@ -352,6 +526,159 @@ def _normalize_text(value: Any) -> Optional[str]:
         text = value.decode("utf-8") if isinstance(value, bytes) else value
         return _clean_text(text)
     return None
+
+
+def _fingerprint_text(value: Any) -> Optional[str]:
+    text = _normalize_text(value)
+    if not text:
+        return None
+    normalized = unicodedata.normalize("NFKD", text)
+    tokens = "".join(ch for ch in normalized if ch.isalnum())
+    if not tokens:
+        return None
+    return tokens.lower()
+
+
+def _normalize_role_token(value: Any) -> Optional[str]:
+    """Converte diferentes pistas de visão em uma categoria canônica."""
+
+    text = _normalize_text(value)
+    if not text:
+        return None
+
+    normalized = unicodedata.normalize("NFKD", text)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.lower()
+    normalized = normalized.replace("-", " ").replace("_", " ")
+    normalized = re.sub(r"[^a-z0-9\s]", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    if not normalized:
+        return None
+
+    if "context" in normalized:
+        return "context"
+    if "container" in normalized or "conteiner" in normalized:
+        return "container"
+    if normalized in {"vt", "visao tecnica"}:
+        return "technical"
+    if any(token in normalized for token in ("tecnica", "tcnica", "tecnico", "tcnico", "technical")):
+        return "technical"
+    if any(token in normalized for token in ("component", "componente", "componentes")):
+        return "technical"
+
+    return None
+
+
+def _classify_view_role(*values: Any) -> Optional[str]:
+    """Determina a categoria de visão (contexto, container, técnica)."""
+
+    for value in values:
+        if isinstance(value, dict):
+            yield_role = _normalize_role_token(value.get("role"))
+            if yield_role:
+                return yield_role
+            nested_candidates = [
+                value.get("name"),
+                value.get("title"),
+                value.get("label"),
+                value.get("description"),
+                value.get("documentation"),
+                value.get("type"),
+            ]
+            for candidate in nested_candidates:
+                role = _normalize_role_token(candidate)
+                if role:
+                    return role
+        else:
+            role = _normalize_role_token(value)
+            if role:
+                return role
+    return None
+
+
+def _resolve_view_role(
+    view: Dict[str, Any], fallback: Optional[Dict[str, Any]] = None
+) -> Optional[str]:
+    """Garante que uma visão possua um rótulo de categoria consistente."""
+
+    existing = _normalize_role_token(view.get("role"))
+    if existing:
+        view["role"] = existing
+        if fallback is not None and fallback.get("role") != existing:
+            fallback["role"] = existing
+        return existing
+
+    candidates: List[Any] = [
+        view.get("role"),
+        view.get("type"),
+        view.get("viewType"),
+        _normalize_text(view.get("name")),
+        _normalize_text(view.get("documentation")),
+        view.get("id") or view.get("identifier"),
+    ]
+
+    if fallback:
+        candidates.extend(
+            [
+                fallback.get("role"),
+                fallback.get("type"),
+                fallback.get("viewType"),
+                _normalize_text(fallback.get("name")),
+                _normalize_text(fallback.get("documentation")),
+                fallback.get("id") or fallback.get("identifier"),
+            ]
+        )
+
+    role = _classify_view_role(*candidates)
+    if role:
+        view["role"] = role
+        if fallback is not None and not _normalize_role_token(fallback.get("role")):
+            fallback["role"] = role
+    return role
+
+
+def _view_role_matches(view: Dict[str, Any], target: str) -> bool:
+    normalized_target = _normalize_role_token(target) or (
+        target.lower().strip() if isinstance(target, str) else None
+    )
+    if not normalized_target:
+        return False
+    candidate = _normalize_role_token(view.get("role"))
+    if not candidate:
+        candidate = _resolve_view_role(view)
+    return candidate == normalized_target
+
+
+def _view_role_from_metadata(
+    view_name: Optional[str],
+    view_identifier: Optional[str],
+    view_metadata: Optional[Dict[str, Any]],
+) -> Optional[str]:
+    hints: List[Any] = []
+    if view_metadata:
+        if isinstance(view_metadata, dict):
+            keys = (
+                "role",
+                "scope",
+                "category",
+                "type",
+                "view_role",
+                "view_scope",
+                "viewType",
+                "viewKind",
+            )
+            for key in keys:
+                hints.append(view_metadata.get(key))
+            hints.extend(
+                view_metadata.get(key)
+                for key in ("name", "title", "label", "description")
+            )
+        else:
+            hints.append(view_metadata)
+
+    hints.append(view_name)
+    hints.append(view_identifier)
+    return _classify_view_role(*hints)
 
 
 def _truncate_text(text: str, limit: int = 160) -> str:
@@ -883,6 +1210,16 @@ def _simplify_view_diagram(diagram: Dict[str, Any]) -> Dict[str, Any]:
     if doc_text:
         simplified["documentation"] = doc_text
 
+    role = _classify_view_role(
+        simplified.get("name"),
+        simplified.get("identifier"),
+        simplified.get("documentation"),
+        diagram.get("role"),
+        diagram.get("type"),
+    )
+    if role:
+        simplified["role"] = role
+
     nodes = [
         _simplify_view_node(node)
         for node in diagram.get("nodes", [])
@@ -1039,6 +1376,9 @@ def _merge_view_nodes(
     override_nodes: Optional[Iterable[Dict[str, Any]]],
 ) -> List[Dict[str, Any]]:
     template_nodes = [copy.deepcopy(node) for node in template_nodes or []]
+    for node in template_nodes:
+        _standardize_view_tree(node)
+
     overrides = list(override_nodes or [])
     if not template_nodes and not overrides:
         return []
@@ -1047,6 +1387,7 @@ def _merge_view_nodes(
     extras: List[Dict[str, Any]] = []
     for node in overrides:
         clean = _strip_template_keys(node) or {}
+        _standardize_view_tree(clean)
         key = _view_node_key(clean)
         if key:
             override_map[key] = clean
@@ -1059,7 +1400,10 @@ def _merge_view_nodes(
         override = override_map.get(key) if key else None
         merged.append(_merge_view_node(node, override))
 
-    merged.extend(copy.deepcopy(extra) for extra in extras)
+    for extra in extras:
+        extra_copy = copy.deepcopy(extra)
+        _standardize_view_tree(extra_copy)
+        merged.append(extra_copy)
     return merged
 
 
@@ -1070,8 +1414,24 @@ def _merge_view_node(template_node: Dict[str, Any], override_node: Optional[Dict
         _apply_textual_override(merged, clean_override, "label", ("label", "label_hint"))
         _apply_textual_override(merged, clean_override, "documentation", ("documentation", "documentation_hint"))
 
-    template_children = template_node.get("nodes", [])
-    override_children = clean_override.get("nodes") if clean_override else None
+        for key in ("type", "elementRef", "relationshipRef", "viewRef"):
+            if clean_override.get(key) is not None:
+                merged[key] = clean_override[key]
+
+        if "refs" in clean_override:
+            merged["refs"] = copy.deepcopy(clean_override.get("refs"))
+
+        if "bounds" in clean_override:
+            merged["bounds"] = copy.deepcopy(clean_override.get("bounds"))
+
+        if "style" in clean_override:
+            merged["style"] = copy.deepcopy(clean_override.get("style"))
+
+        if "child_order" in clean_override:
+            merged["child_order"] = list(clean_override.get("child_order") or [])
+
+    template_children = _node_children(template_node)
+    override_children = _node_children(clean_override) if clean_override else None
     merged_children = _merge_view_nodes(template_children, override_children)
     if merged_children:
         merged["nodes"] = merged_children
@@ -1089,15 +1449,512 @@ def _merge_view_node(template_node: Dict[str, Any], override_node: Optional[Dict
     return merged
 
 
+def _looks_like_view_diagram(candidate: Any) -> bool:
+    """Return ``True`` when the payload resembles a diagram definition."""
+
+    if not isinstance(candidate, dict):
+        return False
+
+    if candidate.get("type") == "Diagram":
+        return True
+
+    for key in ("nodes", "connections", "children"):
+        value = candidate.get(key)
+        if isinstance(value, list) and value:
+            return True
+
+    return False
+
+
+def _deduplicate_views(views: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Remove visão duplicadas preservando a ordem original."""
+
+    unique: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for view in views:
+        if not isinstance(view, dict):
+            continue
+
+        key_parts: List[str] = []
+        identifier = view.get("id") or view.get("identifier")
+        if identifier:
+            key_parts.append(f"id:{identifier}")
+        name = _normalize_text(view.get("name"))
+        if name:
+            key_parts.append(f"name:{name.lower()}")
+
+        dedupe_key = "|".join(key_parts)
+        if dedupe_key and dedupe_key in seen:
+            continue
+        if dedupe_key:
+            seen.add(dedupe_key)
+        unique.append(view)
+
+    return unique
+
+
 def _normalize_view_diagrams(views_payload: Any) -> List[Dict[str, Any]]:
+    """Normalize assorted view payload formats into a list of diagrams."""
+
     if views_payload is None:
         return []
+
+    diagrams: List[Dict[str, Any]] = []
+
+    def _add_candidate(candidate: Any) -> None:
+        if not _looks_like_view_diagram(candidate):
+            return
+        prepared = copy.deepcopy(candidate)
+        identifier = prepared.get("identifier")
+        if identifier and not prepared.get("id"):
+            prepared["id"] = identifier
+        diagrams.append(prepared)
+
     if isinstance(views_payload, dict):
-        diagrams = views_payload.get("diagrams")
-        return diagrams if isinstance(diagrams, list) else []
-    if isinstance(views_payload, list):
-        return views_payload
-    return []
+        explicit = views_payload.get("diagrams")
+        if isinstance(explicit, list):
+            for entry in explicit:
+                _add_candidate(entry)
+        elif isinstance(explicit, dict):
+            _add_candidate(explicit)
+
+        for key, value in views_payload.items():
+            if key in {"diagrams", "viewpoints"}:
+                continue
+            if isinstance(value, dict):
+                _add_candidate(value)
+            elif isinstance(value, list):
+                for item in value:
+                    _add_candidate(item)
+
+        _add_candidate(views_payload)
+    elif isinstance(views_payload, list):
+        for entry in views_payload:
+            _add_candidate(entry)
+    else:
+        _add_candidate(views_payload)
+
+    return _deduplicate_views(diagrams)
+
+
+def _merge_selector_sets(*selector_sets: Optional[Dict[str, Set[str]]]) -> Dict[str, Set[str]]:
+    merged: Dict[str, Set[str]] = {"ids": set(), "names": set()}
+    for selectors in selector_sets:
+        if not selectors:
+            continue
+        for bucket in ("ids", "names"):
+            values = selectors.get(bucket)
+            if not values:
+                continue
+            merged[bucket].update(value for value in values if value)
+    return merged
+
+
+def _selectors_from_metadata(
+    view_identifier: Optional[str],
+    view_name: Optional[str],
+    view_metadata: Optional[Dict[str, Any]],
+) -> Dict[str, Set[str]]:
+    payload: Dict[str, Any] = {}
+    if view_identifier:
+        payload["view_identifier"] = view_identifier
+    if view_name:
+        payload["view_name"] = view_name
+    if view_metadata:
+        payload["view_metadata"] = view_metadata
+    return _extract_view_selectors(payload)
+
+
+def _extract_view_selectors(payload: Dict[str, Any]) -> Dict[str, set[str]]:
+    """Coleta identificadores ou nomes de visão informados pelo agente."""
+
+    selectors: Dict[str, set[str]] = {"ids": set(), "names": set()}
+
+    def _register(value: Any, bucket: str) -> None:
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                _register(item, bucket)
+            return
+        text_candidate: Optional[str]
+        if isinstance(value, (int, float)):
+            text_candidate = str(value)
+        elif isinstance(value, str):
+            text_candidate = value
+        else:
+            text_candidate = _normalize_text(value)
+        if not text_candidate:
+            return
+        text = text_candidate.strip()
+        if not text:
+            return
+        if bucket == "names":
+            normalized = _normalize_text(text) or text
+            selectors[bucket].add(normalized.lower())
+            fingerprint = _fingerprint_text(normalized)
+            if fingerprint:
+                selectors[bucket].add(fingerprint)
+        else:
+            selectors[bucket].add(text)
+
+    id_keys = (
+        "view_identifier",
+        "view_id",
+        "viewIdentifier",
+        "viewId",
+        "selected_view_identifier",
+        "selected_view_id",
+    )
+    name_keys = (
+        "view_name",
+        "viewName",
+        "view",
+        "selected_view",
+        "selected_view_name",
+        "View-Name",
+    )
+
+    for key in id_keys:
+        _register(payload.get(key), "ids")
+    for key in name_keys:
+        _register(payload.get(key), "names")
+
+    view_metadata_keys = (
+        "view_metadata",
+        "viewMeta",
+        "view_info",
+        "viewInfo",
+        "selected_view_metadata",
+    )
+    for meta_key in view_metadata_keys:
+        meta = payload.get(meta_key)
+        if isinstance(meta, dict):
+            for key in id_keys:
+                _register(meta.get(key), "ids")
+            for key in name_keys:
+                _register(meta.get(key), "names")
+            _register(meta.get("identifier"), "ids")
+            _register(meta.get("id"), "ids")
+            _register(meta.get("name"), "names")
+
+    views_payload = payload.get("views")
+    if isinstance(views_payload, dict):
+        for key in ("selected", "selected_view", "selectedView"):
+            value = views_payload.get(key)
+            if isinstance(value, dict):
+                _register(value.get("identifier"), "ids")
+                _register(value.get("id"), "ids")
+                _register(value.get("name"), "names")
+            else:
+                _register(value, "names")
+
+    return selectors
+
+
+def _selector_cache_keys(selectors: Dict[str, Set[str]]) -> List[str]:
+    keys: List[str] = []
+    for identifier in sorted(selectors.get("ids", set())):
+        if identifier:
+            keys.append(f"id::{identifier}")
+    for name in sorted(selectors.get("names", set())):
+        if name:
+            keys.append(f"name::{name}")
+    keys.append("latest")
+    return keys
+
+
+_REFERENCE_TOKEN_PATTERN = re.compile(
+    r"(?P<key>preview[_-]?id|datamodel[_-]?ref|datamodel[_-]?id|ref|reference|id)\s*[:=]\s*(?P<value>[A-Za-z0-9_-]{6,})",
+    re.IGNORECASE,
+)
+
+
+def _extract_reference_tokens(raw_reference: Optional[str]) -> List[str]:
+    if not raw_reference:
+        return []
+
+    tokens: List[str] = []
+    for match in _REFERENCE_TOKEN_PATTERN.finditer(raw_reference):
+        candidate = match.group("value")
+        if candidate:
+            tokens.append(candidate.strip())
+
+    if tokens:
+        return tokens
+
+    for chunk in re.split(r"[\s,;]+", raw_reference):
+        cleaned = chunk.strip().strip("'\"")
+        if len(cleaned) >= 6 and any(ch.isalpha() for ch in cleaned):
+            tokens.append(cleaned)
+
+    return tokens
+
+
+def _selector_snapshot_to_sets(snapshot: Any) -> Dict[str, Set[str]]:
+    result: Dict[str, Set[str]] = {"ids": set(), "names": set()}
+    if not isinstance(snapshot, dict):
+        return result
+
+    def _register(bucket: str, value: Any) -> None:
+        if value is None:
+            return
+        if isinstance(value, (list, tuple, set)):
+            for item in value:
+                _register(bucket, item)
+            return
+        text = str(value).strip()
+        if not text:
+            return
+        if bucket == "names":
+            normalized = _normalize_text(text) or text
+            result[bucket].add(normalized.lower())
+            fingerprint = _fingerprint_text(normalized)
+            if fingerprint:
+                result[bucket].add(fingerprint)
+        else:
+            result[bucket].add(text)
+
+    _register("ids", snapshot.get("ids"))
+    _register("names", snapshot.get("names"))
+
+    return result
+
+
+def _template_cache_identifier(metadata: Optional[Dict[str, Any]]) -> str:
+    if not metadata:
+        return "__template__:default"
+    path = metadata.get("path") if isinstance(metadata, dict) else None
+    if not path:
+        return "__template__:default"
+    try:
+        resolved = Path(path)
+        if not resolved.is_absolute():
+            resolved = (Path.cwd() / resolved).resolve()
+    except Exception:
+        return f"__template__:{path}"
+    return f"__template__:{resolved}".strip()
+
+
+def _normalize_datamodel_cache_key(template_key: str, key: str) -> str:
+    return f"{template_key}::{key.strip()}" if key else template_key
+
+
+def _cache_datamodel_snapshots(
+    session_state: Optional[MutableMapping[str, Any]],
+    template_metadata: Optional[Dict[str, Any]],
+    selectors: Dict[str, Set[str]],
+    payload: Dict[str, Any],
+    preview_id: Optional[str],
+) -> None:
+    template_key = _template_cache_identifier(template_metadata)
+    selector_keys = _selector_cache_keys(selectors)
+    if preview_id:
+        selector_keys.append(f"preview::{preview_id}")
+
+    normalized_keys = {
+        _normalize_datamodel_cache_key(template_key, key)
+        for key in selector_keys
+        if key
+    }
+
+    stored_selectors = {
+        "ids": sorted(selectors.get("ids", set())),
+        "names": sorted(selectors.get("names", set())),
+    }
+    snapshot: Dict[str, Any] = {
+        "payload": copy.deepcopy(payload),
+        "selectors": stored_selectors,
+    }
+    if template_metadata:
+        snapshot["template"] = copy.deepcopy(template_metadata)
+    if preview_id:
+        snapshot["preview_id"] = preview_id
+
+    for cache_key in normalized_keys:
+        if session_state is not None:
+            store_datamodel_snapshot(session_state, cache_key, snapshot)
+        _store_datamodel_snapshot_fallback(cache_key, snapshot)
+
+
+def _is_datamodel_payload(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    if isinstance(payload.get("elements"), list):
+        return True
+    if isinstance(payload.get("relations"), list):
+        return True
+    views = payload.get("views")
+    if isinstance(views, dict):
+        diagrams = views.get("diagrams")
+        if isinstance(diagrams, list) and diagrams:
+            return True
+    if isinstance(views, list) and views:
+        return True
+    return False
+
+
+def _unpack_datamodel_snapshot(
+    snapshot: Any,
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Set[str]], Optional[Dict[str, Any]]]:
+    selectors = {"ids": set(), "names": set()}
+    template_meta: Optional[Dict[str, Any]] = None
+
+    if isinstance(snapshot, dict):
+        payload_candidate = snapshot.get("payload") or snapshot.get("datamodel")
+        if payload_candidate is None and _is_datamodel_payload(snapshot):
+            payload_candidate = snapshot
+        elif payload_candidate is None and snapshot.get("model"):
+            payload_candidate = snapshot.get("model")
+        if _is_datamodel_payload(payload_candidate):
+            payload = copy.deepcopy(payload_candidate)
+        elif _is_datamodel_payload(snapshot):
+            payload = copy.deepcopy(snapshot)
+        else:
+            payload = None
+
+        selector_snapshot = snapshot.get("selectors")
+        selectors = _merge_selector_sets(selectors, _selector_snapshot_to_sets(selector_snapshot))
+
+        template_candidate = snapshot.get("template")
+        if isinstance(template_candidate, dict):
+            template_meta = copy.deepcopy(template_candidate)
+    elif _is_datamodel_payload(snapshot):
+        payload = copy.deepcopy(snapshot)
+    else:
+        payload = None
+
+    return payload, selectors, template_meta
+
+
+def _load_cached_datamodel_payload(
+    session_state: Optional[MutableMapping[str, Any]],
+    template_metadata: Optional[Dict[str, Any]],
+    selectors: Dict[str, Set[str]],
+    reference_payload: Optional[Dict[str, Any]],
+    raw_reference: Optional[str],
+) -> Tuple[Optional[Dict[str, Any]], Dict[str, Set[str]], Optional[Dict[str, Any]]]:
+    template_key = _template_cache_identifier(template_metadata)
+    candidate_keys: List[str] = []
+
+    if isinstance(reference_payload, dict):
+        hint_keys = (
+            "datamodel_ref",
+            "datamodelRef",
+            "ref",
+            "reference",
+            "preview_id",
+            "previewId",
+            "preview",
+            "id",
+        )
+        for hint in hint_keys:
+            value = reference_payload.get(hint)
+            if isinstance(value, str) and value.strip():
+                candidate_keys.append(value.strip())
+
+    if isinstance(raw_reference, str) and raw_reference.strip():
+        stripped = raw_reference.strip()
+        candidate_keys.append(stripped)
+        candidate_keys.extend(_extract_reference_tokens(stripped))
+
+    candidate_keys.extend(_selector_cache_keys(selectors))
+    augmented_candidates = list(candidate_keys)
+    for key in candidate_keys:
+        if key and not key.startswith("preview::"):
+            augmented_candidates.append(f"preview::{key}")
+    candidate_keys = augmented_candidates
+
+    tried: Set[str] = set()
+    extra_selectors = {"ids": set(), "names": set()}
+    template_hint: Optional[Dict[str, Any]] = None
+    for key in candidate_keys:
+        normalized_key = _normalize_datamodel_cache_key(template_key, key)
+        if normalized_key in tried:
+            continue
+        tried.add(normalized_key)
+        cached = get_cached_datamodel_snapshot(session_state, normalized_key)
+        if cached is None:
+            cached = _get_datamodel_snapshot_fallback(normalized_key)
+        if cached is not None:
+            payload_candidate, selectors_hint, template_candidate = _unpack_datamodel_snapshot(cached)
+            extra_selectors = _merge_selector_sets(extra_selectors, selectors_hint)
+            if template_hint is None and template_candidate:
+                template_hint = template_candidate
+            if payload_candidate is not None:
+                return payload_candidate, extra_selectors, template_hint
+
+    for key in candidate_keys:
+        if not key:
+            continue
+        preview = get_cached_preview(session_state, key) or _get_preview_fallback(key)
+        if isinstance(preview, dict):
+            payload_candidate = preview.get("datamodel") or preview.get("payload")
+            selectors_snapshot = preview.get("selectors")
+            extra_selectors = _merge_selector_sets(
+                extra_selectors,
+                _selector_snapshot_to_sets(selectors_snapshot),
+            )
+            template_candidate = preview.get("template")
+            if template_hint is None and isinstance(template_candidate, dict):
+                template_hint = copy.deepcopy(template_candidate)
+            if _is_datamodel_payload(payload_candidate):
+                return copy.deepcopy(payload_candidate), extra_selectors, template_hint
+
+    return None, extra_selectors, template_hint
+
+
+def _filter_views_by_selectors(
+    views: List[Dict[str, Any]], selectors: Dict[str, set[str]]
+) -> List[Dict[str, Any]]:
+    if not selectors.get("ids") and not selectors.get("names"):
+        return views
+
+    filtered: List[Dict[str, Any]] = []
+    target_ids = {str(value) for value in selectors.get("ids", set()) if value}
+    target_names = selectors.get("names", set())
+
+    for view in views:
+        if not isinstance(view, dict):
+            continue
+
+        matches = False
+        identifier = view.get("id") or view.get("identifier")
+        if identifier and str(identifier) in target_ids:
+            matches = True
+        else:
+            name = _normalize_text(view.get("name"))
+            fingerprint = _fingerprint_text(view.get("name"))
+            lowered = name.lower() if name else None
+            if (
+                lowered and lowered in target_names
+            ) or (
+                fingerprint and fingerprint in target_names
+            ):
+                matches = True
+
+        if matches:
+            filtered.append(view)
+
+    if not filtered and target_names:
+        for view in views:
+            if not isinstance(view, dict):
+                continue
+            name = _normalize_text(view.get("name"))
+            fingerprint = _fingerprint_text(view.get("name"))
+            lowered = name.lower() if name else None
+            if any(
+                candidate
+                and (
+                    (lowered and candidate in lowered)
+                    or (fingerprint and candidate in fingerprint)
+                )
+                for candidate in target_names
+            ):
+                filtered.append(view)
+        if filtered:
+            return filtered
+
+    return filtered
 
 
 def _merge_view_diagram(
@@ -1379,6 +2236,37 @@ def _build_relationship_lookup(
     return lookup
 
 
+def _node_children(node: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(node, dict):
+        return []
+
+    children = node.get("nodes")
+    if isinstance(children, list):
+        return children
+
+    legacy_children = node.get("children")
+    if isinstance(legacy_children, list):
+        node["nodes"] = legacy_children
+        node.pop("children", None)
+        return legacy_children
+
+    return []
+
+
+def _standardize_view_tree(
+    tree: Dict[str, Any], *, is_root: bool = False, blueprint: Optional[Dict[str, Any]] = None
+) -> None:
+    if not isinstance(tree, dict):
+        return
+
+    if is_root:
+        _resolve_view_role(tree, blueprint)
+
+    for child in list(_node_children(tree)):
+        if isinstance(child, dict):
+            _standardize_view_tree(child)
+
+
 def _flatten_view_nodes(nodes: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     flattened: Dict[str, Dict[str, Any]] = {}
 
@@ -1389,7 +2277,7 @@ def _flatten_view_nodes(nodes: Iterable[Dict[str, Any]]) -> Dict[str, Dict[str, 
             key = _view_node_key(node)
             if key:
                 flattened[key] = node
-            child_nodes = node.get("nodes")
+            child_nodes = _node_children(node)
             if child_nodes:
                 _walk(child_nodes)
 
@@ -1408,6 +2296,71 @@ def _flatten_view_connections(
         if identifier:
             flattened[str(identifier)] = connection
     return flattened
+
+
+def _prune_view_to_datamodel(
+    view_payload: Dict[str, Any],
+    datamodel_node_map: Dict[str, Dict[str, Any]] | None,
+    datamodel_connection_map: Dict[str, Dict[str, Any]] | None,
+) -> None:
+    """Remove nós e conexões que existem apenas na visão do template."""
+
+    datamodel_node_map = datamodel_node_map or {}
+    datamodel_connection_map = datamodel_connection_map or {}
+
+    relevant_node_keys = {
+        str(key)
+        for key in datamodel_node_map.keys()
+        if key is not None and str(key)
+    }
+
+    if relevant_node_keys:
+
+        def _prune_children(nodes: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            kept: List[Dict[str, Any]] = []
+            for child in nodes or []:
+                if not isinstance(child, dict):
+                    continue
+                if _prune_node(child):
+                    kept.append(child)
+            return kept
+
+        def _prune_node(node: Dict[str, Any]) -> bool:
+            key = _view_node_key(node)
+            child_nodes = _node_children(node)
+            kept_children = _prune_children(child_nodes)
+            if kept_children:
+                node["nodes"] = kept_children
+            else:
+                node.pop("nodes", None)
+
+            keep_self = key is not None and str(key) in relevant_node_keys
+            return keep_self or bool(kept_children)
+
+        pruned_root_children = _prune_children(view_payload.get("nodes") or [])
+        if pruned_root_children:
+            view_payload["nodes"] = pruned_root_children
+        else:
+            view_payload.pop("nodes", None)
+
+    if datamodel_connection_map:
+        relevant_connection_keys = {
+            str(key)
+            for key in datamodel_connection_map.keys()
+            if key is not None and str(key)
+        }
+        if relevant_connection_keys:
+            filtered_connections: List[Dict[str, Any]] = []
+            for connection in view_payload.get("connections") or []:
+                if not isinstance(connection, dict):
+                    continue
+                identifier = connection.get("id") or connection.get("identifier")
+                if identifier and str(identifier) in relevant_connection_keys:
+                    filtered_connections.append(connection)
+            if filtered_connections:
+                view_payload["connections"] = filtered_connections
+            else:
+                view_payload.pop("connections", None)
 
 
 def _merge_node_documentation(
@@ -1457,6 +2410,8 @@ def _gather_node_metadata(
     title = next((candidate for candidate in label_candidates if candidate), "Elemento")
 
     node_type = node.get("type") or (element_entry.get("type") if element_entry else None)
+    if not node_type and blueprint_node:
+        node_type = blueprint_node.get("type")
 
     node_doc, template_doc = _merge_node_documentation(node, blueprint_node)
     if not node_doc and element_entry:
@@ -1575,6 +2530,124 @@ def _gather_connection_metadata(
     return metadata
 
 
+def _detect_view_kind(
+    view: Dict[str, Any], view_blueprint: Optional[Dict[str, Any]]
+) -> Optional[str]:
+    candidates = [
+        _normalize_text(view.get("view_kind")),
+        _normalize_text(view.get("name")),
+    ]
+    if view_blueprint:
+        candidates.extend(
+            [
+                _normalize_text(view_blueprint.get("view_kind")),
+                _normalize_text(view_blueprint.get("name")),
+            ]
+        )
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        normalized = candidate.lower()
+        if "context" in normalized or "contexto" in normalized:
+            return "context"
+        if "container" in normalized:
+            return "container"
+        if "técn" in normalized or "tecn" in normalized:
+            return "technical"
+    return None
+
+
+def _c4_header_for_kind(kind: str) -> str:
+    if kind == "context":
+        return "C4Context"
+    if kind == "container":
+        return "C4Container"
+    if kind == "technical":
+        return "C4Component"
+    return "flowchart TD"
+
+
+def _c4_boundary_macro(kind: str) -> str:
+    if kind == "context":
+        return "System_Boundary"
+    if kind == "container":
+        return "Container_Boundary"
+    if kind == "technical":
+        return "Component_Boundary"
+    return "Boundary"
+
+
+def _c4_element_macro(kind: str, is_external: bool) -> str:
+    suffix = "_Ext" if is_external else ""
+    if kind == "context":
+        return f"System{suffix}"
+    if kind == "container":
+        return f"Container{suffix}"
+    if kind == "technical":
+        return f"Component{suffix}"
+    return f"Container{suffix}" if suffix else "Container"
+
+
+def _c4_element_technology(element_type: Optional[str]) -> Optional[str]:
+    if not element_type:
+        return None
+    mapping = {
+        "ApplicationComponent": "Aplicação",
+        "ApplicationProcess": "Processo",
+        "ApplicationEvent": "Evento",
+        "DataObject": "Dados",
+        "Artifact": "Artefato",
+        "Deliverable": "Entregável",
+        "WorkPackage": "Pacote",
+    }
+    return mapping.get(element_type, element_type)
+
+
+def _c4_description(metadata: Dict[str, Any]) -> Optional[str]:
+    documentation = metadata.get("documentation") or metadata.get(
+        "template_documentation"
+    )
+    if documentation:
+        return _truncate_text(str(documentation), 200)
+    if metadata.get("title") and metadata.get("type"):
+        return f"{metadata['title']} ({metadata['type']})"
+    return None
+
+
+def _c4_format_arguments(alias: str, *args: Optional[str]) -> str:
+    formatted: List[str] = [alias]
+    for arg in args:
+        if arg is None:
+            continue
+        formatted.append(f'"{_mermaid_escape(arg)}"')
+    return ", ".join(formatted)
+
+
+def _c4_format_relation_arguments(
+    source_alias: str,
+    target_alias: str,
+    label: Optional[str],
+    technology: Optional[str],
+    description: Optional[str],
+) -> str:
+    parts: List[str] = [source_alias, target_alias]
+    if label is not None:
+        parts.append(f'"{_mermaid_escape(label)}"')
+    if technology is not None:
+        parts.append(f'"{_mermaid_escape(technology)}"')
+    if description is not None:
+        parts.append(f'"{_mermaid_escape(description)}"')
+    return ", ".join(parts)
+
+
+def _should_mark_external(label: Optional[str]) -> bool:
+    if not label:
+        return False
+    lowered = label.lower()
+    return any(token in lowered for token in ("extern", "parceir", "cliente"))
+
+
 def _build_view_mermaid(
     view: Dict[str, Any],
     view_blueprint: Optional[Dict[str, Any]],
@@ -1584,6 +2657,9 @@ def _build_view_mermaid(
     blueprint_connection_map: Dict[str, Dict[str, Any]],
     datamodel_node_map: Dict[str, Dict[str, Any]] | None,
     datamodel_connection_map: Dict[str, Dict[str, Any]] | None,
+    *,
+    prefer_c4: bool = True,
+    allow_styles: bool = True,
 ) -> Dict[str, Any]:
     used_aliases: set[str] = set()
     alias_map: Dict[str, str] = {}
@@ -1593,11 +2669,6 @@ def _build_view_mermaid(
     anonymous_counter = itertools.count(1)
 
     view_id = view.get("id") or (view_blueprint.get("id") if view_blueprint else None)
-    view_alias = _unique_alias(
-        _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
-        used_aliases,
-    )
-
     view_name = _normalize_text(view.get("name")) or (
         _normalize_text(view_blueprint.get("name")) if view_blueprint else None
     )
@@ -1621,11 +2692,58 @@ def _build_view_mermaid(
         else None
     )
 
-    lines: List[str] = ["flowchart TD"]
-    lines.append(f"{view_alias}[\"{_mermaid_escape(view_name)}\"]")
+    view_kind = _detect_view_kind(view, view_blueprint) if prefer_c4 else None
+    view_role = _resolve_view_role(view, view_blueprint)
+    use_layout = bool(datamodel_node_map)
+    use_c4 = bool(view_kind) and not use_layout
+    view_alias = _unique_alias(
+        _sanitize_mermaid_identifier(str(view_id) if view_id else "view"),
+        used_aliases,
+    )
+
+    if use_c4:
+        header = _c4_header_for_kind(view_kind or "")
+        lines: List[str] = [header]
+        lines.append(f"    title {_mermaid_escape(view_name)}")
+    else:
+        direction = (
+            view.get("direction")
+            or (view_blueprint or {}).get("direction")
+            or "TB"
+        )
+        normalized_direction = str(direction).upper()
+        if normalized_direction not in {"TB", "TD", "LR", "RL"}:
+            normalized_direction = "TB"
+        lines = [f"flowchart {normalized_direction}"]
+        lines.append(f"title {_mermaid_escape(view_name)}")
 
     datamodel_node_map = datamodel_node_map or {}
     datamodel_connection_map = datamodel_connection_map or {}
+
+    style_statements: List[str] = []
+    style_seen: Dict[str, str] = {}
+
+    def _register_style(alias: str, node: Dict[str, Any]) -> None:
+        if not allow_styles:
+            return
+        directives = _extract_node_style(node)
+        if not directives:
+            return
+
+        style_parts = []
+        for key in ("fill", "stroke", "color"):
+            value = directives.get(key)
+            if value:
+                style_parts.append(f"{key}:{value}")
+
+        if not style_parts:
+            return
+
+        statement = f"style {alias} {', '.join(style_parts)}"
+        if style_seen.get(alias) == statement:
+            return
+        style_seen[alias] = statement
+        style_statements.append(statement)
 
     def _ensure_alias_for_key(key: Optional[str]) -> Optional[str]:
         if not key:
@@ -1647,12 +2765,17 @@ def _build_view_mermaid(
         if node_doc and node_doc != template_doc:
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
-        if alias not in defined_nodes:
+        if not use_c4 and not use_layout and alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
         return alias
 
-    def _process_node(node: Dict[str, Any], parent_alias: Optional[str]) -> None:
+    def _process_node(
+        node: Dict[str, Any],
+        parent_alias: Optional[str],
+        indent: int,
+        context: Dict[str, Any],
+    ) -> bool:
         key = _view_node_key(node)
         if not key:
             key = f"anon_{next(anonymous_counter)}"
@@ -1667,7 +2790,7 @@ def _build_view_mermaid(
         metadata["source"] = (
             "datamodel" if key in datamodel_node_map else "template"
         )
-        metadata["child_count"] = len(node.get("nodes") or [])
+        metadata["child_count"] = len(_node_children(node))
         template_doc = metadata.get("template_documentation")
         if template_doc:
             metadata["template_comments"] = _format_comment_lines(template_doc)
@@ -1676,6 +2799,113 @@ def _build_view_mermaid(
             metadata["comments"] = _format_comment_lines(node_doc)
         node_details.append(metadata)
 
+        if use_layout and not use_c4:
+            indent_str = "    " * indent
+            node_type = (metadata.get("type") or "").lower()
+            label_text = (
+                metadata.get("title")
+                or metadata.get("template_label")
+                or str(alias)
+            )
+            escaped_label = _mermaid_escape(label_text)
+
+            if node_type in {"container", "boundary", "layer", "group", "zone", "frame"}:
+                lines.append(f"{indent_str}subgraph {alias}[\"{escaped_label}\"]")
+                _register_style(alias, node)
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        _process_node(child, alias, indent + 1, dict(context))
+                lines.append(f"{indent_str}end")
+                return True
+
+            if node_type == "label":
+                lines.append(f"{indent_str}{alias}[\"{escaped_label}\"]")
+                _register_style(alias, node)
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        _process_node(child, alias, indent + 1, dict(context))
+                return True
+
+            lines.append(f"{indent_str}{alias}[\"{escaped_label}\"]")
+            _register_style(alias, node)
+            for child in _node_children(node):
+                if isinstance(child, dict):
+                    _process_node(child, alias, indent + 1, dict(context))
+            return True
+
+        if use_c4:
+            indent_str = "    " * indent
+            node_type = (metadata.get("type") or "").lower()
+            title = metadata.get("title") or alias
+            if node_type == "label":
+                comment = metadata.get("title") or metadata.get("template_label")
+                if comment:
+                    lines.append(
+                        f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(comment)}"
+                    )
+                if metadata.get("documentation"):
+                    for comment_line in _format_comment_lines(
+                        metadata.get("documentation") or ""
+                    ):
+                        lines.append(
+                            f"{indent_str}{_MERMAID_COMMENT_PREFIX} {comment_line}"
+                        )
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        _process_node(child, alias, indent, dict(context))
+                return True
+
+            if node_type == "container":
+                boundary_macro = _c4_boundary_macro(view_kind or "")
+                boundary_label = metadata.get("title") or metadata.get("template_label")
+                boundary_label = boundary_label or str(alias)
+                lines.append(
+                    f"{indent_str}{boundary_macro}({alias}, \"{_mermaid_escape(boundary_label)}\") {{"
+                )
+                next_context = dict(context)
+                next_context["external"] = context.get("external", False) or _should_mark_external(
+                    boundary_label
+                )
+                produced_child = False
+                for child in _node_children(node):
+                    if isinstance(child, dict):
+                        produced_child = (
+                            _process_node(child, alias, indent + 1, next_context)
+                            or produced_child
+                        )
+                if not produced_child:
+                    lines.pop()
+                    lines.append(
+                        f"{indent_str}{_MERMAID_COMMENT_PREFIX} {_mermaid_escape(boundary_label)}"
+                    )
+                    return False
+
+                lines.append(f"{indent_str}}}")
+                return True
+
+            label = metadata.get("title") or metadata.get("template_label") or str(alias)
+            is_external = context.get("external", False) or _should_mark_external(label)
+            macro = _c4_element_macro(view_kind or "", is_external)
+            technology = _c4_element_technology(
+                metadata.get("element_type") or metadata.get("type")
+            )
+            description = _c4_description(metadata)
+            if (view_kind or "") == "context":
+                args = _c4_format_arguments(alias, label, description or "")
+            else:
+                args = _c4_format_arguments(
+                    alias,
+                    label,
+                    technology or "",
+                    description or "",
+                )
+            lines.append(f"{indent_str}{macro}({args})")
+
+            for child in _node_children(node):
+                if isinstance(child, dict):
+                    _process_node(child, alias, indent + 1, dict(context))
+            return True
+
         if alias not in defined_nodes:
             lines.append(f"{alias}[\"{metadata['label']}\"]")
             defined_nodes.add(alias)
@@ -1683,14 +2913,22 @@ def _build_view_mermaid(
         if parent_alias:
             lines.append(f"{parent_alias} --> {alias}")
 
-        for child in node.get("nodes") or []:
+        for child in _node_children(node):
             if isinstance(child, dict):
-                _process_node(child, alias)
+                _process_node(child, alias, indent + 1, dict(context))
 
-    for node in view.get("nodes") or []:
+        return True
+
+    initial_context: Dict[str, Any] = {"external": False}
+
+    root_parent_alias = None if use_layout else (None if use_c4 else view_alias)
+
+    for node in _node_children(view):
         if isinstance(node, dict):
-            _process_node(node, view_alias)
+            _process_node(node, root_parent_alias, 1, dict(initial_context))
 
+    link_style_statements: List[str] = []
+    edge_index = 0
     for connection in view.get("connections") or []:
         if not isinstance(connection, dict):
             continue
@@ -1724,14 +2962,54 @@ def _build_view_mermaid(
         if not source_alias or not target_alias:
             continue
 
-        label = metadata.get("label")
-        if label:
-            lines.append(
-                f"{source_alias} -->|{_mermaid_escape(label)}| {target_alias}"
+        if use_c4:
+            relation_label = (
+                metadata.get("label")
+                or metadata.get("type")
+                or "Relacionamento"
             )
+            relation_doc_raw = metadata.get("documentation") or metadata.get(
+                "template_documentation"
+            )
+            relation_doc = (
+                _truncate_text(relation_doc_raw, 160)
+                if relation_doc_raw
+                else None
+            )
+            relation_type = metadata.get("type") or None
+            args = _c4_format_relation_arguments(
+                source_alias,
+                target_alias,
+                relation_label,
+                relation_type,
+                relation_doc,
+            )
+            lines.append(f"    Rel({args})")
         else:
-            lines.append(f"{source_alias} --> {target_alias}")
+            label = metadata.get("label")
+            if label:
+                lines.append(
+                    f"{source_alias} -->|{_mermaid_escape(label)}| {target_alias}"
+                )
+            else:
+                lines.append(f"{source_alias} --> {target_alias}")
+            style_directives = _extract_connection_style(connection)
+            if style_directives and allow_styles:
+                style_parts = []
+                for key_name in ("stroke", "color"):
+                    value = style_directives.get(key_name)
+                    if value:
+                        style_parts.append(f"{key_name}:{value}")
+                if style_parts:
+                    link_style_statements.append(
+                        f"linkStyle {edge_index} {', '.join(style_parts)}"
+                    )
+            edge_index += 1
 
+    if style_statements and allow_styles:
+        lines.extend(style_statements)
+    if link_style_statements and allow_styles:
+        lines.extend(link_style_statements)
 
     mermaid_source = _finalize_mermaid_lines(lines)
     _validate_mermaid_syntax(mermaid_source)
@@ -1748,6 +3026,7 @@ def _build_view_mermaid(
         "template_documentation": template_view_documentation,
         "comments": view_comments,
         "template_comments": template_view_comments,
+        "role": view_role,
         "mermaid": mermaid_source,
         "image": image_payload,
         "nodes": node_details,
@@ -1912,14 +3191,20 @@ def finalize_datamodel(
 def generate_mermaid_preview(
     datamodel: types.Content | str | bytes,
     template_path: str | None = None,
+    *,
+    view_identifier: str | None = None,
+    view_name: str | None = None,
+    view_metadata: Optional[Dict[str, Any]] = None,
     session_state: Optional[MutableMapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     raw_text = _content_to_text(datamodel)
-    try:
-        payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        logger.error("Datamodel inválido para pré-visualização Mermaid", exc_info=exc)
-        raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
+    stripped_payload = raw_text.strip()
+    parsed_payload: Optional[Dict[str, Any]] = None
+    if stripped_payload:
+        try:
+            parsed_payload = json.loads(stripped_payload)
+        except json.JSONDecodeError:
+            parsed_payload = None
 
     template: Dict[str, Any] = {}
     template_metadata: Dict[str, Any] = {}
@@ -1933,48 +3218,148 @@ def generate_mermaid_preview(
         store_blueprint(session_state, template_file, template)
         template_metadata["path"] = str(template_file.resolve())
 
+    selectors = _selectors_from_metadata(view_identifier, view_name, view_metadata)
+    payload: Optional[Dict[str, Any]] = None
+    cached_selector_hints: Dict[str, Set[str]] = {"ids": set(), "names": set()}
+    cached_template_metadata: Optional[Dict[str, Any]] = None
+
+    if _is_datamodel_payload(parsed_payload):
+        payload = parsed_payload
+        selectors = _merge_selector_sets(selectors, _extract_view_selectors(payload))
+    else:
+        reference_payload = parsed_payload if isinstance(parsed_payload, dict) else None
+        if reference_payload:
+            selectors = _merge_selector_sets(
+                selectors,
+                _extract_view_selectors(reference_payload),
+            )
+        payload, cached_selector_hints, cached_template_metadata = _load_cached_datamodel_payload(
+            session_state,
+            template_metadata,
+            selectors,
+            reference_payload,
+            stripped_payload,
+        )
+        selectors = _merge_selector_sets(selectors, cached_selector_hints)
+        if payload is None:
+            logger.error("Datamodel inválido para pré-visualização Mermaid")
+            raise ValueError("O conteúdo enviado não é um JSON válido.")
+        selectors = _merge_selector_sets(selectors, _extract_view_selectors(payload))
+
+    assert payload is not None
+
+    if cached_template_metadata and not template_metadata:
+        template_metadata = copy.deepcopy(cached_template_metadata)
+
+    if not template and template_metadata.get("path"):
+        try:
+            cached_template_path = _resolve_package_path(Path(template_metadata["path"]))
+        except Exception:
+            cached_template_path = None
+        if cached_template_path and cached_template_path.exists():
+            template = get_cached_blueprint(session_state, cached_template_path) or _parse_template_blueprint(
+                cached_template_path
+            )
+            store_blueprint(session_state, cached_template_path, template)
+
     element_lookup = _build_element_lookup(template, payload)
     relation_lookup = _build_relationship_lookup(template, payload)
 
     datamodel_views = _normalize_view_diagrams(payload.get("views"))
-    blueprint_views = _normalize_view_diagrams(template.get("views"))
-
-    datamodel_view_map: Dict[str, Dict[str, Any]] = {}
-    datamodel_node_maps: Dict[str, Dict[str, Any]] = {}
-    datamodel_connection_maps: Dict[str, Dict[str, Any]] = {}
+    if not datamodel_views:
+        for extra_key in (
+            "view",
+            "diagram",
+            "view_diagram",
+            "diagram_view",
+            "selected_view_data",
+            "selectedViewData",
+        ):
+            extra_payload = payload.get(extra_key)
+            if extra_payload:
+                datamodel_views.extend(_normalize_view_diagrams(extra_payload))
+        datamodel_views = _deduplicate_views(datamodel_views)
     for view in datamodel_views:
-        if not isinstance(view, dict):
-            continue
-        view_id = view.get("id")
-        if view_id:
-            datamodel_view_map[str(view_id)] = view
-            datamodel_node_maps[str(view_id)] = _flatten_view_nodes(view.get("nodes") or [])
-            datamodel_connection_maps[str(view_id)] = _flatten_view_connections(
-                view.get("connections") or []
+        _standardize_view_tree(view, is_root=True)
+    blueprint_views = _normalize_view_diagrams(template.get("views"))
+    for view in blueprint_views:
+        _standardize_view_tree(view, is_root=True)
+
+    role_hint = _view_role_from_metadata(view_name, view_identifier, view_metadata)
+    if role_hint:
+        role_filtered_datamodel = [
+            view for view in datamodel_views if _view_role_matches(view, role_hint)
+        ]
+        role_filtered_blueprint = [
+            view for view in blueprint_views if _view_role_matches(view, role_hint)
+        ]
+        if role_filtered_datamodel or not datamodel_views:
+            datamodel_views = role_filtered_datamodel
+        if role_filtered_blueprint:
+            blueprint_views = role_filtered_blueprint
+
+    filtered_blueprint = _filter_views_by_selectors(blueprint_views, selectors)
+    filtered_datamodel = _filter_views_by_selectors(datamodel_views, selectors)
+    if selectors.get("ids") or selectors.get("names"):
+        if filtered_blueprint or filtered_datamodel:
+            blueprint_views = filtered_blueprint or blueprint_views
+            datamodel_views = filtered_datamodel
+        else:
+            raise ValueError(
+                "A visão selecionada não foi encontrada no datamodel nem no template informado."
             )
 
-    results: List[Dict[str, Any]] = []
-    processed_ids: set[str] = set()
+    def _normalized_view_name(value: Any) -> Optional[str]:
+        normalized = _normalize_text(value)
+        return normalized.lower() if normalized else None
 
-    for view in blueprint_views:
-        if not isinstance(view, dict):
+    blueprint_id_map: Dict[str, Dict[str, Any]] = {}
+    blueprint_name_map: Dict[str, Dict[str, Any]] = {}
+    for candidate in blueprint_views:
+        if not isinstance(candidate, dict):
             continue
-        view_id = view.get("id")
-        view_key = str(view_id) if view_id else f"template_{len(results) + 1}"
-        override_view = datamodel_view_map.get(str(view_id)) if view_id else None
-        merged_view = (
-            _merge_view_diagram(view, override_view) if override_view else copy.deepcopy(view)
+        candidate_id = candidate.get("id") or candidate.get("identifier")
+        if candidate_id is not None:
+            blueprint_id_map[str(candidate_id)] = candidate
+        name_key = _normalized_view_name(candidate.get("name"))
+        if name_key:
+            blueprint_name_map[name_key] = candidate
+
+    def _match_template_view(view_payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        identifier = view_payload.get("id") or view_payload.get("identifier")
+        if identifier is not None:
+            matched = blueprint_id_map.get(str(identifier))
+            if matched:
+                return matched
+        name_key = _normalized_view_name(view_payload.get("name"))
+        if name_key:
+            return blueprint_name_map.get(name_key)
+        return None
+
+    results: List[Dict[str, Any]] = []
+
+    def _flatten_nodes_and_connections(view_payload: Dict[str, Any]) -> Tuple[
+        Dict[str, Dict[str, Any]],
+        Dict[str, Dict[str, Any]],
+    ]:
+        return (
+            _flatten_view_nodes(view_payload.get("nodes") or []),
+            _flatten_view_connections(view_payload.get("connections") or []),
         )
-        blueprint_nodes = _flatten_view_nodes(view.get("nodes") or [])
-        blueprint_connections = _flatten_view_connections(view.get("connections") or [])
-        datamodel_nodes = datamodel_node_maps.get(str(view_id), {}) if view_id else {}
-        datamodel_connections = (
-            datamodel_connection_maps.get(str(view_id), {}) if view_id else {}
-        )
-        results.append(
-            _build_view_mermaid(
-                merged_view,
-                view,
+
+    def _render_view_with_fallback(
+        view_payload: Dict[str, Any],
+        template_view: Optional[Dict[str, Any]],
+        blueprint_nodes: Dict[str, Dict[str, Any]],
+        blueprint_connections: Dict[str, Dict[str, Any]],
+        datamodel_nodes: Dict[str, Dict[str, Any]] | None,
+        datamodel_connections: Dict[str, Dict[str, Any]] | None,
+    ) -> Dict[str, Any]:
+        _resolve_view_role(view_payload, template_view)
+        try:
+            return _build_view_mermaid(
+                view_payload,
+                template_view,
                 element_lookup,
                 relation_lookup,
                 blueprint_nodes,
@@ -1982,53 +3367,213 @@ def generate_mermaid_preview(
                 datamodel_nodes,
                 datamodel_connections,
             )
-        )
-        if view_id:
-            processed_ids.add(str(view_id))
-        processed_ids.add(view_key)
-
-    for view in datamodel_views:
-        if not isinstance(view, dict):
-            continue
-        view_id = view.get("id")
-        if view_id and str(view_id) in processed_ids:
-            continue
-        datamodel_nodes = _flatten_view_nodes(view.get("nodes") or [])
-        datamodel_connections = _flatten_view_connections(view.get("connections") or [])
-        results.append(
-            _build_view_mermaid(
-                view,
-                None,
-                element_lookup,
-                relation_lookup,
-                {},
-                {},
-                datamodel_nodes,
-                datamodel_connections,
+        except ValueError as exc:
+            view_name = (
+                view_payload.get("name")
+                or (template_view or {}).get("name")
+                or view_payload.get("id")
+                or "visão"
             )
-        )
-        if view_id:
-            processed_ids.add(str(view_id))
+            logger.warning(
+                "Falha ao validar Mermaid em estilo C4 para a visão '%s'. "
+                "Aplicando fallback para diagrama em fluxo padrão.",
+                view_name,
+                exc_info=exc,
+            )
+            try:
+                return _build_view_mermaid(
+                    view_payload,
+                    template_view,
+                    element_lookup,
+                    relation_lookup,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    datamodel_nodes,
+                    datamodel_connections,
+                    prefer_c4=False,
+                )
+            except ValueError as sanitized_exc:
+                logger.warning(
+                    "Falha ao validar Mermaid em fluxo padrão para a visão '%s'. "
+                    "Removendo estilos e tentando novamente.",
+                    view_name,
+                    exc_info=sanitized_exc,
+                )
+                return _build_view_mermaid(
+                    view_payload,
+                    template_view,
+                    element_lookup,
+                    relation_lookup,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    datamodel_nodes,
+                    datamodel_connections,
+                    prefer_c4=False,
+                    allow_styles=False,
+                )
+
+    if datamodel_views:
+        for view in datamodel_views:
+            if not isinstance(view, dict):
+                continue
+            datamodel_nodes, datamodel_connections = _flatten_nodes_and_connections(view)
+            template_view = _match_template_view(view)
+            if template_view:
+                merged_view = _merge_view_diagram(template_view, view)
+                _prune_view_to_datamodel(
+                    merged_view,
+                    datamodel_nodes,
+                    datamodel_connections,
+                )
+                if not merged_view.get("nodes") and view.get("nodes"):
+                    merged_view = copy.deepcopy(view)
+                blueprint_nodes, blueprint_connections = _flatten_nodes_and_connections(
+                    template_view
+                )
+            else:
+                merged_view = copy.deepcopy(view)
+                blueprint_nodes, blueprint_connections = {}, {}
+            results.append(
+                _render_view_with_fallback(
+                    merged_view,
+                    template_view,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    datamodel_nodes,
+                    datamodel_connections,
+                )
+            )
+    else:
+        for view in blueprint_views:
+            if not isinstance(view, dict):
+                continue
+            blueprint_nodes, blueprint_connections = _flatten_nodes_and_connections(view)
+            results.append(
+                _render_view_with_fallback(
+                    copy.deepcopy(view),
+                    view,
+                    blueprint_nodes,
+                    blueprint_connections,
+                    {},
+                    {},
+                )
+            )
 
     if not results:
         raise ValueError(
             "Não foi possível identificar visões no datamodel ou no template informado."
         )
 
-    response: Dict[str, Any] = {
+    stored_views = [copy.deepcopy(view) for view in results]
+
+    preview_id = uuid.uuid4().hex
+    stored_payload: Dict[str, Any] = {
+        "preview_id": preview_id,
         "model_identifier": payload.get("model_identifier"),
         "model_name": payload.get("model_name"),
         "model_documentation": payload.get("model_documentation"),
         "element_count": len(payload.get("elements") or []),
         "relationship_count": len(payload.get("relations") or []),
-        "view_count": len(results),
-        "views": results,
+        "view_count": len(stored_views),
+        "views": stored_views,
+    }
+    stored_payload["datamodel"] = copy.deepcopy(payload)
+    stored_payload["selectors"] = {
+        "ids": sorted(selectors.get("ids", set())),
+        "names": sorted(selectors.get("names", set())),
+    }
+    if template_metadata:
+        stored_payload["template"] = copy.deepcopy(template_metadata)
+
+    store_preview(session_state, preview_id, stored_payload)
+    _store_preview_fallback(preview_id, stored_payload)
+
+    _cache_datamodel_snapshots(
+        session_state,
+        template_metadata or stored_payload.get("template"),
+        selectors,
+        payload,
+        preview_id,
+    )
+
+    def _summarize_sources(
+        items: Optional[Iterable[Dict[str, Any]]]
+    ) -> Dict[str, int]:
+        summary = {"datamodel": 0, "template": 0}
+        if not items:
+            summary["total"] = 0
+            return summary
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            source = item.get("source")
+            if source == "datamodel":
+                summary["datamodel"] += 1
+            else:
+                summary["template"] += 1
+        summary["total"] = summary["datamodel"] + summary["template"]
+        return summary
+
+    response_views: List[Dict[str, Any]] = []
+    for index, view in enumerate(results):
+        nodes_summary = _summarize_sources(view.get("nodes"))
+        connections_summary = _summarize_sources(view.get("connections"))
+        response_views.append(
+            {
+                "id": view.get("id"),
+                "name": view.get("name"),
+                "sources": {
+                    "nodes": nodes_summary,
+                    "connections": connections_summary,
+                },
+                "index": index,
+                "role": view.get("role"),
+                "has_mermaid": bool(view.get("mermaid")),
+                "has_image": bool(view.get("image")),
+            }
+        )
+
+    response: Dict[str, Any] = {
+        "status": "ok",
+        "preview_id": preview_id,
+        "model_identifier": payload.get("model_identifier"),
+        "model_name": payload.get("model_name"),
+        "model_documentation": payload.get("model_documentation"),
+        "element_count": len(payload.get("elements") or []),
+        "relationship_count": len(payload.get("relations") or []),
+        "view_count": len(response_views),
+        "views": response_views,
     }
 
     if template_metadata:
         response["template"] = template_metadata
 
     return response
+
+
+def get_mermaid_preview(
+    preview_id: str,
+    *,
+    include_image: bool = False,
+    session_state: Optional[MutableMapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Recupera um preview Mermaid armazenado previamente."""
+
+    if not preview_id:
+        raise ValueError("Identificador de preview não informado.")
+
+    preview = get_cached_preview(session_state, preview_id)
+    if preview is None:
+        preview = _get_preview_fallback(preview_id)
+    if preview is None:
+        raise ValueError("Preview Mermaid não encontrado para o identificador informado.")
+
+    result = copy.deepcopy(preview)
+    if not include_image:
+        for view in result.get("views", []):
+            if isinstance(view, dict):
+                view.pop("image", None)
+    return result
 
 
 def generate_archimate_diagram(
@@ -2094,7 +3639,12 @@ def generate_archimate_diagram(
 
 
 def list_templates(directory: str | None = None) -> Dict[str, Any]:
-    """Lista templates ArchiMate disponíveis no diretório informado."""
+    """Lista templates ArchiMate disponíveis no diretório informado.
+
+    Além dos metadados do modelo, cada template retornado inclui um resumo das
+    visões disponíveis (nome e documentação) para facilitar a seleção pelos
+    agentes especialistas.
+    """
 
     templates_dir = _resolve_templates_dir(directory)
     if not templates_dir.exists():
@@ -2110,6 +3660,39 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
             ns = {"a": ARCHIMATE_NS}
             name_el = root.find("a:name", ns)
             documentation_el = root.find("a:documentation", ns)
+
+            views_summary: List[Dict[str, Any]] = []
+            views_root = root.find("a:views", ns)
+            if views_root is not None:
+                for view_el in views_root.findall("a:diagrams/a:view", ns):
+                    view_entry: Dict[str, Any] = {}
+                    identifier = view_el.get("identifier")
+                    if identifier:
+                        view_entry["identifier"] = identifier
+
+                    name_payload = _text_payload(view_el.find("a:name", ns))
+                    name_text = _payload_text(name_payload)
+                    if name_text:
+                        view_entry["name"] = name_text
+
+                    documentation_payload = _text_payload(
+                        view_el.find("a:documentation", ns)
+                    )
+                    documentation_text = _payload_text(documentation_payload)
+                    if documentation_text:
+                        view_entry["documentation"] = documentation_text
+
+                    role = _classify_view_role(
+                        view_entry.get("name"),
+                        view_entry.get("identifier"),
+                        documentation_text,
+                    )
+                    if role:
+                        view_entry["role"] = role
+
+                    if view_entry:
+                        views_summary.append(view_entry)
+
             metadata = {
                 "path": str(template_path.resolve()),
                 "relative_path": str(template_path.relative_to(templates_dir)),
@@ -2117,6 +3700,9 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
                 "model_name": _text_payload(name_el),
                 "documentation": _text_payload(documentation_el),
             }
+            if views_summary:
+                metadata["views"] = views_summary
+
             discovered.append(metadata)
         except ET.ParseError:
             logger.warning("Template inválido ignorado", extra={"path": str(template_path)})
@@ -2132,8 +3718,15 @@ def list_templates(directory: str | None = None) -> Dict[str, Any]:
 def describe_template(
     template_path: str,
     session_state: Optional[MutableMapping[str, Any]] = None,
+    *,
+    view_identifier: Optional[str] = None,
+    view_name: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Retorna a estrutura detalhada de um template ArchiMate."""
+    """Retorna a estrutura detalhada de um template ArchiMate.
+
+    Quando ``view_identifier`` ou ``view_name`` são informados, apenas a
+    hierarquia da visão correspondente é retornada.
+    """
 
     template = _resolve_package_path(Path(template_path))
 
@@ -2142,13 +3735,53 @@ def describe_template(
 
     blueprint = _parse_template_blueprint(template)
     store_blueprint(session_state, template, blueprint)
-    guidance = _build_guidance_from_blueprint(blueprint)
+
+    filtered_blueprint = blueprint
+    if view_identifier or view_name:
+        view_identifier_normalized = (
+            view_identifier.lower().strip() if view_identifier else None
+        )
+        view_name_fingerprint = _fingerprint_text(view_name) if view_name else None
+
+        views_payload = copy.deepcopy(blueprint.get("views") or {})
+        diagrams = list(views_payload.get("diagrams") or [])
+
+        matched: List[Dict[str, Any]] = []
+        for diagram in diagrams:
+            diagram_id = (diagram.get("id") or diagram.get("identifier") or "").strip()
+            diagram_name = _payload_text(diagram.get("name")) or ""
+            diagram_name_fingerprint = _fingerprint_text(diagram_name)
+
+            matches_identifier = (
+                bool(view_identifier_normalized)
+                and diagram_id.lower() == view_identifier_normalized
+            )
+            matches_name = (
+                bool(view_name_fingerprint)
+                and diagram_name_fingerprint == view_name_fingerprint
+            )
+
+            if matches_identifier or matches_name:
+                matched.append(copy.deepcopy(diagram))
+
+        if not matched:
+            target = view_identifier or view_name or ""
+            raise ValueError(
+                f"Visão '{target}' não encontrada no template informado."
+            )
+
+        views_payload["diagrams"] = matched
+        filtered_blueprint = copy.deepcopy(blueprint)
+        filtered_blueprint["views"] = views_payload
+
+    guidance = _build_guidance_from_blueprint(filtered_blueprint)
     guidance["model"]["path"] = str(template.resolve())
     return guidance
 __all__ = [
     "list_templates",
     "describe_template",
     "generate_mermaid_preview",
+    "get_mermaid_preview",
     "finalize_datamodel",
     "save_datamodel",
     "generate_archimate_diagram",
