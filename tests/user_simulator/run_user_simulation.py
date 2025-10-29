@@ -9,6 +9,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import sys
 import textwrap
 from collections.abc import MutableMapping
@@ -420,6 +421,61 @@ def _copy_static_assets(case_dir: Path, run_dir: Path) -> None:
             (run_dir / filename).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
 
 
+def _write_alias_notice(alias_dir: Path, target_dir: Path) -> None:
+    alias_dir.mkdir(parents=True, exist_ok=True)
+    notice_path = alias_dir / "REDIRECT.txt"
+    try:
+        relative_target = os.path.relpath(target_dir, alias_dir)
+    except ValueError:
+        relative_target = str(target_dir)
+    notice_message = textwrap.dedent(
+        f"""
+        Esta pasta é mantida apenas por compatibilidade.
+
+        Todos os artefatos gerados na execução atual são gravados em:
+            {target_dir}
+
+        Caso esteja procurando os arquivos manualmente, utilize a pasta acima
+        (relativo a este diretório: {relative_target}).
+        """
+    ).strip()
+    notice_path.write_text(notice_message + "\n", encoding="utf-8")
+
+
+def _prepare_artifact_alias(alias_dir: Path, target_dir: Path) -> None:
+    target_resolved = target_dir.resolve()
+    if alias_dir.exists():
+        if alias_dir.is_symlink():
+            try:
+                if alias_dir.resolve() == target_resolved:
+                    return
+            except OSError:
+                alias_dir.unlink(missing_ok=True)
+        else:
+            if alias_dir.is_dir():
+                for item in list(alias_dir.iterdir()):
+                    target = target_dir / item.name
+                    if target.exists():
+                        continue
+                    try:
+                        item.replace(target)
+                    except OSError:
+                        continue
+            try:
+                if alias_dir.is_dir():
+                    shutil.rmtree(alias_dir)
+                else:
+                    alias_dir.unlink()
+            except OSError:
+                _write_alias_notice(alias_dir, target_dir)
+                return
+    alias_dir.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        alias_dir.symlink_to(target_resolved, target_is_directory=True)
+    except Exception:
+        _write_alias_notice(alias_dir, target_dir)
+
+
 def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_run: bool) -> Path:
     timestamp = _utcnow().strftime("%Y%m%d-%H%M%S")
     run_identifier = f"{timestamp}-{run_name}" if run_name else timestamp
@@ -427,44 +483,8 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     artefacts_dir = run_dir / "artefacts"
     artefacts_dir.mkdir(parents=True, exist_ok=True)
 
-    mirror_dirs: list[Path] = []
-
-    legacy_misspelled_dir = run_dir / "artfacts"
-    if legacy_misspelled_dir.exists() and legacy_misspelled_dir.is_dir():
-        for item in legacy_misspelled_dir.iterdir():
-            target = artefacts_dir / item.name
-            if not target.exists():
-                try:
-                    item.replace(target)
-                except OSError:
-                    pass
-        try:
-            legacy_misspelled_dir.rmdir()
-        except OSError:
-            mirror_dirs.append(legacy_misspelled_dir)
-    else:
-        try:
-            legacy_misspelled_dir.symlink_to(artefacts_dir, target_is_directory=True)
-        except Exception:
-            legacy_misspelled_dir.mkdir(parents=True, exist_ok=True)
-            mirror_dirs.append(legacy_misspelled_dir)
-
-    for alias_name in ("artifacts",):
-        alias_dir = run_dir / alias_name
-        if alias_dir.exists():
-            if alias_dir.is_dir() and not alias_dir.is_symlink():
-                mirror_dirs.append(alias_dir)
-                continue
-            try:
-                if alias_dir.is_symlink() and alias_dir.resolve() == artefacts_dir.resolve():
-                    continue
-            except Exception:
-                pass
-        try:
-            alias_dir.symlink_to(artefacts_dir, target_is_directory=True)
-        except Exception:
-            alias_dir.mkdir(parents=True, exist_ok=True)
-            mirror_dirs.append(alias_dir)
+    _prepare_artifact_alias(run_dir / "artfacts", artefacts_dir)
+    _prepare_artifact_alias(run_dir / "artifacts", artefacts_dir)
 
     _copy_static_assets(case_dir, run_dir)
 
@@ -566,7 +586,6 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                     ) = _extract_inline_artifacts_from_payload(
                         sanitized_payload,
                         artefacts_dir=artefacts_dir,
-                        mirror_dirs=mirror_dirs,
                         event_index=event_index,
                         run_dir=run_dir,
                     )
@@ -627,7 +646,6 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         event,
                         user_id=session.user_id,
                         session_id=session.id,
-                        mirror_dirs=mirror_dirs,
                     )
                     if inline_artifacts:
                         artifacts_records.extend(inline_artifacts)
@@ -884,7 +902,6 @@ def _persist_artifacts(
     *,
     user_id: str,
     session_id: str,
-    mirror_dirs: Iterable[Path] | None = None,
 ) -> list[ArtifactRecord]:
     artifact_delta = {}
     if getattr(event, "actions", None):
@@ -924,21 +941,9 @@ def _persist_artifacts(
 
         suffix = _guess_extension(mime_type, filename)
         target_path = artefacts_dir / f"{_sanitize_token(filename)}-v{version}{suffix}"
-        mirror_paths: list[Path] = []
-        for mirror_dir in mirror_dirs or []:
-            if mirror_dir == artefacts_dir:
-                continue
-            mirror_paths.append(mirror_dir / target_path.name)
-
         serialized_text: str | None = None
         if raw_bytes:
             target_path.write_bytes(raw_bytes)
-            for mirror_path in mirror_paths:
-                try:
-                    mirror_path.write_bytes(raw_bytes)
-                except OSError:
-                    mirror_path.parent.mkdir(parents=True, exist_ok=True)
-                    mirror_path.write_bytes(raw_bytes)
         else:
             try:
                 model_payload = part.model_dump(mode="json")  # type: ignore[call-arg]
@@ -948,12 +953,6 @@ def _persist_artifacts(
                 _scrub_thought_signature(model_payload), ensure_ascii=False, indent=2
             )
             target_path.write_text(serialized_text, encoding="utf-8")
-            for mirror_path in mirror_paths:
-                try:
-                    mirror_path.write_text(serialized_text, encoding="utf-8")
-                except OSError:
-                    mirror_path.parent.mkdir(parents=True, exist_ok=True)
-                    mirror_path.write_text(serialized_text, encoding="utf-8")
 
         records.append(
             ArtifactRecord(
@@ -965,22 +964,9 @@ def _persist_artifacts(
         )
 
     return records
-
-
-def _write_bytes_with_mirrors(target_path: Path, data: bytes, mirror_paths: Iterable[Path]) -> None:
-    target_path.write_bytes(data)
-    for mirror_path in mirror_paths:
-        try:
-            mirror_path.write_bytes(data)
-        except OSError:
-            mirror_path.parent.mkdir(parents=True, exist_ok=True)
-            mirror_path.write_bytes(data)
-
-
 def _store_inline_bytes(
     *,
     artefacts_dir: Path,
-    mirror_dirs: Iterable[Path] | None,
     event_index: int,
     counter: int,
     mime_type: str | None,
@@ -991,13 +977,7 @@ def _store_inline_bytes(
     suffix = _guess_extension(mime_type, sanitized_hint)
     filename = f"{event_index:03d}-{sanitized_hint}-inline{counter}{suffix}"
     target_path = artefacts_dir / filename
-    mirror_paths = []
-    for mirror_dir in mirror_dirs or []:
-        if mirror_dir == artefacts_dir:
-            continue
-        mirror_paths.append(mirror_dir / filename)
-
-    _write_bytes_with_mirrors(target_path, data, mirror_paths)
+    target_path.write_bytes(data)
 
     record = ArtifactRecord(
         filename=filename,
@@ -1012,7 +992,6 @@ def _extract_inline_artifacts_from_payload(
     payload: dict[str, Any],
     *,
     artefacts_dir: Path,
-    mirror_dirs: Iterable[Path] | None,
     event_index: int,
     run_dir: Path,
 ) -> tuple[dict[str, Any], list[ArtifactRecord], list[str]]:
@@ -1025,7 +1004,6 @@ def _extract_inline_artifacts_from_payload(
         counter += 1
         record, saved_path = _store_inline_bytes(
             artefacts_dir=artefacts_dir,
-            mirror_dirs=mirror_dirs,
             event_index=event_index,
             counter=counter,
             mime_type=mime_type,
