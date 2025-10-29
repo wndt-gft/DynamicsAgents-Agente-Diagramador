@@ -110,7 +110,7 @@ def _make_tool(function, *, name: str | None = None):
     return tool
 
 
-def list_templates(directory: str = "", session_state: Any = None):
+def list_templates(directory: str = "", session_state: str = ""):
     """Wrapper to keep the public signature simple for automatic calling."""
 
     coerced_state, should_serialize = _coerce_session_state(session_state)
@@ -118,7 +118,7 @@ def list_templates(directory: str = "", session_state: Any = None):
     return _attach_session_state(result, coerced_state, should_serialize)
 
 
-def describe_template(template_path: str, session_state: Any = None):
+def describe_template(template_path: str, session_state: str = ""):
     coerced_state, should_serialize = _coerce_session_state(session_state)
     result = _describe_template(template_path, session_state=coerced_state)
     return _attach_session_state(result, coerced_state, should_serialize)
@@ -129,7 +129,7 @@ def generate_layout_preview(
     template_path: str = "",
     *,
     view_filter: str = "",
-    session_state: Any = None,
+    session_state: str = "",
 ):
     coerced_state, should_serialize = _coerce_session_state(session_state)
     filter_payload: Any | None
@@ -150,7 +150,7 @@ def generate_layout_preview(
 def finalize_datamodel(
     datamodel: str,
     template_path: str,
-    session_state: Any = None,
+    session_state: str = "",
 ):
     coerced_state, should_serialize = _coerce_session_state(session_state)
     result = _finalize_datamodel(
@@ -164,7 +164,7 @@ def finalize_datamodel(
 def save_datamodel(
     datamodel: str = "",
     filename: str = DEFAULT_DATAMODEL_FILENAME,
-    session_state: Any = None,
+    session_state: str = "",
 ):
     target = filename or DEFAULT_DATAMODEL_FILENAME
     payload: Any | None = datamodel or None
@@ -179,7 +179,7 @@ def generate_archimate_diagram(
     template_path: str = "",
     validate: bool = True,
     xsd_dir: str = "",
-    session_state: Any = None,
+    session_state: str = "",
 ):
     target_output = output_filename or DEFAULT_DIAGRAM_FILENAME
     coerced_state, should_serialize = _coerce_session_state(session_state)
