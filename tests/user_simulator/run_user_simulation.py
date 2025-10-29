@@ -17,24 +17,31 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from agents.diagramador.agent import get_root_agent  # noqa: E402
-from agents.diagramador.prompt import ORCHESTRATOR_PROMPT  # noqa: E402
-
 try:
     from google.adk.runners import InMemoryRunner  # type: ignore[attr-defined]
     from google.adk.agents.run_config import RunConfig  # type: ignore[attr-defined]
-except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
+except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
     raise SystemExit(
         "Este script exige os pacotes oficiais 'google-adk' e 'google-genai'. "
-        "Instale-os no ambiente atual antes de prosseguir."
+        "Instale-os com 'pip install -r tests/user_simulator/requirements.txt'."
+    ) from exc
+except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
+    raise SystemExit(
+        "Falha ao carregar Google ADK. Verifique a instalação e as dependências."
     ) from exc
 
 try:
     from google.genai import types  # type: ignore[attr-defined]
-except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
+except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
     raise SystemExit(
-        "O pacote 'google-genai' é obrigatório para construir as mensagens da simulação."
+        "O pacote 'google-genai' é obrigatório. Instale-o com 'pip install -r "
+        "tests/user_simulator/requirements.txt'."
     ) from exc
+except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
+    raise SystemExit("Falha ao carregar google-genai. Verifique a instalação.") from exc
+
+from agents.diagramador.agent import get_root_agent  # noqa: E402
+from agents.diagramador.prompt import ORCHESTRATOR_PROMPT  # noqa: E402
 
 
 @dataclass

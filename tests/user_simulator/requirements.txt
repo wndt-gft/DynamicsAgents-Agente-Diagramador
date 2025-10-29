@@ -1,0 +1,3 @@
+# Dependências necessárias para executar o simulador com o Google ADK real.
+google-adk
+google-genai

@@ -30,7 +30,7 @@ Durante a execução, o script cria uma nova pasta em `results/` contendo:
 
 1. Python 3.12+
 2. Dependências instaladas do projeto (`pip install -r requirements.txt`).
-3. Pacotes oficiais `google-adk` e `google-genai` instalados no mesmo ambiente (o script detecta automaticamente).
+3. Pacotes oficiais `google-adk` e `google-genai` instalados no mesmo ambiente (`pip install -r tests/user_simulator/requirements.txt`).
 4. Variáveis de ambiente necessárias para autenticação e seleção de modelo, por exemplo:
    - `GOOGLE_APPLICATION_CREDENTIALS`
    - `GOOGLE_CLOUD_PROJECT`
