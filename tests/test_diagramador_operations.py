@@ -213,11 +213,18 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert primary_loaded["download_uri"].startswith("data:image/svg+xml;base64,")
 
 
-def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
-    preview = generate_layout_preview(
+def test_generate_layout_preview_resolves_agent_relative_path(sample_payload, session_state):
+    result = generate_layout_preview(
         sample_payload,
         ALTERNATIVE_TEMPLATE_PATH,
-        session_state=None,
+        session_state=session_state,
+    )
+    assert result["status"] == "ok"
+    assert result["artifact"] == SESSION_ARTIFACT_LAYOUT_PREVIEW
+    assert set(result.keys()) <= {"status", "artifact", "view_count", "message"}
+
+    preview = get_cached_artifact(
+        session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW
     )
     assert preview["view_count"] >= 1
     if any(view.get("layout_preview") is None for view in preview["views"]):
@@ -229,7 +236,9 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
         if view.get("layout_preview")
     )
     assert preview.get("preview_summaries")
-    assert preview["preview_summaries"][0]["download_uri"].startswith("data:image/svg+xml;base64,")
+    assert preview["preview_summaries"][0]["download_uri"].startswith(
+        "data:image/svg+xml;base64,"
+    )
     assert preview["preview_summaries"][0]["download_markdown"].startswith(
         "[Abrir diagrama em SVG]"
     )
@@ -249,6 +258,16 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload):
     assert primary_preview["download_uri"].startswith("data:image/svg+xml;base64,")
     messages = preview.get("preview_messages")
     assert messages and all(msg.startswith("###") for msg in messages)
+
+
+def test_generate_layout_preview_without_session_state_returns_error(sample_payload):
+    result = generate_layout_preview(
+        sample_payload,
+        str(SAMPLE_TEMPLATE),
+        session_state=None,
+    )
+    assert result["status"] == "error"
+    assert "session_state" in result["message"]
 
 
 def test_generate_layout_preview_filters_views(sample_payload, session_state):

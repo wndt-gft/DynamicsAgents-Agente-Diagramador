@@ -2169,6 +2169,15 @@ def generate_layout_preview(
     session_state: MutableMapping | None = None,
     view_filter: str | Sequence | None = None,
 ) -> Dict[str, Any]:
+    if session_state is None:
+        logger.warning(
+            "generate_layout_preview chamado sem session_state; retornando erro padronizado."
+        )
+        return _error_response(
+            "session_state é obrigatório para armazenar a pré-visualização gerada.",
+            code="missing_session_state",
+        )
+
     payload: Optional[Dict[str, Any]] = None
 
     if datamodel is not None:
@@ -2377,25 +2386,22 @@ def generate_layout_preview(
     if template_metadata:
         response["template"] = template_metadata
 
-    if session_state is not None:
-        store_artifact(
-            session_state,
-            SESSION_ARTIFACT_LAYOUT_PREVIEW,
-            response,
-        )
+    store_artifact(
+        session_state,
+        SESSION_ARTIFACT_LAYOUT_PREVIEW,
+        response,
+    )
 
-        status_payload: Dict[str, Any] = {
-            "status": "ok",
-            "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW,
-            "view_count": len(results),
-        }
+    status_payload: Dict[str, Any] = {
+        "status": "ok",
+        "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW,
+        "view_count": len(results),
+    }
 
-        if preview_messages:
-            status_payload["message"] = "Pré-visualização armazenada com sucesso."
+    if preview_messages:
+        status_payload["message"] = "Pré-visualização armazenada com sucesso."
 
-        return status_payload
-
-    return response
+    return status_payload
 
 
 def load_layout_preview(
