@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+import textwrap
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -89,6 +90,7 @@ with _without_repo_google_package():
 
 with _without_repo_google_package():
     try:
+        from google.genai import errors as genai_errors  # type: ignore[attr-defined]
         from google.genai import types  # type: ignore[attr-defined]
     except ModuleNotFoundError as exc:  # pragma: no cover - executado apenas em ambiente real
         raise SystemExit(
@@ -97,6 +99,14 @@ with _without_repo_google_package():
         ) from exc
     except Exception as exc:  # pragma: no cover - executado apenas em ambiente real
         raise SystemExit("Falha ao carregar google-genai. Verifique a instalação.") from exc
+
+with _without_repo_google_package():
+    try:
+        from google import genai as genai_module  # type: ignore[attr-defined]
+    except ModuleNotFoundError:
+        genai_module = None
+    except Exception:
+        genai_module = None
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -202,6 +212,18 @@ class EventRecord:
     artifacts: list[ArtifactRecord] = field(default_factory=list)
 
 
+@dataclass
+class ExpectationReport:
+    step: str
+    expected: str | None
+    responses: list[str]
+    evaluation: dict[str, Any] | None = None
+    error: str | None = None
+
+
+_EVALUATION_CLIENT: Any | None = None
+
+
 def _sanitize_token(value: str, fallback: str = "token") -> str:
     text = re.sub(r"[^A-Za-z0-9_-]+", "-", value.strip())
     text = text.strip("-")
@@ -252,6 +274,20 @@ def _extract_text_from_event(event: dict[str, Any]) -> str:
     return "\n".join(texts)
 
 
+def _scrub_thought_signature(payload: Any) -> Any:
+    """Remove a propriedade ``thought_signature`` de estruturas arbitrárias."""
+
+    if isinstance(payload, dict):
+        return {
+            key: _scrub_thought_signature(value)
+            for key, value in payload.items()
+            if key != "thought_signature"
+        }
+    if isinstance(payload, list):
+        return [_scrub_thought_signature(item) for item in payload]
+    return payload
+
+
 def _build_user_message(step: StepDefinition, user_history: str) -> str:
     if step.type == "user_history":
         template = step.prompt_template or "{user_history}"
@@ -276,8 +312,19 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     timestamp = _utcnow().strftime("%Y%m%d-%H%M%S")
     run_identifier = f"{timestamp}-{run_name}" if run_name else timestamp
     run_dir = case_dir / "results" / run_identifier
-    artefacts_dir = run_dir / "artefacts"
-    artefacts_dir.mkdir(parents=True, exist_ok=True)
+    artfacts_dir = run_dir / "artfacts"
+    artfacts_dir.mkdir(parents=True, exist_ok=True)
+
+    legacy_artefacts_dir = run_dir / "artefacts"
+    mirror_dir: Path | None = None
+    if legacy_artefacts_dir.exists():
+        mirror_dir = legacy_artefacts_dir
+    else:
+        try:
+            legacy_artefacts_dir.symlink_to(artfacts_dir, target_is_directory=True)
+        except Exception:
+            legacy_artefacts_dir.mkdir(parents=True, exist_ok=True)
+            mirror_dir = legacy_artefacts_dir
 
     _copy_static_assets(case_dir, run_dir)
 
@@ -330,86 +377,130 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     run_config = RunConfig()
 
     events: list[EventRecord] = []
+    expectation_reports: list[ExpectationReport] = []
     final_agent_text: list[str] = []
+    model_error: dict[str, Any] | None = None
 
     with session_log_path.open("w", encoding="utf-8") as session_log:
+        session_log.write("# Log de sessão do usuário com o agente Diagramador\n\n")
         for step in flow.steps:
             user_message = _build_user_message(step, user_history)
             content = types.Content(
                 role="user",
                 parts=[types.Part(text=user_message)],
             )
+            step_timestamp = _utcnow().isoformat()
             session_log.write(
-                json.dumps(
-                    {
-                        "timestamp": _utcnow().isoformat(),
-                        "step": step.name,
-                        "event_type": "user_message",
-                        "payload": user_message,
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
+                f"## Passo: {step.name}\n"
+                f"Horário: {step_timestamp}\n\n"
+                "**Usuário**\n"
+                "--------------\n"
+                f"{user_message}\n\n"
             )
 
-            for event in runner.run(
-                user_id=session.user_id,
-                session_id=session.id,
-                new_message=content,
-                run_config=run_config,
-            ):
-                event_payload = event.model_dump(mode="json")
-                session_log.write(
-                    json.dumps(
-                        {
-                            "timestamp": _utcnow().isoformat(),
-                            "step": step.name,
-                            "event_type": "agent_event",
-                            "payload": event_payload,
-                        },
-                        ensure_ascii=False,
-                    )
-                    + "\n"
-                )
+            abort_step = False
+            agent_responses: list[str] = []
 
-                snapshot = asyncio.run(
-                    _fetch_session_snapshot(
-                        runner, user_id=session.user_id, session_id=session.id
-                    )
-                )
-                state_filename = _make_state_filename(event_index=len(events) + 1, event=event)
-                state_path = run_dir / state_filename
-
-                artifacts_records = _persist_artifacts(
-                    runner,
-                    artefacts_dir,
-                    event,
+            try:
+                for event in runner.run(
                     user_id=session.user_id,
                     session_id=session.id,
-                )
+                    new_message=content,
+                    run_config=run_config,
+                ):
+                    event_payload = event.model_dump(mode="json")
+                    sanitized_payload = _scrub_thought_signature(event_payload)
+                    event_timestamp = _utcnow().isoformat()
+                    session_log.write(
+                        "**Agente Diagramador**\n"
+                        "----------------------\n"
+                        f"Horário: {event_timestamp}\n"
+                        f"{_extract_text_from_event(sanitized_payload) or '[sem texto disponível]'}\n\n"
+                        "```json\n"
+                        f"{json.dumps(sanitized_payload, ensure_ascii=False, indent=2)}\n"
+                        "```\n\n"
+                    )
 
-                record = EventRecord(
-                    index=len(events) + 1,
-                    step=step.name,
-                    author=event.author,
-                    summary=_extract_text_from_event(event_payload),
-                    event_payload=event_payload,
-                    session_state_path=state_path,
-                    artifacts=artifacts_records,
-                )
-                events.append(record)
+                    snapshot = asyncio.run(
+                        _fetch_session_snapshot(
+                            runner, user_id=session.user_id, session_id=session.id
+                        )
+                    )
+                    state_filename = _make_state_filename(
+                        event_index=len(events) + 1, event=event
+                    )
+                    state_path = run_dir / state_filename
 
-                _write_session_state_snapshot(
-                    state_path=state_path,
-                    snapshot=snapshot,
-                    event_payload=event_payload,
-                    artifacts=artifacts_records,
-                )
+                    artifacts_records = _persist_artifacts(
+                        runner,
+                        artfacts_dir,
+                        event,
+                        user_id=session.user_id,
+                        session_id=session.id,
+                        mirror_dir=mirror_dir,
+                    )
 
-                if event.author != "user":
-                    text = _extract_text_from_event(event_payload)
-                    if text:
-                        final_agent_text.append(text)
+                    record = EventRecord(
+                        index=len(events) + 1,
+                        step=step.name,
+                        author=event.author,
+                        summary=_extract_text_from_event(event_payload),
+                        event_payload=event_payload,
+                        session_state_path=state_path,
+                        artifacts=artifacts_records,
+                    )
+                    events.append(record)
+
+                    _write_session_state_snapshot(
+                        state_path=state_path,
+                        snapshot=snapshot,
+                        event_payload=sanitized_payload,
+                        artifacts=artifacts_records,
+                    )
+
+                    if event.author != "user":
+                        text = _extract_text_from_event(event_payload)
+                        if text:
+                            final_agent_text.append(text)
+                            agent_responses.append(text)
+            except genai_errors.ClientError as exc:  # pragma: no cover - requer ambiente real
+                model_error = _serialize_model_error(exc)
+                session_log.write(
+                    "**Erro do Modelo**\n"
+                    "------------------\n"
+                    f"Horário: {_utcnow().isoformat()}\n"
+                    f"{json.dumps(model_error, ensure_ascii=False, indent=2)}\n\n"
+                )
+                session_log.flush()
+                abort_step = True
+
+            expected_text = step.expect or "Nenhum resultado esperado definido."
+            analysis_text, expectation_report, raw_evaluation_json = _analyze_expectation(
+                runner,
+                step,
+                expected=step.expect,
+                responses=agent_responses,
+                model_error=model_error,
+            )
+            session_log.write(
+                "**Esperado**\n"
+                "-----------\n"
+                f"{expected_text}\n\n"
+                "**Resultado**\n"
+                "------------\n"
+                f"{analysis_text}\n\n"
+            )
+            if raw_evaluation_json:
+                session_log.write("```json\n")
+                session_log.write(f"{raw_evaluation_json}\n")
+                session_log.write("```\n\n")
+            session_log.write("---\n\n")
+
+            if expectation_report:
+                expectation_reports.append(expectation_report)
+
+            if abort_step:
+                break
 
     flow_result = {
         "case_id": flow.case_id,
@@ -427,6 +518,21 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
         ],
     }
 
+    if model_error:
+        flow_result["model_error"] = model_error
+
+    if expectation_reports:
+        flow_result["expectation_reports"] = [
+            {
+                "step": report.step,
+                "expected": report.expected,
+                "responses": report.responses,
+                "evaluation": report.evaluation,
+                "error": report.error,
+            }
+            for report in expectation_reports
+        ]
+
     flow_result_path.write_text(
         json.dumps(flow_result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -434,6 +540,21 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     if final_agent_text:
         summary_body = "\n\n".join(final_agent_text[-2:])
         summary_text = f"# Detalhamento estruturado e sugestões\n\n{summary_body}"
+    elif model_error:
+        code = model_error.get("status_code", "desconhecido")
+        message = model_error.get("message", "Sem detalhes fornecidos pelo provedor.")
+        suggestion = model_error.get("suggestion")
+        summary_lines = [
+            "# Detalhamento estruturado e sugestões",
+            "",
+            "A simulação foi interrompida devido a um erro ao acionar a LLM.",
+            "",
+            f"- Código: {code}",
+            f"- Mensagem: {message}",
+        ]
+        if suggestion:
+            summary_lines.extend(["", f"Sugestão: {suggestion}"])
+        summary_text = "\n".join(summary_lines)
     else:
         summary_text = (
             "# Detalhamento estruturado e sugestões\n\n"
@@ -492,7 +613,7 @@ def _write_session_state_snapshot(
     artifacts: Iterable[ArtifactRecord],
 ) -> None:
     payload = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": _utcnow().isoformat(),
         "session": snapshot.model_dump(mode="json") if hasattr(snapshot, "model_dump") else {},
         "event": event_payload,
         "artifacts": [
@@ -515,6 +636,7 @@ def _persist_artifacts(
     *,
     user_id: str,
     session_id: str,
+    mirror_dir: Path | None = None,
 ) -> list[ArtifactRecord]:
     artifact_delta = {}
     if getattr(event, "actions", None):
@@ -554,10 +676,20 @@ def _persist_artifacts(
 
         suffix = _guess_extension(mime_type, filename)
         target_path = artefacts_dir / f"{_sanitize_token(filename)}-v{version}{suffix}"
+        mirror_path: Path | None = None
+        if mirror_dir and mirror_dir != artefacts_dir:
+            mirror_path = mirror_dir / target_path.name
+
+        serialized_text: str | None = None
         if raw_bytes:
             target_path.write_bytes(raw_bytes)
+            if mirror_path:
+                mirror_path.write_bytes(raw_bytes)
         else:
-            target_path.write_text(json.dumps(part.model_dump(mode="json"), ensure_ascii=False, indent=2), encoding="utf-8")
+            serialized_text = json.dumps(part.model_dump(mode="json"), ensure_ascii=False, indent=2)
+            target_path.write_text(serialized_text, encoding="utf-8")
+            if mirror_path:
+                mirror_path.write_text(serialized_text, encoding="utf-8")
 
         records.append(
             ArtifactRecord(
@@ -611,6 +743,347 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Não aciona a LLM; apenas prepara a estrutura de diretórios e arquivos.",
     )
     return parser.parse_args(argv)
+
+
+def _resolve_evaluation_client() -> Any | None:
+    global _EVALUATION_CLIENT
+    if _EVALUATION_CLIENT is not None:
+        return _EVALUATION_CLIENT
+
+    if genai_module is None:
+        return None
+
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GENAI_API_KEY")
+    project = os.getenv("VERTEXAI_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT")
+    location = os.getenv("VERTEXAI_LOCATION") or os.getenv("GOOGLE_CLOUD_LOCATION")
+
+    base_kwargs: dict[str, Any] = {}
+    if api_key:
+        base_kwargs["api_key"] = api_key
+
+    candidate_kwargs: list[dict[str, Any]] = [dict(base_kwargs)]
+    if project and location:
+        candidate_kwargs.append({**base_kwargs, "project": project, "location": location})
+        candidate_kwargs.append(
+            {
+                **base_kwargs,
+                "vertexai_project": project,
+                "vertexai_location": location,
+            }
+        )
+
+    for kwargs in candidate_kwargs:
+        try:
+            _EVALUATION_CLIENT = genai_module.Client(**kwargs)  # type: ignore[call-arg]
+            if _EVALUATION_CLIENT is not None:
+                break
+        except TypeError:
+            continue
+        except Exception:
+            continue
+
+    return _EVALUATION_CLIENT
+
+
+def _resolve_evaluation_model(runner: InMemoryRunner | None = None) -> str:
+    if runner is not None:
+        for attribute in ("evaluation_model", "default_model", "model"):
+            candidate = getattr(runner, attribute, None)
+            if isinstance(candidate, str) and candidate.strip():
+                return candidate
+    return (
+        os.getenv("USER_SIM_EVALUATION_MODEL")
+        or os.getenv("EVALUATION_MODEL")
+        or os.getenv("GENAI_EVALUATION_MODEL")
+        or "gemini-1.5-flash"
+    )
+
+
+def _extract_text_from_generic_response(response: Any) -> str:
+    if response is None:
+        return ""
+
+    text = getattr(response, "text", None)
+    if isinstance(text, str) and text.strip():
+        return text
+
+    if hasattr(response, "model_dump"):
+        try:
+            payload = response.model_dump(mode="json")  # type: ignore[call-arg]
+        except TypeError:
+            payload = response.model_dump()  # type: ignore[misc]
+        except Exception:
+            payload = None
+        if isinstance(payload, dict):
+            extracted = _extract_text_from_event(payload)
+            if extracted:
+                return extracted
+
+    candidates = getattr(response, "candidates", None)
+    texts: list[str] = []
+    if candidates:
+        for candidate in candidates:
+            content = getattr(candidate, "content", None) or getattr(candidate, "message", None)
+            parts = getattr(content, "parts", None)
+            if parts is None and isinstance(candidate, dict):
+                parts = candidate.get("parts")
+            if parts:
+                for part in parts:
+                    value = getattr(part, "text", None)
+                    if value is None and isinstance(part, dict):
+                        value = part.get("text")
+                    if value:
+                        texts.append(str(value))
+    if texts:
+        return "\n".join(texts)
+
+    if hasattr(response, "to_dict"):
+        try:
+            payload = response.to_dict()  # type: ignore[call-arg]
+        except Exception:
+            payload = None
+        if isinstance(payload, dict):
+            extracted = _extract_text_from_event(payload)
+            if extracted:
+                return extracted
+
+    return str(response)
+
+
+def _extract_json_payload(raw_text: str) -> tuple[dict[str, Any], str]:
+    text = raw_text.strip()
+    if not text:
+        raise json.JSONDecodeError("Resposta vazia.", raw_text, 0)
+
+    try:
+        parsed = json.loads(text)
+        return parsed, text
+    except json.JSONDecodeError:
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        snippet = text[start : end + 1]
+        parsed = json.loads(snippet)
+        return parsed, snippet
+
+    raise json.JSONDecodeError("JSON não localizado na resposta do avaliador.", raw_text, 0)
+
+
+def _normalize_score(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    if score < 0:
+        return 0.0
+    if score > 1:
+        return 1.0
+    return score
+
+
+def _format_score(value: float | None) -> str:
+    if value is None:
+        return "N/D"
+    return f"{value:.2f}"
+
+
+def _run_expectation_evaluator(
+    expected: str, collected: str, runner: InMemoryRunner | None = None
+) -> dict[str, Any]:
+    client = _resolve_evaluation_client()
+    if client is None:
+        raise RuntimeError(
+            "Cliente LLM para avaliação não disponível. Instale e configure 'google-genai' e as credenciais."
+        )
+
+    model = _resolve_evaluation_model(runner)
+    prompt = textwrap.dedent(
+        f"""
+        Você é um avaliador crítico que compara o resultado de um agente com o objetivo esperado.
+
+        Produza um JSON com a seguinte estrutura:
+        {{
+          "summary": "resuma em português o alinhamento do resultado com o esperado",
+          "relevance": valor entre 0 e 1 indicando o quanto a resposta está relacionada ao objetivo,
+          "cohesion": valor entre 0 e 1 indicando a consistência interna da resposta,
+          "coherence": valor entre 0 e 1 indicando se o raciocínio geral é coerente,
+          "verdict": "APROVADO" ou "REPROVADO" de acordo com o atendimento ao objetivo
+        }}
+
+        ### Objetivo esperado
+        {expected.strip()}
+
+        ### Resposta do agente
+        {collected.strip()}
+
+        Retorne apenas o JSON.
+        """
+    ).strip()
+
+    models_client = getattr(client, "models", None)
+    if models_client and hasattr(models_client, "generate_content"):
+        generate_content = models_client.generate_content  # type: ignore[assignment]
+    elif hasattr(client, "generate_content"):
+        generate_content = getattr(client, "generate_content")  # type: ignore[assignment]
+    else:
+        raise RuntimeError(
+            "Cliente LLM não expõe método 'generate_content'. Atualize o pacote google-genai."
+        )
+
+    try:
+        response = generate_content(  # type: ignore[misc]
+            model=model,
+            contents=[{"role": "user", "parts": [{"text": prompt}]}],
+        )
+    except Exception as exc:  # pragma: no cover - depende do cliente oficial
+        raise RuntimeError(f"Falha ao chamar o modelo de avaliação: {exc}") from exc
+
+    raw_text = _extract_text_from_generic_response(response)
+    if not raw_text.strip():
+        raise RuntimeError("O modelo de avaliação não retornou conteúdo textual.")
+
+    try:
+        parsed, json_snippet = _extract_json_payload(raw_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Não foi possível interpretar o retorno do avaliador: {exc}") from exc
+
+    summary = parsed.get("summary") or parsed.get("resumo") or ""
+    relevance = _normalize_score(parsed.get("relevance") or parsed.get("relatividade"))
+    cohesion = _normalize_score(parsed.get("cohesion") or parsed.get("coesao") or parsed.get("coesão"))
+    coherence = _normalize_score(parsed.get("coherence") or parsed.get("coerencia") or parsed.get("coerência"))
+    verdict = parsed.get("verdict") or parsed.get("veredito")
+
+    evaluation = {
+        "summary": summary,
+        "relevance": relevance,
+        "cohesion": cohesion,
+        "coherence": coherence,
+        "verdict": verdict,
+        "model": model,
+        "raw_json": parsed,
+        "raw_text": json_snippet,
+    }
+
+    return evaluation
+
+
+def _analyze_expectation(
+    runner: InMemoryRunner,
+    step: StepDefinition,
+    *,
+    expected: str | None,
+    responses: Iterable[str],
+    model_error: dict[str, Any] | None,
+) -> tuple[str, ExpectationReport | None, str | None]:
+    if model_error:
+        message = (
+            "A execução foi interrompida por um erro do provedor. Consulte o bloco de erro "
+            "acima para detalhes."
+        )
+        report = ExpectationReport(
+            step=step.name,
+            expected=expected,
+            responses=list(responses),
+            error="Erro do provedor durante o passo.",
+        )
+        return message, report, None
+
+    collected = "\n".join(response for response in responses if response)
+
+    if not expected or not expected.strip():
+        narrative = (
+            "Nenhum resultado esperado foi definido para este passo. A resposta capturada foi registrada "
+            "para acompanhamento manual."
+        )
+        report = ExpectationReport(
+            step=step.name,
+            expected=expected,
+            responses=list(responses),
+            evaluation=None,
+            error="Resultado esperado ausente.",
+        )
+        return narrative, report, None
+
+    if not collected:
+        narrative = "Nenhuma resposta do agente foi registrada para comparação."
+        report = ExpectationReport(
+            step=step.name,
+            expected=expected,
+            responses=list(responses),
+            evaluation=None,
+            error="Resposta do agente ausente.",
+        )
+        return narrative, report, None
+
+    try:
+        evaluation = _run_expectation_evaluator(expected, collected, runner)
+    except RuntimeError as exc:
+        narrative = (
+            "⚠️ Não foi possível concluir a avaliação automática das expectativas: "
+            f"{exc}."
+        )
+        report = ExpectationReport(
+            step=step.name,
+            expected=expected,
+            responses=list(responses),
+            evaluation=None,
+            error=str(exc),
+        )
+        return narrative, report, None
+
+    relevance = _format_score(evaluation.get("relevance"))
+    cohesion = _format_score(evaluation.get("cohesion"))
+    coherence = _format_score(evaluation.get("coherence"))
+    verdict = evaluation.get("verdict") or "N/D"
+    summary = evaluation.get("summary") or "Sem resumo gerado."
+
+    lines = [
+        summary,
+        "",
+        f"- Relatividade: {relevance}",
+        f"- Coesão: {cohesion}",
+        f"- Coerência: {coherence}",
+        f"- Veredito: {verdict}",
+        f"- Modelo de avaliação: {evaluation.get('model')}",
+    ]
+
+    report = ExpectationReport(
+        step=step.name,
+        expected=expected,
+        responses=list(responses),
+        evaluation=evaluation,
+    )
+
+    return "\n".join(lines), report, evaluation.get("raw_text")
+
+
+def _serialize_model_error(exc: Exception) -> dict[str, Any]:
+    """Converte erros do modelo em um dicionário serializável."""
+
+    payload: dict[str, Any] = {
+        "type": type(exc).__name__,
+        "message": str(exc),
+    }
+
+    status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    if status_code is not None:
+        payload["status_code"] = status_code
+
+    reason = getattr(exc, "reason", None)
+    if reason:
+        payload["reason"] = reason
+
+    if status_code == 429:
+        payload["suggestion"] = (
+            "A chamada foi recusada por limite de uso (código 429). Aguarde alguns minutos "
+            "e tente novamente ou reduza o volume de requisições simultâneas."
+        )
+
+    return payload
 
 
 def main(argv: list[str] | None = None) -> int:
