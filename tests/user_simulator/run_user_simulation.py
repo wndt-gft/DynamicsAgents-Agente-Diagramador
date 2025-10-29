@@ -148,6 +148,25 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+
+def _emit_cli(message: str = "") -> None:
+    """Imprime mensagens no CLI garantindo flush imediato."""
+
+    print(message, flush=True)
+
+
+def _shorten_cli_preview(text: str, *, width: int = 120) -> str:
+    """Produz um resumo em linha única para exibição no terminal."""
+
+    normalized = " ".join(text.split())
+    if not normalized:
+        return "[sem texto]"
+    try:
+        return textwrap.shorten(normalized, width=width, placeholder="…")
+    except Exception:
+        return normalized[: max(1, width - 1)] + ("…" if len(normalized) > width else "")
+
+
 _load_environment()
 
 
@@ -312,19 +331,47 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     timestamp = _utcnow().strftime("%Y%m%d-%H%M%S")
     run_identifier = f"{timestamp}-{run_name}" if run_name else timestamp
     run_dir = case_dir / "results" / run_identifier
-    artfacts_dir = run_dir / "artfacts"
-    artfacts_dir.mkdir(parents=True, exist_ok=True)
+    artefacts_dir = run_dir / "artefacts"
+    artefacts_dir.mkdir(parents=True, exist_ok=True)
 
-    legacy_artefacts_dir = run_dir / "artefacts"
-    mirror_dir: Path | None = None
-    if legacy_artefacts_dir.exists():
-        mirror_dir = legacy_artefacts_dir
+    mirror_dirs: list[Path] = []
+
+    legacy_misspelled_dir = run_dir / "artfacts"
+    if legacy_misspelled_dir.exists() and legacy_misspelled_dir.is_dir():
+        for item in legacy_misspelled_dir.iterdir():
+            target = artefacts_dir / item.name
+            if not target.exists():
+                try:
+                    item.replace(target)
+                except OSError:
+                    pass
+        try:
+            legacy_misspelled_dir.rmdir()
+        except OSError:
+            mirror_dirs.append(legacy_misspelled_dir)
     else:
         try:
-            legacy_artefacts_dir.symlink_to(artfacts_dir, target_is_directory=True)
+            legacy_misspelled_dir.symlink_to(artefacts_dir, target_is_directory=True)
         except Exception:
-            legacy_artefacts_dir.mkdir(parents=True, exist_ok=True)
-            mirror_dir = legacy_artefacts_dir
+            legacy_misspelled_dir.mkdir(parents=True, exist_ok=True)
+            mirror_dirs.append(legacy_misspelled_dir)
+
+    for alias_name in ("artifacts",):
+        alias_dir = run_dir / alias_name
+        if alias_dir.exists():
+            if alias_dir.is_dir() and not alias_dir.is_symlink():
+                mirror_dirs.append(alias_dir)
+                continue
+            try:
+                if alias_dir.is_symlink() and alias_dir.resolve() == artefacts_dir.resolve():
+                    continue
+            except Exception:
+                pass
+        try:
+            alias_dir.symlink_to(artefacts_dir, target_is_directory=True)
+        except Exception:
+            alias_dir.mkdir(parents=True, exist_ok=True)
+            mirror_dirs.append(alias_dir)
 
     _copy_static_assets(case_dir, run_dir)
 
@@ -332,7 +379,10 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     flow_result_path = run_dir / "flow_result.json"
     summary_path = run_dir / "structured_summary.md"
 
+    _emit_cli(f"📁 Resultados serão gravados em: {run_dir}")
+
     if dry_run:
+        _emit_cli("⚙️ Modo dry-run ativado. Nenhuma chamada ao modelo será executada.")
         session_log_path.write_text(
             "Simulação executada em modo dry-run. Nenhuma chamada ao modelo foi realizada.\n",
             encoding="utf-8",
@@ -361,6 +411,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
             )
         except Exception:
             pass
+        _emit_cli("✅ Dry-run concluído.")
         return run_dir
 
     user_history = (case_dir / "user_history.txt").read_text(encoding="utf-8")
@@ -369,6 +420,8 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
 
     agent = get_root_agent()
     runner = InMemoryRunner(agent=agent)
+
+    _emit_cli("🚀 Iniciando simulação real com o agente Diagramador…")
 
     session = asyncio.run(
         _create_session(runner, user_id=flow.user_id, session_id=flow.session_id)
@@ -384,6 +437,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     with session_log_path.open("w", encoding="utf-8") as session_log:
         session_log.write("# Log de sessão do usuário com o agente Diagramador\n\n")
         for step in flow.steps:
+            _emit_cli(f"➡️ Passo '{step.name}': enviando mensagem ao agente.")
             user_message = _build_user_message(step, user_history)
             content = types.Content(
                 role="user",
@@ -397,6 +451,7 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                 "--------------\n"
                 f"{user_message}\n\n"
             )
+            _emit_cli(f"   ↳ Usuário: {_shorten_cli_preview(user_message)}")
 
             abort_step = False
             agent_responses: list[str] = []
@@ -420,6 +475,11 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                         f"{json.dumps(sanitized_payload, ensure_ascii=False, indent=2)}\n"
                         "```\n\n"
                     )
+                    preview = _shorten_cli_preview(
+                        _extract_text_from_event(sanitized_payload)
+                    )
+                    author = getattr(event, "author", "agent") or "agent"
+                    _emit_cli(f"   ↳ {author}: {preview}")
 
                     snapshot = asyncio.run(
                         _fetch_session_snapshot(
@@ -433,11 +493,11 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
 
                     artifacts_records = _persist_artifacts(
                         runner,
-                        artfacts_dir,
+                        artefacts_dir,
                         event,
                         user_id=session.user_id,
                         session_id=session.id,
-                        mirror_dir=mirror_dir,
+                        mirror_dirs=mirror_dirs,
                     )
 
                     record = EventRecord(
@@ -473,8 +533,10 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                 )
                 session_log.flush()
                 abort_step = True
+                _emit_cli("❌ Erro retornado pelo provedor durante o passo. Consulte session.log.")
 
             expected_text = step.expect or "Nenhum resultado esperado definido."
+            _emit_cli(f"🧪 Avaliando respostas do passo '{step.name}'…")
             analysis_text, expectation_report, raw_evaluation_json = _analyze_expectation(
                 runner,
                 step,
@@ -495,6 +557,14 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
                 session_log.write(f"{raw_evaluation_json}\n")
                 session_log.write("```\n\n")
             session_log.write("---\n\n")
+
+            if expectation_report and expectation_report.evaluation:
+                verdict = expectation_report.evaluation.get("verdict") or "N/D"
+                _emit_cli(f"🧾 Veredito do passo '{step.name}': {verdict}")
+            else:
+                _emit_cli(
+                    f"📝 Resultado do passo '{step.name}': {_shorten_cli_preview(analysis_text)}"
+                )
 
             if expectation_report:
                 expectation_reports.append(expectation_report)
@@ -564,6 +634,8 @@ def run_simulation(case_dir: Path, flow: FlowDefinition, *, run_name: str, dry_r
     summary_path.write_text(summary_text, encoding="utf-8")
 
     asyncio.run(runner.close())
+
+    _emit_cli("🏁 Simulação concluída.")
 
     # Atualiza o log consolidado na raiz do cenário para facilitar inspeção rápida.
     try:
@@ -636,7 +708,7 @@ def _persist_artifacts(
     *,
     user_id: str,
     session_id: str,
-    mirror_dir: Path | None = None,
+    mirror_dirs: Iterable[Path] | None = None,
 ) -> list[ArtifactRecord]:
     artifact_delta = {}
     if getattr(event, "actions", None):
@@ -676,20 +748,30 @@ def _persist_artifacts(
 
         suffix = _guess_extension(mime_type, filename)
         target_path = artefacts_dir / f"{_sanitize_token(filename)}-v{version}{suffix}"
-        mirror_path: Path | None = None
-        if mirror_dir and mirror_dir != artefacts_dir:
-            mirror_path = mirror_dir / target_path.name
+        mirror_paths: list[Path] = []
+        for mirror_dir in mirror_dirs or []:
+            if mirror_dir == artefacts_dir:
+                continue
+            mirror_paths.append(mirror_dir / target_path.name)
 
         serialized_text: str | None = None
         if raw_bytes:
             target_path.write_bytes(raw_bytes)
-            if mirror_path:
-                mirror_path.write_bytes(raw_bytes)
+            for mirror_path in mirror_paths:
+                try:
+                    mirror_path.write_bytes(raw_bytes)
+                except OSError:
+                    mirror_path.parent.mkdir(parents=True, exist_ok=True)
+                    mirror_path.write_bytes(raw_bytes)
         else:
             serialized_text = json.dumps(part.model_dump(mode="json"), ensure_ascii=False, indent=2)
             target_path.write_text(serialized_text, encoding="utf-8")
-            if mirror_path:
-                mirror_path.write_text(serialized_text, encoding="utf-8")
+            for mirror_path in mirror_paths:
+                try:
+                    mirror_path.write_text(serialized_text, encoding="utf-8")
+                except OSError:
+                    mirror_path.parent.mkdir(parents=True, exist_ok=True)
+                    mirror_path.write_text(serialized_text, encoding="utf-8")
 
         records.append(
             ArtifactRecord(
