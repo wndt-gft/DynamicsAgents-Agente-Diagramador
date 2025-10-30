@@ -18,14 +18,25 @@ __all__ = [
     "XML_LANG_ATTR",
 ]
 
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL = os.getenv("DIAGRAMADOR_MODEL", "gemini-2.5-pro")
 OUTPUT_DIR = Path("outputs")
 DEFAULT_DATAMODEL_FILENAME = "diagramador_datamodel.json"
 DEFAULT_DIAGRAM_FILENAME = "diagramador_container_diagram.xml"
-DEFAULT_TEMPLATE = Path("templates/BV-C4-Model-SDLC/layout_template.xml")
-DEFAULT_TEMPLATES_DIR = Path(os.getenv("DIAGRAMADOR_TEMPLATES_DIR", "templates"))
+DEFAULT_TEMPLATES_DIR = Path(
+    os.getenv("DIAGRAMADOR_TEMPLATES_DIR", str(PACKAGE_ROOT / "templates"))
+)
+DEFAULT_TEMPLATE = Path(
+    os.getenv(
+        "DIAGRAMADOR_TEMPLATE",
+        str(DEFAULT_TEMPLATES_DIR / "BV-C4-Model-SDLC/layout_template.xml"),
+    )
+)
 DEFAULT_XSD_DIR = Path(
-    os.getenv("DIAGRAMADOR_XSD_DIR", "templates/BV-C4-Model-SDLC/schemas")
+    os.getenv(
+        "DIAGRAMADOR_XSD_DIR",
+        str(DEFAULT_TEMPLATES_DIR / "BV-C4-Model-SDLC/schemas"),
+    )
 )
 ARCHIMATE_NS = "http://www.opengroup.org/xsd/archimate/3.0/"
 XSI_ATTR = "{http://www.w3.org/2001/XMLSchema-instance}type"

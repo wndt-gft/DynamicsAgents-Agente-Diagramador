@@ -14,10 +14,10 @@ __all__ = ["SESSION_ARTIFACT_LAYOUT_PREVIEW", "generate_layout_preview"]
 
 
 def generate_layout_preview(
-    datamodel: str | None,
-    template_path: str | None,
-    view_filter: str | None,
-    session_state: str | MutableMapping[str, Any] | None,
+    datamodel: str | None = None,
+    template_path: str | None = None,
+    view_filter: str | None = None,
+    session_state: str | MutableMapping[str, Any] | None = None,
 ):
     coerced_state = coerce_session_state(session_state)
     datamodel_payload: Any | None = datamodel

@@ -15,12 +15,12 @@ __all__ = ["SESSION_ARTIFACT_ARCHIMATE_XML", "generate_archimate_diagram"]
 
 
 def generate_archimate_diagram(
-    model_json_path: str | None,
-    output_filename: str | None,
-    template_path: str | None,
-    validate: str | bool | None,
-    xsd_dir: str | None,
-    session_state: str | MutableMapping[str, object] | None,
+    model_json_path: str | None = None,
+    output_filename: str | None = None,
+    template_path: str | None = None,
+    validate: str | bool | None = None,
+    xsd_dir: str | None = None,
+    session_state: str | MutableMapping[str, object] | None = None,
 ):
     target_output = empty_string_to_none(output_filename) or DEFAULT_DIAGRAM_FILENAME
     coerced_state = coerce_session_state(session_state)

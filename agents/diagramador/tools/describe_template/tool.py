@@ -14,14 +14,14 @@ __all__ = ["SESSION_ARTIFACT_TEMPLATE_GUIDANCE", "describe_template"]
 
 
 def describe_template(
-    template_path: str,
+    template_path: str | None,
     view_filter: str | None,
     session_state: str | MutableMapping[str, Any] | None,
 ):
     coerced_state = coerce_session_state(session_state)
     filter_payload: Any | None = empty_string_to_none(view_filter)
     return _describe_template(
-        template_path,
+        empty_string_to_none(template_path),
         view_filter=filter_payload,
         session_state=coerced_state,
     )

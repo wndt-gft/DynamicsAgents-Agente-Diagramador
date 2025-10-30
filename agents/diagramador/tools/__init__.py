@@ -21,8 +21,6 @@ from .diagramador import (  # noqa: F401 - reexporta constantes e utilidades
     XML_LANG_ATTR,
     XSI_ATTR,
     get_cached_artifact,
-    get_view_focus,
-    set_view_focus,
 )
 from .describe_template import describe_template
 from .finalize_datamodel import finalize_datamodel
@@ -57,9 +55,7 @@ __all__ = [
     "generate_archimate_diagram",
     "generate_layout_preview",
     "get_cached_artifact",
-    "get_view_focus",
     "list_templates",
     "render_svg_preview",
     "save_datamodel",
-    "set_view_focus",
 ]

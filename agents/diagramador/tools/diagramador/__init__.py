@@ -1,7 +1,15 @@
-"""Pacote com as operações principais do agente Diagramador."""
+"""Superfície pública das rotinas de ferramenta do agente Diagramador."""
 
 from __future__ import annotations
 
+from .artifacts import (
+    SESSION_ARTIFACT_ARCHIMATE_XML,
+    SESSION_ARTIFACT_FINAL_DATAMODEL,
+    SESSION_ARTIFACT_LAYOUT_PREVIEW,
+    SESSION_ARTIFACT_SAVED_DATAMODEL,
+    SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+    SESSION_ARTIFACT_TEMPLATE_LISTING,
+)
 from .constants import (
     ARCHIMATE_NS,
     DEFAULT_DATAMODEL_FILENAME,
@@ -14,32 +22,19 @@ from .constants import (
     XML_LANG_ATTR,
     XSI_ATTR,
 )
-from .operations import (
-    SESSION_ARTIFACT_ARCHIMATE_XML,
-    SESSION_ARTIFACT_FINAL_DATAMODEL,
-    SESSION_ARTIFACT_LAYOUT_PREVIEW,
-    SESSION_ARTIFACT_SAVED_DATAMODEL,
-    SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
-    SESSION_ARTIFACT_TEMPLATE_LISTING,
-    describe_template,
-    finalize_datamodel,
-    generate_archimate_diagram,
-    generate_layout_preview,
-    list_templates,
-    save_datamodel,
-)
+from .datamodel import finalize_datamodel, generate_archimate_diagram, save_datamodel
+from .layouts import generate_layout_preview
 from .session import (
-    BLUEPRINT_CACHE_KEY,
     ARTIFACTS_CACHE_KEY,
+    BLUEPRINT_CACHE_KEY,
     SESSION_STATE_ROOT,
     get_cached_artifact,
     get_cached_blueprint,
     get_session_bucket,
-    get_view_focus,
     store_artifact,
     store_blueprint,
-    set_view_focus,
 )
+from .templates import describe_template, list_templates
 
 __all__ = [
     "ARCHIMATE_NS",
@@ -70,8 +65,6 @@ __all__ = [
     "get_cached_artifact",
     "get_cached_blueprint",
     "get_session_bucket",
-    "get_view_focus",
     "store_artifact",
     "store_blueprint",
-    "set_view_focus",
 ]

@@ -1,0 +1,19 @@
+"""Convenções de nomes para artefatos armazenados na sessão do agente."""
+
+from __future__ import annotations
+
+SESSION_ARTIFACT_TEMPLATE_LISTING = "template_listing"
+SESSION_ARTIFACT_TEMPLATE_GUIDANCE = "template_guidance"
+SESSION_ARTIFACT_LAYOUT_PREVIEW = "layout_preview"
+SESSION_ARTIFACT_FINAL_DATAMODEL = "final_datamodel"
+SESSION_ARTIFACT_SAVED_DATAMODEL = "saved_datamodel"
+SESSION_ARTIFACT_ARCHIMATE_XML = "archimate_xml"
+
+__all__ = [
+    "SESSION_ARTIFACT_TEMPLATE_LISTING",
+    "SESSION_ARTIFACT_TEMPLATE_GUIDANCE",
+    "SESSION_ARTIFACT_LAYOUT_PREVIEW",
+    "SESSION_ARTIFACT_FINAL_DATAMODEL",
+    "SESSION_ARTIFACT_SAVED_DATAMODEL",
+    "SESSION_ARTIFACT_ARCHIMATE_XML",
+]

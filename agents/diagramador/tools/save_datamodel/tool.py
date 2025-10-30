@@ -15,9 +15,9 @@ __all__ = ["SESSION_ARTIFACT_SAVED_DATAMODEL", "save_datamodel"]
 
 
 def save_datamodel(
-    datamodel: str | None,
-    filename: str | None,
-    session_state: str | MutableMapping[str, Any] | None,
+    datamodel: str | None = None,
+    filename: str | None = None,
+    session_state: str | MutableMapping[str, Any] | None = None,
 ):
     target = empty_string_to_none(filename) or DEFAULT_DATAMODEL_FILENAME
     payload: Any | None = datamodel

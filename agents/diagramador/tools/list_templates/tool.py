@@ -14,8 +14,8 @@ __all__ = ["SESSION_ARTIFACT_TEMPLATE_LISTING", "list_templates"]
 
 
 def list_templates(
-    directory: str | None,
-    session_state: str | MutableMapping[str, Any] | None,
+    directory: str | None = None,
+    session_state: str | MutableMapping[str, Any] | None = None,
 ):
     """Wrapper que normaliza parâmetros antes de chamar a implementação base."""
 
