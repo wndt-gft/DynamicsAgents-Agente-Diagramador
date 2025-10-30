@@ -36,6 +36,7 @@ from .rendering import render_view_layout
 from .session import (
     get_cached_artifact,
     get_cached_blueprint,
+    get_session_bucket,
     get_view_focus,
     set_view_focus,
     store_artifact,
@@ -56,6 +57,7 @@ SESSION_ARTIFACT_FINAL_DATAMODEL = "final_datamodel"
 SESSION_ARTIFACT_LAYOUT_PREVIEW = "layout_preview"
 SESSION_ARTIFACT_SAVED_DATAMODEL = "saved_datamodel"
 SESSION_ARTIFACT_ARCHIMATE_XML = "archimate_xml"
+SESSION_ARTIFACT_LOADED_PREVIEW = "load_layout_preview_response"
 
 
 def _error_response(message: str, *, code: str | None = None) -> Dict[str, Any]:
@@ -2744,6 +2746,15 @@ def load_layout_preview(
     primary_preview = dict(response["previews"][0])
     response["primary_preview"] = primary_preview
 
+    if session_state is not None:
+        store_artifact(
+            session_state,
+            SESSION_ARTIFACT_LOADED_PREVIEW,
+            response,
+        )
+        bucket = get_session_bucket(session_state)
+        bucket["load_layout_preview_response"] = copy.deepcopy(response)
+
     return response
 
 
@@ -3007,6 +3018,7 @@ __all__ = [
     "SESSION_ARTIFACT_LAYOUT_PREVIEW",
     "SESSION_ARTIFACT_SAVED_DATAMODEL",
     "SESSION_ARTIFACT_ARCHIMATE_XML",
+    "SESSION_ARTIFACT_LOADED_PREVIEW",
     "list_templates",
     "describe_template",
     "generate_layout_preview",

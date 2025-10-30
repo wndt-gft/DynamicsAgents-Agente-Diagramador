@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import warnings
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from google.adk import Agent
@@ -16,6 +18,8 @@ from .tools.diagramador import (
     DEFAULT_DATAMODEL_FILENAME,
     DEFAULT_DIAGRAM_FILENAME,
     DEFAULT_MODEL,
+    SESSION_ARTIFACT_LAYOUT_PREVIEW,
+    SESSION_ARTIFACT_LOADED_PREVIEW,
     describe_template as _describe_template,
     finalize_datamodel as _finalize_datamodel,
     generate_archimate_diagram as _generate_archimate_diagram,
@@ -109,6 +113,340 @@ def _normalize_bool_flag(value: Any) -> bool | None:
         if normalized in {"false", "0", "no", "nao", "não"}:
             return False
 
+    return None
+
+
+_PLACEHOLDER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _stringify_placeholder_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        return text or None
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, Path):
+        return str(value)
+    return None
+
+
+def _sanitize_state_segment(segment: str) -> str:
+    cleaned = _PLACEHOLDER_SEGMENT_RE.sub("_", segment.strip())
+    cleaned = cleaned.strip("_")
+    return cleaned or segment.strip() or "valor"
+
+
+def _flatten_state_for_placeholders(
+    node: Any, prefix: str, mapping: dict[str, str]
+) -> None:
+    if isinstance(node, Mapping):
+        for key, value in node.items():
+            key_text = _sanitize_state_segment(str(key))
+            if not key_text:
+                continue
+            next_prefix = f"{prefix}.{key_text}" if prefix else key_text
+            _flatten_state_for_placeholders(value, next_prefix, mapping)
+        return
+    if isinstance(node, Sequence) and not isinstance(node, (str, bytes, bytearray)):
+        for index, value in enumerate(node):
+            next_prefix = f"{prefix}.{index}" if prefix else str(index)
+            _flatten_state_for_placeholders(value, next_prefix, mapping)
+        return
+    text = _stringify_placeholder_value(node)
+    if text is not None and prefix:
+        mapping.setdefault(prefix, text)
+
+
+def _format_download_link(uri: str, label: str | None = None) -> str:
+    safe_uri = uri.strip()
+    if not safe_uri:
+        return ""
+    label_text = label.strip() if isinstance(label, str) else None
+    if not label_text:
+        label_text = "Abrir diagrama"
+    return f"[{label_text}]({safe_uri})"
+
+
+def _format_inline_image(uri: str, alt: str | None = None) -> str:
+    safe_uri = uri.strip()
+    if not safe_uri:
+        return ""
+    alt_text = alt.strip() if isinstance(alt, str) else None
+    if not alt_text:
+        alt_text = "Pré-visualização"
+    return f"![{alt_text}]({safe_uri})"
+
+
+def _coalesce_inline_markdown(summary: Mapping[str, Any]) -> str | None:
+    inline = _stringify_placeholder_value(summary.get("inline_markdown"))
+    if inline:
+        return inline
+    uri = _stringify_placeholder_value(summary.get("inline_uri"))
+    if uri:
+        alt = _stringify_placeholder_value(summary.get("view_name"))
+        markup = _format_inline_image(uri, alt)
+        return markup or None
+    return None
+
+
+def _coalesce_download_markdown(summary: Mapping[str, Any]) -> str | None:
+    download = _stringify_placeholder_value(summary.get("download_markdown"))
+    if download:
+        return download
+    uri = _stringify_placeholder_value(summary.get("download_uri"))
+    if uri:
+        label = _stringify_placeholder_value(summary.get("download_label"))
+        markup = _format_download_link(uri, label)
+        return markup or None
+    return None
+
+
+def _coalesce_path(summary: Mapping[str, Any]) -> str | None:
+    path_value = _stringify_placeholder_value(summary.get("download_path"))
+    if path_value:
+        return path_value
+    return _stringify_placeholder_value(summary.get("inline_path"))
+
+
+def _coalesce_filename(summary: Mapping[str, Any]) -> str | None:
+    filename = _stringify_placeholder_value(summary.get("download_filename"))
+    if filename:
+        return filename
+    filename = _stringify_placeholder_value(summary.get("inline_filename"))
+    if filename:
+        return filename
+    path_value = _coalesce_path(summary)
+    if path_value:
+        return Path(path_value).name
+    return _stringify_placeholder_value(summary.get("view_name"))
+
+
+def _register_placeholder(mapping: dict[str, str], placeholder: Any, value: str | None) -> None:
+    placeholder_text = _stringify_placeholder_value(placeholder)
+    if not placeholder_text:
+        return
+    if value is None:
+        return
+    value_text = value.strip()
+    if not value_text:
+        return
+    if placeholder_text not in mapping:
+        mapping[placeholder_text] = value_text
+    if (
+        placeholder_text.startswith("{")
+        and placeholder_text.endswith("}")
+        and not placeholder_text.startswith("{{")
+    ):
+        inner = placeholder_text[1:-1].strip()
+        if inner:
+            mapping.setdefault(f"{{{{{inner}}}}}", value_text)
+
+
+def _collect_layout_preview_replacements(
+    layout: Mapping[str, Any] | None,
+) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    if not isinstance(layout, Mapping):
+        return mapping
+
+    default_svg: str | None = None
+    default_png: str | None = None
+
+    def _process(summary: Mapping[str, Any] | None) -> None:
+        nonlocal default_svg, default_png
+        if not isinstance(summary, Mapping):
+            return
+
+        inline_md = _coalesce_inline_markdown(summary)
+        download_md = _coalesce_download_markdown(summary)
+        inline_uri = _stringify_placeholder_value(summary.get("inline_uri"))
+        download_uri = _stringify_placeholder_value(summary.get("download_uri"))
+        inline_path = _stringify_placeholder_value(summary.get("inline_path"))
+        download_path = _stringify_placeholder_value(summary.get("download_path"))
+        filename = _coalesce_filename(summary)
+
+        placeholders = summary.get("placeholders")
+        if isinstance(placeholders, Mapping):
+            for key, placeholder in placeholders.items():
+                normalized_key = _stringify_placeholder_value(key)
+                placeholder_token = _stringify_placeholder_value(placeholder)
+                if not normalized_key or not placeholder_token:
+                    continue
+                base_key = normalized_key.lower()
+                if base_key.startswith("legacy_"):
+                    base_key = base_key[len("legacy_") :]
+                elif base_key.startswith("bare_"):
+                    base_key = base_key[len("bare_") :]
+                resolved: str | None = None
+                if base_key in {"image", "img", "embed"}:
+                    resolved = inline_md
+                elif base_key in {"link", "markdown_link"}:
+                    resolved = download_md or inline_md
+                elif base_key in {"path", "relative_path"}:
+                    resolved = (
+                        download_path
+                        or inline_path
+                        or download_uri
+                        or inline_uri
+                    )
+                elif base_key == "uri":
+                    resolved = download_uri or inline_uri
+                elif base_key == "filename":
+                    resolved = filename
+                if resolved:
+                    _register_placeholder(mapping, placeholder_token, resolved)
+
+        _register_placeholder(mapping, summary.get("inline_placeholder"), inline_md)
+        _register_placeholder(
+            mapping, summary.get("inline_placeholder_legacy"), inline_md
+        )
+        _register_placeholder(
+            mapping,
+            summary.get("download_placeholder"),
+            download_md or inline_md,
+        )
+        _register_placeholder(
+            mapping,
+            summary.get("download_placeholder_legacy"),
+            download_md or inline_md,
+        )
+
+        if inline_md:
+            lower_inline = inline_md.lower()
+            if default_png is None and (
+                ".png" in lower_inline
+                or (inline_path and inline_path.lower().endswith(".png"))
+            ):
+                default_png = inline_md
+
+        link_target = download_path or download_uri
+        if link_target and link_target.lower().endswith(".svg"):
+            if download_md:
+                default_svg = default_svg or download_md
+            elif download_uri:
+                default_svg = default_svg or _format_download_link(download_uri)
+
+    _process(layout)
+    _process(layout.get("primary_preview"))
+
+    summaries = layout.get("preview_summaries")
+    if isinstance(summaries, Sequence):
+        for summary in summaries:
+            if isinstance(summary, Mapping):
+                _process(summary)
+
+    previews = layout.get("previews")
+    if isinstance(previews, Sequence):
+        for summary in previews:
+            if isinstance(summary, Mapping):
+                _process(summary)
+
+    if default_svg:
+        _register_placeholder(mapping, "{diagramador_svg_link}", default_svg)
+        _register_placeholder(mapping, "{link_diagrama_svg_base64}", default_svg)
+    if default_png:
+        _register_placeholder(mapping, "{diagram_img_png}", default_png)
+
+    return mapping
+
+
+def _build_placeholder_replacements(
+    state_data: Mapping[str, Any] | None,
+) -> dict[str, str]:
+    replacements: dict[str, str] = {}
+    if not isinstance(state_data, Mapping):
+        return replacements
+
+    virtual_state: dict[str, Any] = dict(state_data)
+    alias_candidates: list[Mapping[str, Any]] = []
+
+    diagramador_bucket = state_data.get("diagramador")
+    if isinstance(diagramador_bucket, Mapping):
+        artifacts = diagramador_bucket.get("artifacts")
+        if isinstance(artifacts, Mapping):
+            layout_artifact = artifacts.get(SESSION_ARTIFACT_LAYOUT_PREVIEW)
+            if isinstance(layout_artifact, Mapping):
+                alias_candidates.append(layout_artifact)
+            loaded_artifact = artifacts.get(SESSION_ARTIFACT_LOADED_PREVIEW)
+            if isinstance(loaded_artifact, Mapping):
+                alias_candidates.append(loaded_artifact)
+        direct_loaded = diagramador_bucket.get("load_layout_preview_response")
+        if isinstance(direct_loaded, Mapping):
+            alias_candidates.append(direct_loaded)
+
+    primary_layout = next(iter(alias_candidates), None)
+    if isinstance(primary_layout, Mapping):
+        virtual_state.setdefault("layout_preview", primary_layout)
+        virtual_state.setdefault("load_layout_preview_response", primary_layout)
+
+    for candidate in alias_candidates:
+        replacements.update(_collect_layout_preview_replacements(candidate))
+
+    flat_paths: dict[str, str] = {}
+    _flatten_state_for_placeholders(virtual_state, "", flat_paths)
+    for path, value in flat_paths.items():
+        replacements.setdefault(f"{{{{state.{path}}}}}", value)
+        replacements.setdefault(f"{{{{{path}}}}}", value)
+
+    return replacements
+
+
+def _apply_replacements_to_text(text: str, replacements: Mapping[str, str]) -> str:
+    result = text
+    for needle, replacement in replacements.items():
+        if not needle:
+            continue
+        result = result.replace(needle, replacement)
+    return result
+
+
+def _apply_replacements_to_llm_response(
+    llm_response: Any, replacements: Mapping[str, str]
+) -> None:
+    if not replacements:
+        return
+
+    content = getattr(llm_response, "content", None)
+    if isinstance(content, str):
+        updated = _apply_replacements_to_text(content, replacements)
+        if updated != content:
+            llm_response.content = updated
+        return
+
+    parts = getattr(content, "parts", None)
+    if isinstance(parts, Sequence):
+        for part in parts:
+            text = getattr(part, "text", None)
+            if isinstance(text, str):
+                updated = _apply_replacements_to_text(text, replacements)
+                if updated != text:
+                    part.text = updated
+    else:
+        text = getattr(content, "text", None)
+        if isinstance(text, str):
+            updated = _apply_replacements_to_text(text, replacements)
+            if updated != text:
+                content.text = updated
+
+
+def _after_model_response_callback(*, callback_context: Any, llm_response: Any):
+    try:
+        state_data = callback_context.state.to_dict()  # type: ignore[attr-defined]
+    except Exception:
+        state_data = {}
+
+    replacements = _build_placeholder_replacements(state_data)
+    if not replacements:
+        return None
+
+    logger.debug(
+        "Substituindo %d placeholders após a resposta do modelo.", len(replacements)
+    )
+    _apply_replacements_to_llm_response(llm_response, replacements)
     return None
 
 
@@ -222,6 +560,7 @@ diagramador_agent = Agent(
     name="diagramador",
     description=diagramador_description,
     instruction=ORCHESTRATOR_PROMPT,
+    after_model_callback=_after_model_response_callback,
     tools=[
         _make_tool(list_templates, name="list_templates"),
         _make_tool(describe_template, name="describe_template"),
