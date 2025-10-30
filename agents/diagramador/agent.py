@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import base64
@@ -27,6 +28,8 @@ from .tools.diagramador import (
     DEFAULT_DATAMODEL_FILENAME,
     DEFAULT_DIAGRAM_FILENAME,
     DEFAULT_MODEL,
+    SESSION_ARTIFACT_FINAL_DATAMODEL,
+    SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
     SESSION_ARTIFACT_LAYOUT_PREVIEW,
     describe_template as _describe_template,
     finalize_datamodel as _finalize_datamodel,
@@ -124,6 +127,108 @@ def _normalize_bool_flag(value: Any) -> bool | None:
 
 
 _PLACEHOLDER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _extract_session_mapping(callback_context: Any) -> MutableMapping[str, Any] | None:
+    """Try to obtain a mutable mapping backing the session state."""
+
+    state_obj = getattr(callback_context, "state", None)
+    if isinstance(state_obj, MutableMapping):
+        return state_obj
+
+    for attr in ("data", "_data", "state", "_state"):
+        candidate = getattr(state_obj, attr, None)
+        if isinstance(candidate, MutableMapping):
+            return candidate
+
+    return None
+
+
+def _resolve_template_path_from_bucket(bucket: Mapping[str, Any]) -> str | None:
+    artifacts = bucket.get("artifacts") if isinstance(bucket, Mapping) else None
+    template_path: str | None = None
+
+    if isinstance(artifacts, Mapping):
+        guidance = artifacts.get(SESSION_ARTIFACT_TEMPLATE_GUIDANCE)
+        if isinstance(guidance, Mapping):
+            model_payload = guidance.get("model")
+            if isinstance(model_payload, Mapping):
+                candidate = model_payload.get("path") or model_payload.get("template")
+                if isinstance(candidate, str) and candidate.strip():
+                    template_path = candidate.strip()
+        if not template_path:
+            final_datamodel = artifacts.get(SESSION_ARTIFACT_FINAL_DATAMODEL)
+            if isinstance(final_datamodel, Mapping):
+                candidate = final_datamodel.get("template")
+                if isinstance(candidate, str) and candidate.strip():
+                    template_path = candidate.strip()
+
+    return template_path
+
+
+def _extract_datamodel_payload(bucket: Mapping[str, Any]) -> str | None:
+    artifacts = bucket.get("artifacts") if isinstance(bucket, Mapping) else None
+    if not isinstance(artifacts, Mapping):
+        return None
+
+    payload = artifacts.get(SESSION_ARTIFACT_FINAL_DATAMODEL)
+    if not isinstance(payload, Mapping):
+        return None
+
+    for key in ("json", "source_json"):
+        candidate = payload.get(key)
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+
+    for key in ("datamodel", "source"):
+        candidate = payload.get(key)
+        if isinstance(candidate, Mapping):
+            try:
+                return json.dumps(candidate)
+            except TypeError:
+                continue
+
+    return None
+
+
+def _ensure_layout_preview_assets(session_state: MutableMapping[str, Any]) -> bool:
+    """Guarantee that layout preview assets exist before response delivery."""
+
+    if not isinstance(session_state, MutableMapping):
+        return False
+
+    bucket = session_state.get("diagramador")
+    if not isinstance(bucket, MutableMapping):
+        return False
+
+    artifacts = bucket.get("artifacts")
+    if isinstance(artifacts, MutableMapping):
+        layout_artifact = artifacts.get(SESSION_ARTIFACT_LAYOUT_PREVIEW)
+        if isinstance(layout_artifact, Mapping):
+            if _collect_layout_preview_replacements(layout_artifact):
+                return False
+
+    template_path = _resolve_template_path_from_bucket(bucket)
+    if not template_path:
+        return False
+
+    datamodel_payload = _extract_datamodel_payload(bucket)
+    if datamodel_payload is None:
+        datamodel_payload = None
+
+    view_focus = bucket.get("view_focus") if isinstance(bucket, Mapping) else None
+
+    try:
+        _generate_layout_preview(
+            datamodel_payload,
+            template_path=template_path,
+            session_state=session_state,
+            view_filter=view_focus,
+        )
+        return True
+    except Exception:  # pragma: no cover - geração de prévia pode falhar silenciosamente
+        logger.debug("Falha ao gerar pré-visualização automática antes da resposta", exc_info=True)
+        return False
 
 
 def _resolve_local_file(path_text: str | None, uri_text: str | None) -> Path | None:
@@ -762,10 +867,22 @@ def _apply_replacements_to_llm_response(
 
 
 def _after_model_response_callback(*, callback_context: Any, llm_response: Any):
+    session_mapping = _extract_session_mapping(callback_context)
+
+    if session_mapping is not None:
+        _ensure_layout_preview_assets(session_mapping)
+
     try:
-        state_data = callback_context.state.to_dict()  # type: ignore[attr-defined]
+        state_obj = getattr(callback_context, "state")
+        state_data = state_obj.to_dict()  # type: ignore[attr-defined]
     except Exception:
-        state_data = {}
+        if session_mapping is not None:
+            try:
+                state_data = copy.deepcopy(session_mapping)
+            except Exception:
+                state_data = dict(session_mapping)
+        else:
+            state_data = {}
 
     replacements = _build_placeholder_replacements(state_data)
     if not replacements:
