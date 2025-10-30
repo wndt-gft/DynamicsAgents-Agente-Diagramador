@@ -228,24 +228,50 @@ def _sanitize_state_segment(segment: str) -> str:
 
 
 def _flatten_state_for_placeholders(
-    node: Any, prefix: str, mapping: dict[str, str]
+    node: Any,
+    prefix: str,
+    mapping: dict[str, str],
+    *,
+    raw_segments: tuple[str, ...] = (),
 ) -> None:
     if isinstance(node, Mapping):
         for key, value in node.items():
-            key_text = _sanitize_state_segment(str(key))
-            if not key_text:
+            raw_key = str(key)
+            sanitized_key = _sanitize_state_segment(raw_key)
+            if not sanitized_key:
                 continue
-            next_prefix = f"{prefix}.{key_text}" if prefix else key_text
-            _flatten_state_for_placeholders(value, next_prefix, mapping)
+            next_prefix = f"{prefix}.{sanitized_key}" if prefix else sanitized_key
+            next_raw_segments = raw_segments + (raw_key,)
+            _flatten_state_for_placeholders(
+                value,
+                next_prefix,
+                mapping,
+                raw_segments=next_raw_segments,
+            )
         return
     if isinstance(node, Sequence) and not isinstance(node, (str, bytes, bytearray)):
         for index, value in enumerate(node):
-            next_prefix = f"{prefix}.{index}" if prefix else str(index)
-            _flatten_state_for_placeholders(value, next_prefix, mapping)
+            index_text = str(index)
+            sanitized_index = _sanitize_state_segment(index_text)
+            next_prefix = f"{prefix}.{sanitized_index}" if prefix else sanitized_index
+            next_raw_segments = raw_segments + (index_text,)
+            _flatten_state_for_placeholders(
+                value,
+                next_prefix,
+                mapping,
+                raw_segments=next_raw_segments,
+            )
         return
     text = _stringify_placeholder_value(node)
     if text is not None and prefix:
         mapping.setdefault(prefix, text)
+        raw_path = ".".join(
+            segment.strip()
+            for segment in raw_segments
+            if isinstance(segment, str) and segment.strip()
+        )
+        if raw_path and raw_path != prefix:
+            mapping.setdefault(raw_path, text)
 
 
 def _format_download_link(uri: str, label: str | None = None) -> str:
