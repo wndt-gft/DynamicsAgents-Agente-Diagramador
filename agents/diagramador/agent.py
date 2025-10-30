@@ -489,6 +489,30 @@ def _register_direct_placeholder(mapping: dict[str, str], token: str, value: str
         mapping.setdefault(encoded, value)
 
 
+def _register_state_prefix_variants(
+    mapping: dict[str, str], prefix: Any, value: Any
+) -> None:
+    """Registra placeholders baseados apenas no prefixo da visão."""
+
+    prefix_text = _stringify_placeholder_value(prefix)
+    value_text = _stringify_placeholder_value(value)
+
+    if not prefix_text or not value_text:
+        return
+
+    base_keys = [
+        f"state.{prefix_text}",
+        f"app.state.{prefix_text}",
+        prefix_text,
+    ]
+
+    for base in base_keys:
+        _register_direct_placeholder(mapping, f"{{{{{base}}}}}", value_text)
+        _register_direct_placeholder(mapping, f"{{{{ {base} }}}}", value_text)
+        _register_direct_placeholder(mapping, f"[[{base}]]", value_text)
+        _register_direct_placeholder(mapping, f"[[ {base} ]]", value_text)
+
+
 def _register_square_placeholder_variants(
     mapping: dict[str, str], key_text: str, value_text: str
 ) -> None:
@@ -668,7 +692,7 @@ def _collect_layout_preview_replacements(
                         or download_uri
                         or inline_uri
                     )
-                elif base_key == "uri":
+                elif base_key in {"uri", "url"}:
                     resolved = (
                         download_data_uri
                         or inline_data_uri
@@ -694,6 +718,15 @@ def _collect_layout_preview_replacements(
             summary.get("download_placeholder_legacy"),
             download_value,
         )
+
+        base_value = inline_value or download_value
+        if base_value:
+            _register_state_prefix_variants(
+                mapping, summary.get("state_placeholder_prefix"), base_value
+            )
+            _register_state_prefix_variants(
+                mapping, summary.get("placeholder_token"), base_value
+            )
 
         if inline_value:
             lower_inline = inline_value.lower()

@@ -239,11 +239,37 @@ def test_register_placeholder_handles_percent_encoding():
     assert encoded_token in replacements
     assert replacements[encoded_token] == value
 
-    sample_text = f"data:image/png;base64,{encoded_token}"
-    replaced = diagramador_agent_module._apply_replacements_to_text(
-        sample_text, replacements
-    )
-    assert replaced == f"data:image/png;base64,{value}"
+
+def test_collect_layout_preview_registers_prefix_tokens():
+    inline_html = '<img src="data:image/png;base64,IMG" alt="Visão">'
+    download_html = '<a href="data:image/svg+xml;base64,SVG">Abrir</a>'
+
+    layout = {
+        "preview_summaries": [
+            {
+                "view_name": "Visão",
+                "inline_html": inline_html,
+                "download_html": download_html,
+                "inline_data_uri": "data:image/png;base64,IMG",
+                "download_data_uri": "data:image/svg+xml;base64,SVG",
+                "state_placeholder_prefix": "preview_token",
+                "placeholder_token": "preview_token",
+                "placeholders": {
+                    "image": "{{state.preview_token_img}}",
+                    "link": "{{state.preview_token_link}}",
+                    "uri": "{{state.preview_token_url}}",
+                    "url": "{{state.preview_token_url}}",
+                },
+            }
+        ]
+    }
+
+    replacements = diagramador_agent_module._collect_layout_preview_replacements(layout)
+
+    assert replacements.get("{{state.preview_token}}") == inline_html
+    assert replacements.get("[[state.preview_token]]") == inline_html
+    assert replacements.get("{{state.preview_token_url}}") == "data:image/svg+xml;base64,SVG"
+    assert replacements.get("[[state.preview_token_url]]") == "data:image/svg+xml;base64,SVG"
 
 
 def test_generate_layout_preview_resolves_agent_relative_path(sample_payload, session_state):

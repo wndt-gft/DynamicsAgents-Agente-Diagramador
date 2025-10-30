@@ -40,6 +40,8 @@ def _build_response_with_placeholder() -> dict:
                         {
                             "text": (
                                 "Prévia: {{state.layout_preview.primary_preview.inline_markdown}}\n"
+                                "Imagem embutida: {{state.preview_token}}\n"
+                                "Link SVG: [[state.preview_token_url]]\n"
                                 "Link: {{state.layout_preview.primary_preview.download_markdown}}"
                             )
                         }
@@ -81,6 +83,17 @@ def test_after_model_callback_generates_preview_before_replacement():
                 "download_markdown": f"[SVG]({expected_svg})",
                 "download_data_uri": expected_svg,
                 "view_name": "Visão",
+                "state_placeholder_prefix": "preview_token",
+                "placeholder_token": "preview_token",
+                "placeholders": {
+                    "image": "{{state.preview_token}}",
+                    "link": "{{state.preview_token_link}}",
+                    "uri": "{{state.preview_token_url}}",
+                    "url": "{{state.preview_token_url}}",
+                    "bare_image": "{{preview_token}}",
+                    "bare_link": "{{preview_token_link}}",
+                    "bare_uri": "{{preview_token_url}}",
+                },
             }
         }
         return {"status": "ok", "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW}
@@ -96,3 +109,7 @@ def test_after_model_callback_generates_preview_before_replacement():
     rendered_text = llm_response["candidates"][0]["content"]["parts"][0]["text"]
     assert expected_png in rendered_text
     assert expected_svg in rendered_text
+    assert "{{state.preview_token}}" not in rendered_text
+    assert "[[state.preview_token_url]]" not in rendered_text
+    assert '<img src="data:image/png;base64,AAA"' in rendered_text
+    assert 'href="data:image/svg+xml;base64,BBB"' in rendered_text
