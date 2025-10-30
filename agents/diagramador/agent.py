@@ -338,6 +338,36 @@ def _coalesce_filename(summary: Mapping[str, Any]) -> str | None:
     return _stringify_placeholder_value(summary.get("view_name"))
 
 
+def _register_square_placeholder_variants(
+    mapping: dict[str, str], key_text: str, value_text: str
+) -> None:
+    """Register double-bracket variants for a given placeholder key."""
+
+    if not key_text:
+        return
+
+    candidates: set[str] = {key_text}
+
+    if key_text.startswith("app.state."):
+        suffix = key_text[len("app.state.") :]
+        if suffix:
+            candidates.add(suffix)
+            candidates.add(f"state.{suffix}")
+    elif key_text.startswith("state."):
+        suffix = key_text[len("state.") :]
+        if suffix:
+            candidates.add(suffix)
+            candidates.add(f"app.state.{suffix}")
+    else:
+        candidates.add(f"state.{key_text}")
+        candidates.add(f"app.state.{key_text}")
+
+    for candidate in candidates:
+        token = f"[[{candidate}]]"
+        if token not in mapping:
+            mapping[token] = value_text
+
+
 def _register_placeholder(mapping: dict[str, str], placeholder: Any, value: str | None) -> None:
     placeholder_text = _stringify_placeholder_value(placeholder)
     if not placeholder_text:
@@ -357,6 +387,12 @@ def _register_placeholder(mapping: dict[str, str], placeholder: Any, value: str 
         inner = placeholder_text[1:-1].strip()
         if inner:
             mapping.setdefault(f"{{{{{inner}}}}}", value_text)
+            _register_square_placeholder_variants(mapping, inner, value_text)
+
+    if placeholder_text.startswith("{{") and placeholder_text.endswith("}}"):  # pragma: no branch
+        inner = placeholder_text[2:-2].strip()
+        if inner:
+            _register_square_placeholder_variants(mapping, inner, value_text)
 
 
 def _collect_layout_preview_replacements(
@@ -533,6 +569,7 @@ def _build_placeholder_replacements(
     for path, value in flat_paths.items():
         replacements.setdefault(f"{{{{state.{path}}}}}", value)
         replacements.setdefault(f"{{{{{path}}}}}", value)
+        _register_square_placeholder_variants(replacements, f"state.{path}", value)
 
     return replacements
 
