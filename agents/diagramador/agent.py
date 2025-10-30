@@ -14,6 +14,11 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from pathlib import Path
 from typing import Any, Iterable, Tuple
 
+try:  # pragma: no cover - dependência opcional
+    import cairosvg  # type: ignore
+except Exception:  # pragma: no cover - ambiente sem suporte
+    cairosvg = None  # type: ignore[assignment]
+
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
 
@@ -181,6 +186,26 @@ def _encode_data_uri(path: Path | None, *, mime_hint: str | None = None) -> Tupl
     return f"data:{mime_type};base64,{encoded}", mime_type
 
 
+def _convert_svg_to_png_data_uri(path: Path | None) -> Tuple[str | None, str | None]:
+    """Gera um data URI PNG a partir de um arquivo SVG, se possível."""
+
+    if path is None or cairosvg is None:
+        return None, None
+
+    try:
+        svg_bytes = path.read_bytes()
+    except OSError:
+        return None, None
+
+    try:  # pragma: no cover - depende de cairosvg
+        png_bytes = cairosvg.svg2png(bytestring=svg_bytes)  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover - falha na conversão
+        return None, None
+
+    encoded = base64.b64encode(png_bytes).decode("ascii")
+    return f"data:image/png;base64,{encoded}", "image/png"
+
+
 def _build_image_html(data_uri: str | None, alt_text: str | None) -> str | None:
     if not data_uri:
         return None
@@ -265,6 +290,11 @@ def _flatten_state_for_placeholders(
     text = _stringify_placeholder_value(node)
     if text is not None and prefix:
         mapping.setdefault(prefix, text)
+        underscore_key = prefix.replace(".", "_")
+        underscore_key = underscore_key.replace("-", "_")
+        underscore_key = re.sub(r"__+", "_", underscore_key)
+        if underscore_key and underscore_key != prefix:
+            mapping.setdefault(underscore_key, text)
         raw_path = ".".join(
             segment.strip()
             for segment in raw_segments
@@ -272,6 +302,10 @@ def _flatten_state_for_placeholders(
         )
         if raw_path and raw_path != prefix:
             mapping.setdefault(raw_path, text)
+            raw_underscore = raw_path.replace(".", "_").replace("-", "_")
+            raw_underscore = re.sub(r"__+", "_", raw_underscore)
+            if raw_underscore and raw_underscore not in {prefix, raw_path}:
+                mapping.setdefault(raw_underscore, text)
 
 
 def _format_download_link(uri: str, label: str | None = None) -> str:
@@ -346,26 +380,48 @@ def _register_square_placeholder_variants(
     if not key_text:
         return
 
-    candidates: set[str] = {key_text}
+    pending: set[str] = {key_text}
+    seen: set[str] = set()
 
-    if key_text.startswith("app.state."):
-        suffix = key_text[len("app.state.") :]
-        if suffix:
-            candidates.add(suffix)
-            candidates.add(f"state.{suffix}")
-    elif key_text.startswith("state."):
-        suffix = key_text[len("state.") :]
-        if suffix:
-            candidates.add(suffix)
-            candidates.add(f"app.state.{suffix}")
-    else:
-        candidates.add(f"state.{key_text}")
-        candidates.add(f"app.state.{key_text}")
+    while pending:
+        candidate = pending.pop()
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
 
-    for candidate in candidates:
         token = f"[[{candidate}]]"
-        if token not in mapping:
-            mapping[token] = value_text
+        mapping.setdefault(token, value_text)
+
+        if candidate.startswith("app.state."):
+            suffix = candidate[len("app.state.") :]
+            if suffix:
+                pending.add(suffix)
+                pending.add(f"state.{suffix}")
+        elif candidate.startswith("state."):
+            suffix = candidate[len("state.") :]
+            if suffix:
+                pending.add(suffix)
+                pending.add(f"app.state.{suffix}")
+        else:
+            pending.add(f"state.{candidate}")
+            pending.add(f"app.state.{candidate}")
+
+        normalized = candidate.replace(".", "_")
+        normalized = normalized.replace("-", "_")
+        normalized = re.sub(r"__+", "_", normalized)
+        if normalized != candidate:
+            pending.add(normalized)
+
+        if candidate.startswith("state_"):
+            suffix = candidate[len("state_") :]
+            if suffix:
+                pending.add(suffix)
+                pending.add(f"app_state_{suffix}")
+        if candidate.startswith("app_state_"):
+            suffix = candidate[len("app_state_") :]
+            if suffix:
+                pending.add(suffix)
+                pending.add(f"state_{suffix}")
 
 
 def _register_placeholder(mapping: dict[str, str], placeholder: Any, value: str | None) -> None:
@@ -421,6 +477,10 @@ def _collect_layout_preview_replacements(
 
         inline_file = _resolve_local_file(inline_path, inline_uri)
         inline_data_uri, inline_mime = _encode_data_uri(inline_file)
+        if inline_data_uri and inline_mime and inline_mime.endswith("svg+xml"):
+            png_data_uri, png_mime = _convert_svg_to_png_data_uri(inline_file)
+            if png_data_uri:
+                inline_data_uri, inline_mime = png_data_uri, png_mime
 
         download_file = _resolve_local_file(download_path, download_uri)
         download_data_uri, download_mime = _encode_data_uri(download_file)
@@ -568,6 +628,7 @@ def _build_placeholder_replacements(
     _flatten_state_for_placeholders(virtual_state, "", flat_paths)
     for path, value in flat_paths.items():
         replacements.setdefault(f"{{{{state.{path}}}}}", value)
+        replacements.setdefault(f"{{{{app.state.{path}}}}}", value)
         replacements.setdefault(f"{{{{{path}}}}}", value)
         _register_square_placeholder_variants(replacements, f"state.{path}", value)
 

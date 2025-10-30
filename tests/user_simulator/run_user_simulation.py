@@ -345,11 +345,12 @@ def _truncate_json(value: Any, *, limit: int = 200) -> str:
 
 
 def _extract_tool_interactions(
-    event: Any, sanitized_payload: dict[str, Any]
+    event: Any, sanitized_payload: dict[str, Any] | None
 ) -> list[ToolInteractionRecord]:
     """Extrai interações de ferramentas presentes no evento."""
 
     interactions: list[ToolInteractionRecord] = []
+    payload_dict: dict[str, Any] = sanitized_payload or {}
 
     def _append_interaction(name: str | None, direction: Literal["call", "response"], detail: Any):
         if not name:
@@ -386,7 +387,7 @@ def _extract_tool_interactions(
         return interactions
 
     # Fallback baseado no payload serializado em caso de objetos simples.
-    parts = sanitized_payload.get("content", {}).get("parts", [])
+    parts = payload_dict.get("content", {}).get("parts", [])
     for part in parts if isinstance(parts, Sequence) else []:
         if isinstance(part, MutableMapping):
             if part.get("function_call"):
