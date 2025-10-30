@@ -4,10 +4,13 @@ from __future__ import annotations
 
 """Operações principais do agente Diagramador."""
 
+import base64
 import copy
+import html
 import itertools
 import json
 import logging
+import mimetypes
 import re
 import textwrap
 import unicodedata
@@ -82,6 +85,8 @@ def _state_var_token(value: str, fallback: str = "preview") -> str:
 
 _CONTROL_CHAR_CLEAN_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
 _INVALID_ESCAPE_RE = re.compile(r"(?<!\\)\\([^\"\\/bfnrtu])")
+_MISSING_COMMA_RE = re.compile(r'([}\]])(\s*)(?=[{\[\"])', re.MULTILINE)
+_TRAILING_COMMA_RE = re.compile(r",(\s*[}\]])")
 _TOKEN_SPLIT_RE = re.compile(r"[\s\-–—:/|]+")
 
 
@@ -99,6 +104,156 @@ def _strip_code_fences(text: str) -> str:
         return match.group("body").strip()
     return text
 
+
+def _guess_mime_type(path: Path | None, fallback: str | None = None) -> str:
+    if path is not None:
+        mime_type, _ = mimetypes.guess_type(str(path), strict=False)
+        if mime_type:
+            return mime_type
+        suffix = path.suffix.lower()
+        if suffix == ".svg":
+            return "image/svg+xml"
+        if suffix == ".png":
+            return "image/png"
+    if fallback:
+        return fallback
+    return "application/octet-stream"
+
+
+def _ensure_data_uri(path_text: str | None, *, mime_hint: str | None = None) -> Optional[str]:
+    if not isinstance(path_text, str) or not path_text.strip():
+        return None
+    if path_text.strip().startswith("data:"):
+        return path_text.strip()
+    candidate = Path(path_text.strip())
+    try:
+        if not candidate.exists():
+            return None
+        payload = candidate.read_bytes()
+    except OSError:
+        return None
+    mime_type = _guess_mime_type(candidate, fallback=mime_hint)
+    encoded = base64.b64encode(payload).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
+def _build_image_html(data_uri: Optional[str], alt_text: Optional[str]) -> Optional[str]:
+    if not data_uri:
+        return None
+    safe_alt = html.escape(alt_text or "Pré-visualização", quote=True)
+    return f'<img src="{data_uri}" alt="{safe_alt}">'
+
+
+def _build_link_html(data_uri: Optional[str], label: Optional[str] = None) -> Optional[str]:
+    if not data_uri:
+        return None
+    safe_label = html.escape(label or "Abrir diagrama em SVG", quote=False)
+    return f'<a href="{data_uri}" target="_blank" rel="noopener">{safe_label}</a>'
+
+
+def _normalized_template_path(path: Path) -> str:
+    if path.is_absolute():
+        return str(path.resolve())
+    return str((Path.cwd() / path).resolve())
+
+
+def _template_view_lookup(
+    session_state: Optional[MutableMapping[str, Any]], template_path: Path
+) -> Dict[str, str]:
+    """Gera um mapa id->nome a partir do resultado de ``list_templates``."""
+
+    listing = get_cached_artifact(session_state, SESSION_ARTIFACT_TEMPLATE_LISTING)
+    if not isinstance(listing, MutableMapping):
+        return {}
+
+    normalized_template = _normalized_template_path(template_path)
+    templates = listing.get("templates")
+    if not isinstance(templates, Sequence):
+        return {}
+
+    view_names: Dict[str, str] = {}
+
+    for entry in templates:
+        if not isinstance(entry, MutableMapping):
+            continue
+        path_text = entry.get("path") or entry.get("absolute_path")
+        if not isinstance(path_text, str) or not path_text.strip():
+            continue
+        try:
+            candidate = Path(path_text)
+        except Exception:
+            continue
+        if _normalized_template_path(candidate) != normalized_template:
+            continue
+        views = entry.get("views")
+        if not isinstance(views, Sequence):
+            continue
+        for view in views:
+            if not isinstance(view, MutableMapping):
+                continue
+            identifier = view.get("identifier") or view.get("id")
+            name = view.get("name")
+            if not isinstance(identifier, str) or not identifier.strip():
+                continue
+            if isinstance(name, str) and name.strip():
+                view_names[identifier.strip()] = name.strip()
+    return view_names
+
+
+def _populate_preview_assets(
+    view_payload: MutableMapping[str, Any], preview: MutableMapping[str, Any]
+) -> None:
+    """Garante que o preview contenha data URIs e HTML prontos para substituição."""
+
+    view_name = str(view_payload.get("name") or view_payload.get("id") or "Visão")
+
+    svg_path = preview.get("local_path")
+    svg_data_uri = _ensure_data_uri(svg_path, mime_hint="image/svg+xml")
+    if not svg_data_uri:
+        svg_data_uri = _ensure_data_uri(preview.get("download_path"), mime_hint="image/svg+xml")
+    if not svg_data_uri:
+        svg_data_uri = preview.get("download_uri") if isinstance(preview.get("download_uri"), str) else None
+        if isinstance(svg_data_uri, str) and svg_data_uri.startswith("data:"):
+            svg_data_uri = svg_data_uri
+        else:
+            svg_data_uri = None
+
+    png_payload = preview.get("png")
+    png_data_uri: Optional[str] = None
+    if isinstance(png_payload, MutableMapping):
+        png_data_uri = _ensure_data_uri(png_payload.get("local_path"), mime_hint="image/png")
+        if not png_data_uri:
+            png_uri = png_payload.get("uri")
+            if isinstance(png_uri, str) and png_uri.strip().startswith("data:"):
+                png_data_uri = png_uri.strip()
+        if png_data_uri:
+            png_payload.setdefault("data_uri", png_data_uri)
+
+    if not png_data_uri:
+        inline_uri = preview.get("inline_uri")
+        if isinstance(inline_uri, str) and inline_uri.strip().startswith("data:image/png"):
+            png_data_uri = inline_uri.strip()
+
+    if not png_data_uri and svg_data_uri:
+        png_data_uri = svg_data_uri
+
+    if svg_data_uri:
+        preview.setdefault("download_data_uri", svg_data_uri)
+        preview.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir diagrama em SVG"))
+
+    if png_data_uri:
+        preview.setdefault("inline_data_uri", png_data_uri)
+        preview.setdefault("inline_html", _build_image_html(png_data_uri, view_name))
+
+    if isinstance(png_payload, MutableMapping) and png_data_uri:
+        png_payload.setdefault("inline_data_uri", png_data_uri)
+        png_payload.setdefault("inline_html", _build_image_html(png_data_uri, view_name))
+        if svg_data_uri:
+            png_payload.setdefault("download_data_uri", svg_data_uri)
+            png_payload.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir diagrama em SVG"))
+
+    if svg_data_uri and not preview.get("download_uri"):
+        preview["download_uri"] = svg_data_uri
 
 def _safe_json_loads(raw_text: str) -> Any:
     """Parse JSON tolerating minor formatting issues produced by the LLM."""
@@ -142,9 +297,29 @@ def _safe_json_loads(raw_text: str) -> Any:
     else:
         repaired = sanitized
 
-    # As a final attempt relax strict checks; still raises JSONDecodeError if invalid.
+    # Remove trailing commas that o modelo pode inserir antes de chaves/colchetes.
+    relaxed = _TRAILING_COMMA_RE.sub(r"\1", repaired)
+    if relaxed != repaired:
+        try:
+            return json.loads(relaxed, strict=False)
+        except json.JSONDecodeError as exc:  # pragma: no cover - caminho defensivo
+            last_error = exc
+    else:
+        relaxed = repaired
+
+    # Corrige casos comuns de vírgula ausente entre blocos ``}{`` ou ``]{``.
+    patched = _MISSING_COMMA_RE.sub(r"\1,\2", relaxed)
+    if patched != relaxed:
+        try:
+            return json.loads(patched, strict=False)
+        except json.JSONDecodeError as exc:  # pragma: no cover - caminho defensivo
+            last_error = exc
+    else:
+        patched = relaxed
+
+    # Tentativa final com verificação flexível; se falhar, propaga o último erro.
     try:
-        return json.loads(repaired, strict=False)
+        return json.loads(patched, strict=False)
     except json.JSONDecodeError as exc:
         last_error = exc
         raise last_error
@@ -2136,6 +2311,14 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
     if isinstance(inline_uri, str) and inline_uri.strip():
         variant["inline_uri"] = inline_uri.strip()
 
+    inline_data_uri = payload.get("inline_data_uri")
+    if isinstance(inline_data_uri, str) and inline_data_uri.strip():
+        variant["inline_data_uri"] = inline_data_uri.strip()
+
+    inline_html = payload.get("inline_html")
+    if isinstance(inline_html, str) and inline_html.strip():
+        variant["inline_html"] = inline_html.strip()
+
     download_uri = payload.get("download_uri")
     if isinstance(download_uri, str) and download_uri.strip():
         variant["download_uri"] = download_uri
@@ -2145,6 +2328,14 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
             label_text = str(label).upper() if label else "PREVIEW"
             download_markdown = f"[Baixar {label_text}]({download_uri})"
         variant["download_markdown"] = download_markdown
+
+    download_data_uri = payload.get("download_data_uri")
+    if isinstance(download_data_uri, str) and download_data_uri.strip():
+        variant["download_data_uri"] = download_data_uri.strip()
+
+    download_html = payload.get("download_html")
+    if isinstance(download_html, str) and download_html.strip():
+        variant["download_html"] = download_html.strip()
 
     local_path = payload.get("local_path")
     if isinstance(local_path, str) and local_path.strip():
@@ -2307,6 +2498,11 @@ def _summarize_layout_previews(
             "variants": variants,
         }
 
+        list_view_name = view_payload.get("list_view_name")
+        if isinstance(list_view_name, str) and list_view_name.strip():
+            summary.setdefault("view_name", list_view_name.strip())
+            summary["list_view_name"] = list_view_name.strip()
+
         placeholder_candidates = []
         for variant in variants:
             placeholders_payload = variant.get("placeholders")
@@ -2323,6 +2519,10 @@ def _summarize_layout_previews(
             summary["inline_markdown"] = primary_inline["inline_markdown"]
         if "inline_uri" in primary_inline:
             summary["inline_uri"] = primary_inline["inline_uri"]
+        if "inline_data_uri" in primary_inline:
+            summary["inline_data_uri"] = primary_inline["inline_data_uri"]
+        if "inline_html" in primary_inline:
+            summary["inline_html"] = primary_inline["inline_html"]
         if "local_path" in primary_inline:
             summary["inline_path"] = primary_inline["local_path"]
         if "inline_placeholder" in primary_inline:
@@ -2335,6 +2535,10 @@ def _summarize_layout_previews(
             summary["download_markdown"] = primary_download["download_markdown"]
         if "download_uri" in primary_download:
             summary["download_uri"] = primary_download["download_uri"]
+        if "download_data_uri" in primary_download:
+            summary["download_data_uri"] = primary_download["download_data_uri"]
+        if "download_html" in primary_download:
+            summary["download_html"] = primary_download["download_html"]
         if "local_path" in primary_download:
             summary["download_path"] = primary_download["local_path"]
         if "download_placeholder" in primary_download:
@@ -2404,6 +2608,7 @@ def generate_layout_preview(
 
     template: Dict[str, Any] = {}
     template_metadata: Dict[str, Any] = {}
+    view_lookup: Dict[str, str] = {}
     if template_path:
         template_file = _resolve_package_path(Path(template_path))
         if not template_file.exists():
@@ -2413,6 +2618,7 @@ def generate_layout_preview(
         )
         store_blueprint(session_state, template_file, template)
         template_metadata["path"] = str(template_file.resolve())
+        view_lookup = _template_view_lookup(session_state, template_file)
 
     element_lookup = _build_element_lookup(template, payload)
     relation_lookup = _build_relationship_lookup(template, payload)
@@ -2462,6 +2668,8 @@ def generate_layout_preview(
             output_dir=layout_output_dir,
         )
         if preview:
+            if isinstance(preview, MutableMapping):
+                _populate_preview_assets(view_payload, preview)
             view_payload["layout_preview"] = preview
         return view_payload
 
@@ -2494,6 +2702,11 @@ def generate_layout_preview(
             datamodel_nodes,
             datamodel_connections,
         )
+        if view_lookup and view_id:
+            hint = view_lookup.get(str(view_id))
+            if hint:
+                view_payload.setdefault("list_view_name", hint)
+                view_payload.setdefault("name", hint)
         results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
@@ -2519,6 +2732,11 @@ def generate_layout_preview(
             datamodel_nodes,
             datamodel_connections,
         )
+        if view_lookup and view_id:
+            hint = view_lookup.get(str(view_id))
+            if hint:
+                view_payload.setdefault("list_view_name", hint)
+                view_payload.setdefault("name", hint)
         results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
@@ -2825,6 +3043,24 @@ def describe_template(
             filter_tokens = _session_view_filter(session_state)
 
     blueprint = _parse_template_blueprint(template)
+    view_lookup = _template_view_lookup(session_state, template)
+
+    if view_lookup:
+        views_section = blueprint.get("views")
+        if isinstance(views_section, MutableMapping):
+            diagrams = views_section.get("diagrams")
+            if isinstance(diagrams, Sequence):
+                for diagram in diagrams:
+                    if not isinstance(diagram, MutableMapping):
+                        continue
+                    identifier = diagram.get("id") or diagram.get("identifier")
+                    if isinstance(identifier, str) and identifier.strip():
+                        name_hint = view_lookup.get(identifier.strip())
+                        if name_hint:
+                            diagram["list_view_name"] = name_hint
+                            if not diagram.get("name"):
+                                diagram["name"] = name_hint
+
     store_blueprint(session_state, template, blueprint)
 
     matching_identifiers: set[str] = set()
@@ -2867,6 +3103,11 @@ def describe_template(
                     if not include and tokens & (matching_tokens or filter_tokens):
                         include = True
                     if include:
+                        if view_lookup:
+                            hint = view_lookup.get(str(diagram.get("identifier") or "").strip())
+                            if hint:
+                                diagram.setdefault("list_view_name", hint)
+                                diagram.setdefault("name", hint)
                         filtered_diagrams.append(diagram)
                 if not filtered_diagrams:
                     raise ValueError(

@@ -93,6 +93,7 @@ def test_describe_template_stores_blueprint(session_state):
 
 
 def test_describe_template_filters_views(session_state):
+    list_templates(directory=None, session_state=session_state)
     result = describe_template(
         str(SAMPLE_TEMPLATE),
         view_filter="id-154903",
@@ -106,6 +107,8 @@ def test_describe_template_filters_views(session_state):
     diagrams = guidance["views"]["diagrams"]
     assert len(diagrams) == 1
     assert diagrams[0]["identifier"] == "id-154903"
+    assert diagrams[0]["name"]
+    assert diagrams[0]["list_view_name"] == diagrams[0]["name"]
     focus_tokens = get_view_focus(session_state)
     assert focus_tokens == ["id-154903".casefold()]
 

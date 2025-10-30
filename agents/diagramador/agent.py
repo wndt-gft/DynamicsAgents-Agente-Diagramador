@@ -498,31 +498,41 @@ def _collect_layout_preview_replacements(
         if not isinstance(summary, Mapping):
             return
 
+        inline_html_pref = _stringify_placeholder_value(summary.get("inline_html"))
+        download_html_pref = _stringify_placeholder_value(summary.get("download_html"))
         inline_md = _coalesce_inline_markdown(summary)
         download_md = _coalesce_download_markdown(summary)
         inline_uri = _stringify_placeholder_value(summary.get("inline_uri"))
         download_uri = _stringify_placeholder_value(summary.get("download_uri"))
+        inline_data_uri = _stringify_placeholder_value(summary.get("inline_data_uri"))
+        download_data_uri = _stringify_placeholder_value(summary.get("download_data_uri"))
         inline_path = _stringify_placeholder_value(summary.get("inline_path"))
         download_path = _stringify_placeholder_value(summary.get("download_path"))
         filename = _coalesce_filename(summary)
         alt_text = _stringify_placeholder_value(summary.get("view_name")) or "Pré-visualização"
 
         inline_file = _resolve_local_file(inline_path, inline_uri)
-        inline_data_uri, inline_mime = _encode_data_uri(inline_file)
+        computed_inline_data_uri, inline_mime = _encode_data_uri(inline_file)
+        if not inline_data_uri:
+            inline_data_uri = computed_inline_data_uri
         if inline_data_uri and inline_mime and inline_mime.endswith("svg+xml"):
             png_data_uri, png_mime = _convert_svg_to_png_data_uri(inline_file)
             if png_data_uri:
                 inline_data_uri, inline_mime = png_data_uri, png_mime
 
         download_file = _resolve_local_file(download_path, download_uri)
-        download_data_uri, download_mime = _encode_data_uri(download_file)
+        computed_download_data_uri, download_mime = _encode_data_uri(download_file)
+        if not download_data_uri:
+            download_data_uri = computed_download_data_uri
 
         if inline_data_uri is None and inline_uri and inline_uri == download_uri:
             inline_data_uri = download_data_uri
 
-        inline_html = _build_image_html(inline_data_uri or download_data_uri, alt_text)
+        inline_html = inline_html_pref or _build_image_html(inline_data_uri or download_data_uri, alt_text)
         link_label = _extract_markdown_label(download_md) or alt_text or "Abrir diagrama"
-        download_html = _build_link_html(download_data_uri or inline_data_uri, link_label)
+        download_html = download_html_pref or _build_link_html(
+            download_data_uri or inline_data_uri, link_label
+        )
 
         inline_value = inline_html or inline_md or inline_uri or inline_path
         download_value = download_html or download_md or download_uri or inline_html
