@@ -23,7 +23,7 @@
     }
   ],
   "expected_outcomes": [
-    "Pré-visualização PNG embutida com link data:image/svg+xml;base64 rotulado como 'Abrir diagrama em SVG'.",
+    "Pré-visualização PNG embutida com link data:image/svg+xml;base64 rotulado como 'Abrir SVG da Previsão do Diagrama - <Visão>'.",
     "Apenas a visão solicitada/confirmada deve ser renderizada.",
     "Sessão deve conter artefatos persistidos para datamodel, preview e XML.",
     "Resposta final com detalhamento estruturado e sugestões de próximos passos."

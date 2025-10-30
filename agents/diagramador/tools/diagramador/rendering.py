@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import math
 import re
 from pathlib import Path
@@ -131,11 +130,6 @@ def _resolve_stroke_style(style: Optional[Dict[str, Any]]) -> Tuple[str, Optiona
     if color is None:
         return "none", opacity
     return color, opacity
-
-
-def _make_data_uri(mime_type: str, payload: bytes) -> str:
-    encoded = base64.b64encode(payload).decode("ascii")
-    return f"data:{mime_type};base64,{encoded}"
 
 
 def _compute_bounds(nodes: Iterable[Dict[str, Any]]) -> Optional[Tuple[float, float, float, float]]:
@@ -367,31 +361,30 @@ def render_view_layout(
     svg_path = output_dir / f"{slug}_layout.svg"
     svg_path.write_bytes(svg_bytes)
 
-    svg_b64 = base64.b64encode(svg_bytes).decode("ascii")
-    svg_data_uri = _make_data_uri("image/svg+xml", svg_bytes)
-    download_markdown = f"[Abrir diagrama em SVG]({svg_data_uri})"
-
-    inline_markup = (
-        f"![{_escape_markdown_alt(view_name or view_alias)}]({svg_data_uri})"
+    svg_uri = svg_path.resolve().as_uri()
+    link_label = _escape_markdown_alt(view_name or view_alias)
+    download_markdown = (
+        f"[Abrir SVG da Previsão do Diagrama - {link_label}]({svg_uri})"
     )
+    inline_markup = f"![{_escape_markdown_alt(view_name or view_alias)}]({svg_uri})"
 
     payload: Dict[str, Any] = {
         "format": "svg",
         "local_path": str(svg_path.resolve()),
         "width": width,
         "height": height,
-        "base64": svg_b64,
-        "data_uri": svg_data_uri,
-        "download_uri": svg_data_uri,
+        "uri": svg_uri,
+        "download_uri": svg_uri,
         "download_markdown": download_markdown,
         "inline_markdown": inline_markup,
-        "inline_svg": svg_markup,
+        "inline_uri": svg_uri,
         "download_filename": svg_path.name,
         "artifact": {
             "type": "image",
             "mime_type": "image/svg+xml",
-            "encoding": "base64",
-            "data": svg_b64,
+            "encoding": "file",
+            "path": str(svg_path.resolve()),
+            "uri": svg_uri,
             "filename": svg_path.name,
         },
     }
@@ -405,32 +398,32 @@ def render_view_layout(
         if png_bytes:
             png_path = output_dir / f"{slug}_layout.png"
             png_path.write_bytes(png_bytes)
-            png_b64 = base64.b64encode(png_bytes).decode("ascii")
-            png_data_uri = _make_data_uri("image/png", png_bytes)
-            png_download = f"[Baixar PNG]({png_data_uri})"
+            png_uri = png_path.resolve().as_uri()
+            png_download = f"[Baixar PNG]({png_uri})"
             png_inline = (
-                f"![{_escape_markdown_alt(view_name or view_alias)}]({png_data_uri})"
+                f"![{_escape_markdown_alt(view_name or view_alias)}]({png_uri})"
             )
             payload["png"] = {
                 "format": "png",
                 "local_path": str(png_path.resolve()),
-                "base64": png_b64,
-                "data_uri": png_data_uri,
-                "download_uri": png_data_uri,
+                "uri": png_uri,
+                "download_uri": png_uri,
                 "download_markdown": png_download,
                 "inline_markdown": png_inline,
+                "inline_uri": png_uri,
                 "download_filename": png_path.name,
                 "artifact": {
                     "type": "image",
                     "mime_type": "image/png",
-                    "encoding": "base64",
-                    "data": png_b64,
+                    "encoding": "file",
+                    "path": str(png_path.resolve()),
+                    "uri": png_uri,
                     "filename": png_path.name,
                 },
             }
             payload["artifacts"].append(payload["png"]["artifact"])
             payload["inline_markdown"] = png_inline
-            payload["inline_data_uri"] = png_data_uri
+            payload["inline_uri"] = png_uri
             payload["inline_format"] = "png"
 
     return payload

@@ -26,20 +26,31 @@ validação XSD concluída.
      organizações e visões relevantes (sem detalhes de estilo, posicionamento ou fontes).
    - Extraia das instruções do template quais campos precisam ser atualizados e quais identificadores
      devem ser preservados.
+   - Quando apresentar o resultado de `describe_template`, informe explicitamente o nome de cada visão
+     exatamente como retornado em `list_templates`, mantendo consistência entre as etapas.
 4. **Modelagem colaborativa**:
    - Construa uma proposta arquitetural textual descrevendo as visões que serão preenchidas,
      destacando como cada elemento/relacionamento do template será usado, quais ajustes são
      necessários e como a história mapeia para o modelo.
    - Prepare um datamodel preliminar com os campos semânticos (`model_identifier`, `elements`,
-     `relations`, `organizations`, `views`) e utilize `generate_layout_preview`, informando o
-     `template_path`, para gerar pré-visualizações SVG que reaproveitam o layout original do template
-     com os elementos do contexto da história do usuário.
-   - Em seguida invoque `load_layout_preview` para recuperar do estado da sessão a visão solicitada,
-     incorporando na resposta ao usuário a imagem PNG inline (campo `inline_markdown`) e o link de
-     download "Abrir diagrama em SVG". Evite publicar blobs completos fora desses campos e
-     acompanhe cada imagem com os detalhes textuais da visão, solicitando aprovação explícita antes
-     de gravar o datamodel. Se o usuário pedir mudanças, atualize o conteúdo e a pré-visualização até
-     obter o aval final.
+     `relations`, `organizations`, `views`) e, **antes de enviar a resposta detalhada ao usuário**, chame
+     `generate_layout_preview` com o `template_path` selecionado. Assim você garante que os
+     *placeholders* já estarão associados aos artefatos em base64 e poderão ser substituídos pelo
+     callback pós-resposta.
+   - As pré-visualizações devem reaproveitar o layout original do template com os elementos do
+     contexto da história do usuário. Traga para a resposta uma síntese textual das visões geradas,
+     inserindo os *placeholders* retornados pelo tool para que o callback
+     pós-resposta substitua automaticamente pela imagem PNG em base64 e pelo link SVG (também em
+     base64). Evite publicar blobs completos fora dos placeholders e sempre solicite aprovação
+     explícita antes de gravar o datamodel. Se o usuário pedir mudanças, atualize o conteúdo e a
+     pré-visualização até obter o aval final.
+    - Sempre que referenciar um artefato persistido (imagens, SVG, JSON, XML), utilize os
+      *placeholders* retornados pelas tools seguindo o padrão: "duas chaves de abertura",
+      um identificador com ou sem o prefixo `state.` e "duas chaves de fechamento".
+      Ao descrever o formato no prompt, explique com palavras (por exemplo,
+      "duas chaves de abertura, state ponto identificador do preview, duas chaves de fechamento")
+      sem escrever os caracteres de chave em sequência. Não insira conteúdos binários ou URIs
+      diretas; deixe que o callback pós-resposta faça a substituição automática pelos links reais.
 5. **Construção do datamodel base** (após aprovação):
    - Com a aprovação formal, consolide o datamodel base sem atributos de layout, mantendo os
      identificadores originais do template e assegurando coerência entre elementos, relações e
@@ -68,4 +79,6 @@ validação XSD concluída.
   revisão visual imediata sem depender de blocos Mermaid.
 - Nunca gere o XML antes da aprovação explícita do usuário sobre a proposta arquitetural e o
   datamodel construído.
+- Nunca aprove em nome do usuário; aguarde confirmação explícita de que a proposta está aprovada ou
+  registre os ajustes solicitados antes de prosseguir para a finalização.
 """
