@@ -1,18 +1,16 @@
 from __future__ import annotations
 from pathlib import Path
 import json
-import sys
-import urllib.parse
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "agents" / "diagramador"))
-import sitecustomize  # noqa: F401  # Ensure stub packages are available before imports
 from unittest import mock
+
+import urllib.parse
 
 import pytest
 
-from tools.diagramador import (
+from agents.diagramador.callbacks import (
+    layout_preview_after_model as preview_callbacks,
+)
+from agents.diagramador.tools import (
     ARTIFACTS_CACHE_KEY,
     BLUEPRINT_CACHE_KEY,
     DEFAULT_TEMPLATE,
@@ -30,11 +28,11 @@ from tools.diagramador import (
     get_cached_artifact,
     get_view_focus,
     list_templates,
+    render_svg_preview,
     save_datamodel,
 )
-from tools.diagramador import operations
-from agents.diagramador import agent as diagramador_agent_module
-from tools.diagramador.session import clear_fallback_session_state
+from agents.diagramador.tools.diagramador import operations
+from agents.diagramador.tools.diagramador.session import clear_fallback_session_state
 
 SAMPLE_TEMPLATE = operations._resolve_package_path(DEFAULT_TEMPLATE)
 SAMPLE_DATAMODEL = operations._resolve_package_path(
@@ -141,8 +139,8 @@ def test_safe_json_loads_repairs_missing_commas():
     assert repaired["views"]["diagrams"][1]["id"] == "v2"
 
 
-def test_agent_wrapper_describe_template_uses_session_state(session_state):
-    response = diagramador_agent_module.describe_template(
+def test_tool_describe_template_uses_session_state(session_state):
+    response = describe_template(
         str(SAMPLE_TEMPLATE), "", session_state=session_state
     )
     assert response["status"] == "ok"
@@ -163,7 +161,7 @@ def test_agent_wrapper_describe_template_uses_session_state(session_state):
 def test_finalize_datamodel_uses_cached_blueprint(sample_payload, session_state):
     describe_template(str(SAMPLE_TEMPLATE), view_filter=None, session_state=session_state)
     with mock.patch(
-        "tools.diagramador.operations._parse_template_blueprint",
+        "agents.diagramador.tools.diagramador.operations._parse_template_blueprint",
         side_effect=AssertionError("blueprint should be served from cache"),
     ):
         result = finalize_datamodel(
@@ -193,7 +191,7 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     datamodel_view_count = len(json.loads(sample_payload)["views"]["diagrams"])
 
     with mock.patch(
-        "tools.diagramador.operations._parse_template_blueprint",
+        "agents.diagramador.tools.diagramador.operations._parse_template_blueprint",
         side_effect=AssertionError("template parse should not run when cached"),
     ):
         result = generate_layout_preview(
@@ -250,13 +248,13 @@ def test_generate_layout_preview_recovers_from_invalid_json(
     assert preview.get("preview_summaries")
     assert preview.get("artifacts")
 
-    replacements = diagramador_agent_module._collect_layout_preview_replacements(preview)
+    replacements = preview_callbacks._collect_layout_preview_replacements(preview)
     png_placeholder = replacements.get("{diagram_img_png}")
     assert png_placeholder and "data:image/png;base64," in png_placeholder
     svg_placeholder = replacements.get("{link_diagrama_svg_base64}")
     assert svg_placeholder and "data:image/svg+xml;base64," in svg_placeholder
 
-    state_replacements = diagramador_agent_module._build_placeholder_replacements(session_state)
+    state_replacements = preview_callbacks._build_placeholder_replacements(session_state)
     assert any(
         key.endswith("inline_markdown}}") and "data:image/png;base64," in value
         for key, value in state_replacements.items()
@@ -281,7 +279,7 @@ def test_register_placeholder_handles_percent_encoding():
     token = "{{state.preview_png}}"
     value = "BASE64DATA"
 
-    diagramador_agent_module._register_placeholder(replacements, token, value)
+    preview_callbacks._register_placeholder(replacements, token, value)
 
     encoded_token = urllib.parse.quote(token, safe="")
     assert encoded_token in replacements
@@ -312,7 +310,7 @@ def test_collect_layout_preview_registers_prefix_tokens():
         ]
     }
 
-    replacements = diagramador_agent_module._collect_layout_preview_replacements(layout)
+    replacements = preview_callbacks._collect_layout_preview_replacements(layout)
 
     assert replacements.get("{{state.preview_token}}") == inline_html
     assert replacements.get("[[state.preview_token]]") == inline_html
@@ -355,11 +353,39 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload, se
     messages = preview.get("preview_messages")
     assert messages and all(msg.startswith("###") for msg in messages)
 
-    replacements = diagramador_agent_module._collect_layout_preview_replacements(preview)
+    replacements = preview_callbacks._collect_layout_preview_replacements(preview)
     assert replacements.get("{diagram_img_png}", "").count("data:image/png;base64,") >= 1
     assert replacements.get("{link_diagrama_svg_base64}", "").count(
         "data:image/svg+xml;base64,"
     ) >= 1
+
+
+def test_render_svg_preview_tool_generates_artifact(session_state):
+    layout = {
+        "nodes": [
+            {
+                "bounds": {"x": 10, "y": 20, "w": 120, "h": 60},
+                "title": "Elemento",
+                "type": "Component",
+            }
+        ],
+        "connections": [],
+    }
+
+    result = render_svg_preview(
+        view_name="Visão",
+        view_alias="Visao",
+        layout=layout,
+        session_state=session_state,
+    )
+
+    if result is None:
+        pytest.skip("Pré-visualização requer svgwrite para gerar o layout.")
+
+    assert result["status"] == "ok"
+    preview = get_cached_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW)
+    assert preview is not None
+    assert Path(preview["local_path"]).exists()
 
 
 def test_generate_layout_preview_without_session_state_uses_fallback(sample_payload):
@@ -384,7 +410,7 @@ def test_generate_layout_preview_without_session_state_uses_fallback(sample_payl
             pytest.skip(
                 "Pré-visualização requer conversão para PNG (cairosvg) para exibir inline."
             )
-    replacements = diagramador_agent_module._collect_layout_preview_replacements(preview)
+    replacements = preview_callbacks._collect_layout_preview_replacements(preview)
     assert replacements.get("{diagram_img_png}", "").count("data:image/png;base64,") >= 1
     assert replacements.get("{link_diagrama_svg_base64}", "").count(
         "data:image/svg+xml;base64,"

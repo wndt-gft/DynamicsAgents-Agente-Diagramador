@@ -3,23 +3,13 @@
 from __future__ import annotations
 
 import copy
-from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
-import sys
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "agents" / "diagramador"))
-
-import sitecustomize  # noqa: F401
-
-from agents.diagramador.agent import (  # type: ignore[import-not-found]
-    _after_model_response_callback,
-    SESSION_ARTIFACT_LAYOUT_PREVIEW,
-)
-from agents.diagramador.tools.diagramador import (  # type: ignore[import-not-found]
+from agents.diagramador.callbacks import after_model_response_callback
+from agents.diagramador.tools import (
     SESSION_ARTIFACT_FINAL_DATAMODEL,
+    SESSION_ARTIFACT_LAYOUT_PREVIEW,
     SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
 )
 
@@ -98,8 +88,11 @@ def test_after_model_callback_generates_preview_before_replacement():
         }
         return {"status": "ok", "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW}
 
-    with mock.patch("agents.diagramador.agent._generate_layout_preview", side_effect=_fake_generate_layout_preview) as mocked:
-        _after_model_response_callback(
+    with mock.patch(
+        "agents.diagramador.callbacks.layout_preview_after_model._generate_layout_preview",
+        side_effect=_fake_generate_layout_preview,
+    ) as mocked:
+        after_model_response_callback(
             callback_context=SimpleNamespace(state=state),
             llm_response=llm_response,
         )
@@ -162,10 +155,10 @@ def test_after_model_callback_handles_nested_session_state():
     )
 
     with mock.patch(
-        "agents.diagramador.agent._generate_layout_preview",
+        "agents.diagramador.callbacks.layout_preview_after_model._generate_layout_preview",
         side_effect=_fake_generate_layout_preview,
     ) as mocked:
-        _after_model_response_callback(
+        after_model_response_callback(
             callback_context=nested_context,
             llm_response=llm_response,
         )
