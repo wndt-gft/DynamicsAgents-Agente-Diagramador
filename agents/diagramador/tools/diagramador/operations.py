@@ -86,13 +86,28 @@ _INVALID_ESCAPE_RE = re.compile(r"(?<!\\)\\([^\"\\/bfnrtu])")
 _TOKEN_SPLIT_RE = re.compile(r"[\s\-–—:/|]+")
 
 
+_CODE_FENCE_RE = re.compile(
+    r"^\s*(?:```|~~~)(?:json)?\s*(?P<body>.*?)(?:```|~~~)\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _strip_code_fences(text: str) -> str:
+    """Remove cercas de bloco (```/~~~) frequentemente usadas pelo modelo."""
+
+    match = _CODE_FENCE_RE.match(text)
+    if match:
+        return match.group("body").strip()
+    return text
+
+
 def _safe_json_loads(raw_text: str) -> Any:
     """Parse JSON tolerating minor formatting issues produced by the LLM."""
 
     if not isinstance(raw_text, str):
         raise TypeError("Esperado texto JSON para parsing.")
 
-    stripped = raw_text.strip()
+    stripped = _strip_code_fences(raw_text.strip())
     if not stripped:
         raise ValueError("Conteúdo JSON vazio.")
 

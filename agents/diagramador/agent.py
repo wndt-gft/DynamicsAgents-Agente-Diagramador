@@ -400,37 +400,87 @@ def _apply_replacements_to_text(text: str, replacements: Mapping[str, str]) -> s
     for needle, replacement in replacements.items():
         if not needle:
             continue
+        if needle not in result:
+            continue
         result = result.replace(needle, replacement)
     return result
+
+
+def _apply_replacements_to_mapping(
+    payload: MutableMapping[str, Any], replacements: Mapping[str, str]
+) -> None:
+    for key, value in list(payload.items()):
+        if isinstance(value, str):
+            updated = _apply_replacements_to_text(value, replacements)
+            if updated != value:
+                payload[key] = updated
+        elif isinstance(value, MutableMapping):
+            _apply_replacements_to_mapping(value, replacements)
+        elif isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+            _apply_replacements_to_sequence(value, replacements)
+
+
+def _apply_replacements_to_sequence(
+    payload: Sequence[Any], replacements: Mapping[str, str]
+) -> None:
+    for index, item in enumerate(list(payload)):
+        if isinstance(item, str):
+            updated = _apply_replacements_to_text(item, replacements)
+            if updated != item and hasattr(payload, "__setitem__"):
+                try:
+                    payload[index] = updated  # type: ignore[index]
+                except Exception:  # pragma: no cover - estruturas não mutáveis
+                    pass
+        elif isinstance(item, MutableMapping):
+            _apply_replacements_to_mapping(item, replacements)
+        elif isinstance(item, Sequence) and not isinstance(item, (str, bytes, bytearray)):
+            _apply_replacements_to_sequence(item, replacements)
+        else:
+            _apply_replacements_to_object(item, replacements)
+
+
+def _apply_replacements_to_object(obj: Any, replacements: Mapping[str, str]) -> None:
+    if obj is None:
+        return
+    text = getattr(obj, "text", None)
+    if isinstance(text, str):
+        updated = _apply_replacements_to_text(text, replacements)
+        if updated != text:
+            obj.text = updated  # type: ignore[attr-defined]
+
+    content = getattr(obj, "content", None)
+    if isinstance(content, str):
+        updated = _apply_replacements_to_text(content, replacements)
+        if updated != content:
+            obj.content = updated  # type: ignore[attr-defined]
+    elif isinstance(content, MutableMapping):
+        _apply_replacements_to_mapping(content, replacements)
+    elif isinstance(content, Sequence) and not isinstance(content, (str, bytes, bytearray)):
+        _apply_replacements_to_sequence(content, replacements)
+    elif content is not None:
+        _apply_replacements_to_object(content, replacements)
+
+    parts = getattr(obj, "parts", None)
+    if isinstance(parts, Sequence):
+        _apply_replacements_to_sequence(parts, replacements)
 
 
 def _apply_replacements_to_llm_response(
     llm_response: Any, replacements: Mapping[str, str]
 ) -> None:
-    if not replacements:
+    if not replacements or llm_response is None:
         return
 
-    content = getattr(llm_response, "content", None)
-    if isinstance(content, str):
-        updated = _apply_replacements_to_text(content, replacements)
-        if updated != content:
-            llm_response.content = updated
+    candidates = getattr(llm_response, "candidates", None)
+    if isinstance(candidates, Sequence):
+        for candidate in candidates:
+            _apply_replacements_to_object(candidate, replacements)
+
+    if isinstance(llm_response, MutableMapping):
+        _apply_replacements_to_mapping(llm_response, replacements)
         return
 
-    parts = getattr(content, "parts", None)
-    if isinstance(parts, Sequence):
-        for part in parts:
-            text = getattr(part, "text", None)
-            if isinstance(text, str):
-                updated = _apply_replacements_to_text(text, replacements)
-                if updated != text:
-                    part.text = updated
-    else:
-        text = getattr(content, "text", None)
-        if isinstance(text, str):
-            updated = _apply_replacements_to_text(text, replacements)
-            if updated != text:
-                content.text = updated
+    _apply_replacements_to_object(llm_response, replacements)
 
 
 def _after_model_response_callback(*, callback_context: Any, llm_response: Any):

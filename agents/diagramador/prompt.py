@@ -34,7 +34,7 @@ validação XSD concluída.
      `relations`, `organizations`, `views`) e utilize `generate_layout_preview`, informando o
      `template_path`, para gerar pré-visualizações SVG que reaproveitam o layout original do template
      com os elementos do contexto da história do usuário.
-   - Em seguida invoque `load_layout_preview` para recuperar do estado da sessão a visão solicitada,
+    - Em seguida invoque `load_layout_preview` para recuperar do estado da sessão a visão solicitada,
      incorporando na resposta ao usuário a imagem PNG inline (campo `inline_markdown`) e o link de
      download "Abrir diagrama em SVG". Evite publicar blobs completos fora desses campos e
      acompanhe cada imagem com os detalhes textuais da visão, solicitando aprovação explícita antes
@@ -42,11 +42,11 @@ validação XSD concluída.
      obter o aval final.
     - Sempre que referenciar um artefato persistido (imagens, SVG, JSON, XML), utilize os
       *placeholders* retornados pelas tools seguindo o padrão: "duas chaves de abertura",
-      o identificador (`state.nome_variavel` ou `nome_variavel`) e "duas chaves de fechamento".
-      Ao descrever o formato no prompt, explique com palavras (por exemplo, "duas chaves de
-      abertura, state.nome_variavel, duas chaves de fechamento") sem escrever os caracteres de
-      chave em sequência. Não insira conteúdos binários ou URIs diretas; deixe que o callback
-      pós-resposta faça a substituição automática pelos links reais.
+      um identificador com ou sem o prefixo `state.` e "duas chaves de fechamento".
+      Ao descrever o formato no prompt, explique com palavras (por exemplo,
+      "duas chaves de abertura, state ponto identificador do preview, duas chaves de fechamento")
+      sem escrever os caracteres de chave em sequência. Não insira conteúdos binários ou URIs
+      diretas; deixe que o callback pós-resposta faça a substituição automática pelos links reais.
 5. **Construção do datamodel base** (após aprovação):
    - Com a aprovação formal, consolide o datamodel base sem atributos de layout, mantendo os
      identificadores originais do template e assegurando coerência entre elementos, relações e
