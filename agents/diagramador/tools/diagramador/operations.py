@@ -155,7 +155,7 @@ def _build_image_html(data_uri: Optional[str], alt_text: Optional[str]) -> Optio
 def _build_link_html(data_uri: Optional[str], label: Optional[str] = None) -> Optional[str]:
     if not data_uri:
         return None
-    safe_label = html.escape(label or "Abrir diagrama em SVG", quote=False)
+    safe_label = html.escape(label or "Abrir SVG da Previsão do Diagrama", quote=False)
     return f'<a href="{data_uri}" target="_blank" rel="noopener">{safe_label}</a>'
 
 
@@ -267,7 +267,7 @@ def _populate_preview_assets(
 
     if svg_data_uri:
         preview.setdefault("download_data_uri", svg_data_uri)
-        preview.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir diagrama em SVG"))
+        preview.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir SVG da Previsão do Diagrama"))
 
     if png_data_uri:
         preview.setdefault("inline_data_uri", png_data_uri)
@@ -278,7 +278,7 @@ def _populate_preview_assets(
         png_payload.setdefault("inline_html", _build_image_html(png_data_uri, view_name))
         if svg_data_uri:
             png_payload.setdefault("download_data_uri", svg_data_uri)
-            png_payload.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir diagrama em SVG"))
+            png_payload.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir SVG da Previsão do Diagrama"))
 
     if svg_data_uri and not preview.get("download_uri"):
         preview["download_uri"] = svg_data_uri

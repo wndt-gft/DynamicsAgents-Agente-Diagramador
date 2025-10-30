@@ -347,9 +347,10 @@ def test_generate_layout_preview_resolves_agent_relative_path(sample_payload, se
             pytest.skip(
                 "Pré-visualização requer conversão para PNG (cairosvg) para exibir inline."
             )
-    download_md = preview.get("download_markdown", "")
-    if download_md:
-        assert download_md.startswith("[Abrir diagrama em SVG]")
+    download_html = preview.get("download_html", "")
+    if download_html:
+        assert "data:image/svg+xml;base64" in download_html
+        assert "Abrir SVG da Previsão do Diagrama" in download_html
     primary_preview = preview.get("primary_preview")
     assert primary_preview
     messages = preview.get("preview_messages")

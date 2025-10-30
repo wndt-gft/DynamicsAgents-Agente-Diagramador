@@ -362,7 +362,10 @@ def render_view_layout(
     svg_path.write_bytes(svg_bytes)
 
     svg_uri = svg_path.resolve().as_uri()
-    download_markdown = f"[Abrir diagrama em SVG]({svg_uri})"
+    link_label = _escape_markdown_alt(view_name or view_alias)
+    download_markdown = (
+        f"[Abrir SVG da Previsão do Diagrama - {link_label}]({svg_uri})"
+    )
     inline_markup = f"![{_escape_markdown_alt(view_name or view_alias)}]({svg_uri})"
 
     payload: Dict[str, Any] = {

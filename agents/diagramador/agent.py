@@ -364,7 +364,7 @@ def _extract_markdown_label(markdown: str | None) -> str | None:
 def _build_link_html(data_uri: str | None, label: str | None) -> str | None:
     if not data_uri:
         return None
-    safe_label = html.escape(label or "Abrir diagrama", quote=False)
+    safe_label = html.escape(label or "Abrir SVG da Previsão do Diagrama", quote=False)
     return f'<a href="{data_uri}" target="_blank" rel="noopener">{safe_label}</a>'
 
 
@@ -451,7 +451,7 @@ def _format_download_link(uri: str, label: str | None = None) -> str:
         return ""
     label_text = label.strip() if isinstance(label, str) else None
     if not label_text:
-        label_text = "Abrir diagrama"
+        label_text = "Abrir SVG da Previsão do Diagrama"
     return f"[{label_text}]({safe_uri})"
 
 
@@ -691,14 +691,29 @@ def _collect_layout_preview_replacements(
         if inline_data_uri is None and inline_uri and inline_uri == download_uri:
             inline_data_uri = download_data_uri
 
-        inline_html = inline_html_pref or _build_image_html(inline_data_uri or download_data_uri, alt_text)
-        link_label = _extract_markdown_label(download_md) or alt_text or "Abrir diagrama"
-        download_html = download_html_pref or _build_link_html(
-            download_data_uri or inline_data_uri, link_label
-        )
+        preferred_image_source = inline_data_uri or download_data_uri
+        inline_html = None
+        if preferred_image_source:
+            inline_html = _build_image_html(preferred_image_source, alt_text)
+        if not inline_html and inline_html_pref:
+            inline_html = inline_html_pref
+
+        link_label = _extract_markdown_label(download_md)
+        if not link_label:
+            if alt_text:
+                link_label = f"Abrir SVG da Previsão do Diagrama - {alt_text}"
+            else:
+                link_label = "Abrir SVG da Previsão do Diagrama"
+
+        preferred_link_source = download_data_uri or inline_data_uri or download_uri
+        download_html = None
+        if preferred_link_source:
+            download_html = _build_link_html(preferred_link_source, link_label)
+        if not download_html and download_html_pref:
+            download_html = download_html_pref
 
         inline_value = inline_html or inline_md or inline_uri or inline_path
-        download_value = download_html or download_md or download_uri or inline_html
+        download_value = download_html or download_md or preferred_link_source or inline_html
 
         placeholders = summary.get("placeholders")
         if isinstance(placeholders, Mapping):
