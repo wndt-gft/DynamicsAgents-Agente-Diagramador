@@ -267,6 +267,12 @@ def _sanitize_token(value: str, fallback: str = "token") -> str:
     return text or fallback
 
 
+def _state_placeholder_token(value: str, fallback: str = "placeholder") -> str:
+    text = re.sub(r"[^A-Za-z0-9]+", "_", value.strip())
+    text = text.strip("_")
+    return text or fallback
+
+
 async def _create_session(runner: InMemoryRunner, user_id: str, session_id: str):
     return await runner.session_service.create_session(
         app_name=runner.app_name, user_id=user_id, session_id=session_id
@@ -1171,11 +1177,28 @@ def _build_artifact_replacements(
 
         display_name = artifact.filename
         token_base = _sanitize_token(display_name, fallback="artifact").lower()
+        state_var_base = _state_placeholder_token(
+            f"diagramador_{token_base}", fallback="diagramador_preview"
+        )
         link_markup = f"[Abrir {display_name}]({relative_uri})"
         replacements.setdefault(f"{{diagramador:{token_base}:link}}", link_markup)
         replacements.setdefault(f"{{diagramador:{token_base}:path}}", relative_uri)
         replacements.setdefault(f"{{diagramador:{token_base}:uri}}", relative_uri)
         replacements.setdefault(f"{{diagramador:{token_base}:markdown_link}}", link_markup)
+        replacements.setdefault(f"{{state.{state_var_base}_link}}", link_markup)
+        replacements.setdefault(f"{{state.{state_var_base}_path}}", relative_uri)
+        replacements.setdefault(f"{{state.{state_var_base}_uri}}", relative_uri)
+        replacements.setdefault(
+            f"{{state.{state_var_base}_markdown_link}}", link_markup
+        )
+        replacements.setdefault(f"{{state.{state_var_base}_relative_path}}", relative_uri)
+        replacements.setdefault(f"{{state.{state_var_base}_filename}}", display_name)
+        replacements.setdefault(f"{{{state_var_base}_link}}", link_markup)
+        replacements.setdefault(f"{{{state_var_base}_path}}", relative_uri)
+        replacements.setdefault(f"{{{state_var_base}_uri}}", relative_uri)
+        replacements.setdefault(f"{{{state_var_base}_markdown_link}}", link_markup)
+        replacements.setdefault(f"{{{state_var_base}_relative_path}}", relative_uri)
+        replacements.setdefault(f"{{{state_var_base}_filename}}", display_name)
 
         suffix = absolute_path.suffix.lower()
         if suffix == ".svg":
@@ -1183,12 +1206,22 @@ def _build_artifact_replacements(
             replacements.setdefault(f"{{diagramador:{token_base}:img}}", svg_embed)
             replacements.setdefault(f"{{diagramador:{token_base}:image}}", svg_embed)
             replacements.setdefault(f"{{diagramador:{token_base}:embed}}", svg_embed)
+            replacements.setdefault(f"{{state.{state_var_base}_img}}", svg_embed)
+            replacements.setdefault(f"{{state.{state_var_base}_image}}", svg_embed)
+            replacements.setdefault(f"{{state.{state_var_base}_embed}}", svg_embed)
+            replacements.setdefault(f"{{{state_var_base}_img}}", svg_embed)
+            replacements.setdefault(f"{{{state_var_base}_image}}", svg_embed)
+            replacements.setdefault(f"{{{state_var_base}_embed}}", svg_embed)
             if default_svg_link is None:
                 default_svg_link = link_markup
         elif suffix in {".png", ".jpg", ".jpeg", ".gif", ".webp"}:
             image_markup = f"![{display_name}]({relative_uri})"
             replacements.setdefault(f"{{diagramador:{token_base}:img}}", image_markup)
             replacements.setdefault(f"{{diagramador:{token_base}:image}}", image_markup)
+            replacements.setdefault(f"{{state.{state_var_base}_img}}", image_markup)
+            replacements.setdefault(f"{{state.{state_var_base}_image}}", image_markup)
+            replacements.setdefault(f"{{{state_var_base}_img}}", image_markup)
+            replacements.setdefault(f"{{{state_var_base}_image}}", image_markup)
             if suffix == ".png" and default_png_embed is None:
                 default_png_embed = image_markup
 

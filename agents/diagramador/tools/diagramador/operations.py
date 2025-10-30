@@ -73,6 +73,12 @@ def _placeholder_token(value: str, fallback: str = "preview") -> str:
     return token or fallback
 
 
+def _state_var_token(value: str, fallback: str = "preview") -> str:
+    token = re.sub(r"[^A-Za-z0-9]+", "_", str(value).strip())
+    token = token.strip("_")
+    return token or fallback
+
+
 _CONTROL_CHAR_CLEAN_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
 _INVALID_ESCAPE_RE = re.compile(r"(?<!\\)\\([^\"\\/bfnrtu])")
 _TOKEN_SPLIT_RE = re.compile(r"[\s\-–—:/|]+")
@@ -2142,22 +2148,60 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
 
     if placeholder_source:
         token_base = _placeholder_token(placeholder_source, fallback="preview").lower()
-        placeholders = {
+        state_var_base = _state_var_token(f"diagramador_{token_base}", fallback="diagramador_preview")
+        legacy_placeholders = {
             "link": f"{{diagramador:{token_base}:link}}",
             "image": f"{{diagramador:{token_base}:img}}",
+            "img": f"{{diagramador:{token_base}:img}}",
             "path": f"{{diagramador:{token_base}:path}}",
+            "uri": f"{{diagramador:{token_base}:uri}}",
+            "markdown_link": f"{{diagramador:{token_base}:markdown_link}}",
+            "relative_path": f"{{diagramador:{token_base}:relative_path}}",
+            "filename": f"{{diagramador:{token_base}:filename}}",
         }
+        state_placeholders = {
+            "link": f"{{state.{state_var_base}_link}}",
+            "image": f"{{state.{state_var_base}_image}}",
+            "img": f"{{state.{state_var_base}_img}}",
+            "path": f"{{state.{state_var_base}_path}}",
+            "uri": f"{{state.{state_var_base}_uri}}",
+            "markdown_link": f"{{state.{state_var_base}_markdown_link}}",
+            "relative_path": f"{{state.{state_var_base}_relative_path}}",
+            "filename": f"{{state.{state_var_base}_filename}}",
+        }
+        bare_placeholders = {
+            "link": f"{{{state_var_base}_link}}",
+            "image": f"{{{state_var_base}_image}}",
+            "img": f"{{{state_var_base}_img}}",
+            "path": f"{{{state_var_base}_path}}",
+            "uri": f"{{{state_var_base}_uri}}",
+            "markdown_link": f"{{{state_var_base}_markdown_link}}",
+            "relative_path": f"{{{state_var_base}_relative_path}}",
+            "filename": f"{{{state_var_base}_filename}}",
+        }
+
+        combined: Dict[str, Any] = {}
+        combined.update({key: value for key, value in state_placeholders.items()})
+        combined.update({f"legacy_{key}": value for key, value in legacy_placeholders.items()})
+        combined.update({f"bare_{key}": value for key, value in bare_placeholders.items()})
+
         existing = variant.get("placeholders")
         if isinstance(existing, MutableMapping):
-            combined = dict(existing)
-            combined.update(placeholders)
-            variant["placeholders"] = combined
+            merged = dict(existing)
+            merged.update(combined)
+            variant["placeholders"] = merged
         else:
-            variant["placeholders"] = placeholders
+            variant["placeholders"] = combined
+
+        variant["placeholder_token"] = token_base
+        variant["state_placeholder_prefix"] = state_var_base
+
         if variant.get("inline_markdown") or variant.get("inline_uri"):
-            variant.setdefault("inline_placeholder", placeholders["image"])
+            variant.setdefault("inline_placeholder", state_placeholders["image"])
+            variant.setdefault("inline_placeholder_legacy", legacy_placeholders["image"])
         if variant.get("download_markdown") or variant.get("download_uri"):
-            variant.setdefault("download_placeholder", placeholders["link"])
+            variant.setdefault("download_placeholder", state_placeholders["link"])
+            variant.setdefault("download_placeholder_legacy", legacy_placeholders["link"])
 
     if not variant.get("inline_markdown") and not variant.get("download_uri"):
         return None
@@ -2247,6 +2291,17 @@ def _summarize_layout_previews(
             "variants": variants,
         }
 
+        placeholder_candidates = []
+        for variant in variants:
+            placeholders_payload = variant.get("placeholders")
+            if isinstance(placeholders_payload, MutableMapping):
+                placeholder_candidates.append(placeholders_payload)
+        if placeholder_candidates:
+            merged_placeholders: Dict[str, Any] = {}
+            for mapping in placeholder_candidates:
+                merged_placeholders.update(mapping)
+            summary["placeholders"] = merged_placeholders
+
         primary_inline = png_variant or variants[0]
         if "inline_markdown" in primary_inline:
             summary["inline_markdown"] = primary_inline["inline_markdown"]
@@ -2256,6 +2311,8 @@ def _summarize_layout_previews(
             summary["inline_path"] = primary_inline["local_path"]
         if "inline_placeholder" in primary_inline:
             summary["inline_placeholder"] = primary_inline["inline_placeholder"]
+        if "inline_placeholder_legacy" in primary_inline:
+            summary["inline_placeholder_legacy"] = primary_inline["inline_placeholder_legacy"]
 
         primary_download = svg_variant or variants[0]
         if "download_markdown" in primary_download:
@@ -2266,6 +2323,17 @@ def _summarize_layout_previews(
             summary["download_path"] = primary_download["local_path"]
         if "download_placeholder" in primary_download:
             summary["download_placeholder"] = primary_download["download_placeholder"]
+        if "download_placeholder_legacy" in primary_download:
+            summary["download_placeholder_legacy"] = primary_download["download_placeholder_legacy"]
+
+        placeholder_token = primary_inline.get("placeholder_token") or primary_download.get("placeholder_token")
+        if isinstance(placeholder_token, str) and placeholder_token.strip():
+            summary["placeholder_token"] = placeholder_token.strip()
+        state_prefix = primary_inline.get("state_placeholder_prefix") or primary_download.get(
+            "state_placeholder_prefix"
+        )
+        if isinstance(state_prefix, str) and state_prefix.strip():
+            summary["state_placeholder_prefix"] = state_prefix.strip()
 
         summaries.append(summary)
 
@@ -2498,9 +2566,31 @@ def generate_layout_preview(
         if isinstance(inline_placeholder, str) and inline_placeholder.strip():
             response["inline_placeholder"] = inline_placeholder
             response["primary_preview"]["inline_placeholder"] = inline_placeholder
+        legacy_inline_placeholder = primary.get("inline_placeholder_legacy")
+        if isinstance(legacy_inline_placeholder, str) and legacy_inline_placeholder.strip():
+            response["inline_placeholder_legacy"] = legacy_inline_placeholder
+            response["primary_preview"]["inline_placeholder_legacy"] = legacy_inline_placeholder
         if isinstance(download_placeholder, str) and download_placeholder.strip():
             response["download_placeholder"] = download_placeholder
             response["primary_preview"]["download_placeholder"] = download_placeholder
+        legacy_download_placeholder = primary.get("download_placeholder_legacy")
+        if isinstance(legacy_download_placeholder, str) and legacy_download_placeholder.strip():
+            response["download_placeholder_legacy"] = legacy_download_placeholder
+            response["primary_preview"]["download_placeholder_legacy"] = legacy_download_placeholder
+
+        placeholder_token = primary.get("placeholder_token")
+        if isinstance(placeholder_token, str) and placeholder_token.strip():
+            response["placeholder_token"] = placeholder_token.strip()
+            response["primary_preview"]["placeholder_token"] = placeholder_token.strip()
+        state_prefix = primary.get("state_placeholder_prefix")
+        if isinstance(state_prefix, str) and state_prefix.strip():
+            response["state_placeholder_prefix"] = state_prefix.strip()
+            response["primary_preview"]["state_placeholder_prefix"] = state_prefix.strip()
+
+        placeholders_payload = primary.get("placeholders")
+        if isinstance(placeholders_payload, MutableMapping):
+            response["placeholders"] = dict(placeholders_payload)
+            response["primary_preview"]["placeholders"] = dict(placeholders_payload)
 
         if primary_summary_markdown:
             response.setdefault("preview_messages", preview_messages)
