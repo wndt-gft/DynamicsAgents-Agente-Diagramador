@@ -40,10 +40,12 @@ validação XSD concluída.
      acompanhe cada imagem com os detalhes textuais da visão, solicitando aprovação explícita antes
      de gravar o datamodel. Se o usuário pedir mudanças, atualize o conteúdo e a pré-visualização até
      obter o aval final.
-   - Sempre que referenciar um artefato persistido (imagens, SVG, JSON, XML), utilize os
-     *placeholders* retornados pelas tools seguindo os formatos `{{state.nome_variavel}}` ou
-     `{{nome_variavel}}`. Não insira conteúdos binários ou URIs diretas; deixe que o callback pós-
-     resposta faça a substituição automática pelos links reais.
+    - Sempre que referenciar um artefato persistido (imagens, SVG, JSON, XML), utilize os
+      *placeholders* retornados pelas tools seguindo os formatos com **duas chaves de abertura**, o
+      identificador (`state.nome_variavel` ou `nome_variavel`) e **duas chaves de fechamento**.
+      Escreva literalmente `{{` + identificador + `}}`, sem espaços extras. Não insira conteúdos
+      binários ou URIs diretas; deixe que o callback pós-resposta faça a substituição automática
+      pelos links reais.
 5. **Construção do datamodel base** (após aprovação):
    - Com a aprovação formal, consolide o datamodel base sem atributos de layout, mantendo os
      identificadores originais do template e assegurando coerência entre elementos, relações e
