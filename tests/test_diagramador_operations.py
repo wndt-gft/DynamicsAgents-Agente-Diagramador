@@ -76,6 +76,8 @@ def test_list_templates_returns_entries(session_state):
     )
     assert sample_entry.get("views")
     assert any(view.get("name") for view in sample_entry["views"])
+    indices = [view.get("index") for view in sample_entry["views"]]
+    assert indices == list(range(len(indices)))
 
 
 def test_describe_template_stores_blueprint(session_state):
@@ -109,8 +111,16 @@ def test_describe_template_filters_views(session_state):
     assert diagrams[0]["identifier"] == "id-154903"
     assert diagrams[0]["name"]
     assert diagrams[0]["list_view_name"] == diagrams[0]["name"]
+    assert isinstance(diagrams[0].get("list_view_index"), int)
     focus_tokens = get_view_focus(session_state)
     assert focus_tokens == ["id-154903".casefold()]
+
+
+def test_safe_json_loads_repairs_missing_commas():
+    payload = '{"views": {"diagrams": [{"id": "v1", "name": "A"}\n  {"id": "v2", "name": "B"}]}}'
+    repaired = operations._safe_json_loads(payload)
+    assert repaired["views"]["diagrams"][0]["id"] == "v1"
+    assert repaired["views"]["diagrams"][1]["id"] == "v2"
 
 
 def test_agent_wrapper_describe_template_uses_session_state(session_state):

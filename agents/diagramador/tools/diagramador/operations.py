@@ -86,6 +86,14 @@ def _state_var_token(value: str, fallback: str = "preview") -> str:
 _CONTROL_CHAR_CLEAN_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
 _INVALID_ESCAPE_RE = re.compile(r"(?<!\\)\\([^\"\\/bfnrtu])")
 _MISSING_COMMA_RE = re.compile(r'([}\]])(\s*)(?=[{\[\"])', re.MULTILINE)
+_MISSING_COMMA_BETWEEN_PAIRS_RE = re.compile(
+    r'([}\]"0-9])(?P<ws>\s*)(?="[^"\\]+"\s*:)',
+    re.MULTILINE,
+)
+_MISSING_COMMA_GENERIC_RE = re.compile(
+    r'([}\]"0-9])(?P<ws>\s*)(?=[{\["0-9-])',
+    re.MULTILINE,
+)
 _TRAILING_COMMA_RE = re.compile(r",(\s*[}\]])")
 _TOKEN_SPLIT_RE = re.compile(r"[\s\-–—:/|]+")
 
@@ -159,8 +167,8 @@ def _normalized_template_path(path: Path) -> str:
 
 def _template_view_lookup(
     session_state: Optional[MutableMapping[str, Any]], template_path: Path
-) -> Dict[str, str]:
-    """Gera um mapa id->nome a partir do resultado de ``list_templates``."""
+) -> Dict[str, Dict[str, Any]]:
+    """Gera um mapa id->metadados da visão conforme ``list_templates``."""
 
     listing = get_cached_artifact(session_state, SESSION_ARTIFACT_TEMPLATE_LISTING)
     if not isinstance(listing, MutableMapping):
@@ -171,7 +179,7 @@ def _template_view_lookup(
     if not isinstance(templates, Sequence):
         return {}
 
-    view_names: Dict[str, str] = {}
+    view_names: Dict[str, Dict[str, Any]] = {}
 
     for entry in templates:
         if not isinstance(entry, MutableMapping):
@@ -188,16 +196,36 @@ def _template_view_lookup(
         views = entry.get("views")
         if not isinstance(views, Sequence):
             continue
-        for view in views:
+        for index, view in enumerate(views):
             if not isinstance(view, MutableMapping):
                 continue
             identifier = view.get("identifier") or view.get("id")
             name = view.get("name")
             if not isinstance(identifier, str) or not identifier.strip():
                 continue
+            normalized_identifier = identifier.strip()
+            entry_payload: Dict[str, Any] = {}
             if isinstance(name, str) and name.strip():
-                view_names[identifier.strip()] = name.strip()
+                entry_payload["name"] = name.strip()
+            entry_payload["index"] = index
+            documentation = view.get("documentation")
+            if isinstance(documentation, str) and documentation.strip():
+                entry_payload["documentation"] = documentation.strip()
+            view_names[normalized_identifier] = entry_payload
     return view_names
+
+
+def _view_lookup_details(entry: Any) -> tuple[Optional[str], Optional[int]]:
+    if isinstance(entry, MutableMapping):
+        name = entry.get("name")
+        index = entry.get("index")
+        return (
+            name.strip() if isinstance(name, str) and name.strip() else None,
+            int(index) if isinstance(index, int) else None,
+        )
+    if isinstance(entry, str) and entry.strip():
+        return (entry.strip(), None)
+    return (None, None)
 
 
 def _populate_preview_assets(
@@ -265,19 +293,27 @@ def _safe_json_loads(raw_text: str) -> Any:
     if not stripped:
         raise ValueError("Conteúdo JSON vazio.")
 
+    last_error: json.JSONDecodeError | None = None
+
+    def _attempt_load(payload: str, *, strict: bool = True) -> Any | None:
+        nonlocal last_error
+        try:
+            return json.loads(payload, strict=strict)
+        except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+            last_error = exc
+            return None
+
     # First attempt with the original payload for proper errors if already valid.
-    try:
-        return json.loads(stripped)
-    except json.JSONDecodeError as exc:
-        last_error = exc
+    loaded = _attempt_load(stripped)
+    if loaded is not None:
+        return loaded
 
     # Remove ASCII control characters that aren't valid in JSON.
     sanitized = _CONTROL_CHAR_CLEAN_RE.sub("", stripped)
     if sanitized != stripped:
-        try:
-            return json.loads(sanitized)
-        except json.JSONDecodeError as exc:  # pragma: no cover - defensive path
-            last_error = exc
+        loaded = _attempt_load(sanitized)
+        if loaded is not None:
+            return loaded
     else:
         sanitized = stripped
 
@@ -290,39 +326,53 @@ def _safe_json_loads(raw_text: str) -> Any:
 
     repaired = _INVALID_ESCAPE_RE.sub(_fix_invalid_escape, sanitized)
     if repaired != sanitized:
-        try:
-            return json.loads(repaired)
-        except json.JSONDecodeError as exc:  # pragma: no cover - defensive path
-            last_error = exc
+        loaded = _attempt_load(repaired)
+        if loaded is not None:
+            return loaded
     else:
         repaired = sanitized
 
     # Remove trailing commas that o modelo pode inserir antes de chaves/colchetes.
     relaxed = _TRAILING_COMMA_RE.sub(r"\1", repaired)
     if relaxed != repaired:
-        try:
-            return json.loads(relaxed, strict=False)
-        except json.JSONDecodeError as exc:  # pragma: no cover - caminho defensivo
-            last_error = exc
+        loaded = _attempt_load(relaxed, strict=False)
+        if loaded is not None:
+            return loaded
     else:
         relaxed = repaired
 
     # Corrige casos comuns de vírgula ausente entre blocos ``}{`` ou ``]{``.
     patched = _MISSING_COMMA_RE.sub(r"\1,\2", relaxed)
     if patched != relaxed:
-        try:
-            return json.loads(patched, strict=False)
-        except json.JSONDecodeError as exc:  # pragma: no cover - caminho defensivo
-            last_error = exc
+        loaded = _attempt_load(patched, strict=False)
+        if loaded is not None:
+            return loaded
     else:
         patched = relaxed
 
+    advanced = _MISSING_COMMA_BETWEEN_PAIRS_RE.sub(r"\1,\g<ws>", patched)
+    if advanced != patched:
+        loaded = _attempt_load(advanced, strict=False)
+        if loaded is not None:
+            return loaded
+    else:
+        advanced = patched
+
+    generic = _MISSING_COMMA_GENERIC_RE.sub(r"\1,\g<ws>", advanced)
+    if generic != advanced:
+        loaded = _attempt_load(generic, strict=False)
+        if loaded is not None:
+            return loaded
+    else:
+        generic = advanced
+
     # Tentativa final com verificação flexível; se falhar, propaga o último erro.
-    try:
-        return json.loads(patched, strict=False)
-    except json.JSONDecodeError as exc:
-        last_error = exc
-        raise last_error
+    loaded = _attempt_load(generic, strict=False)
+    if loaded is not None:
+        return loaded
+
+    assert last_error is not None
+    raise last_error
 
 def _resolve_package_path(path: Path) -> Path:
     """Resolve a resource path relative to the package when needed."""
@@ -2703,10 +2753,13 @@ def generate_layout_preview(
             datamodel_connections,
         )
         if view_lookup and view_id:
-            hint = view_lookup.get(str(view_id))
-            if hint:
-                view_payload.setdefault("list_view_name", hint)
-                view_payload.setdefault("name", hint)
+            lookup_entry = view_lookup.get(str(view_id))
+            hint_name, hint_index = _view_lookup_details(lookup_entry)
+            if hint_name:
+                view_payload.setdefault("list_view_name", hint_name)
+                view_payload.setdefault("name", hint_name)
+            if hint_index is not None:
+                view_payload.setdefault("list_view_index", hint_index)
         results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
@@ -2733,10 +2786,13 @@ def generate_layout_preview(
             datamodel_connections,
         )
         if view_lookup and view_id:
-            hint = view_lookup.get(str(view_id))
-            if hint:
-                view_payload.setdefault("list_view_name", hint)
-                view_payload.setdefault("name", hint)
+            lookup_entry = view_lookup.get(str(view_id))
+            hint_name, hint_index = _view_lookup_details(lookup_entry)
+            if hint_name:
+                view_payload.setdefault("list_view_name", hint_name)
+                view_payload.setdefault("name", hint_name)
+            if hint_index is not None:
+                view_payload.setdefault("list_view_index", hint_index)
         results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
@@ -3055,11 +3111,14 @@ def describe_template(
                         continue
                     identifier = diagram.get("id") or diagram.get("identifier")
                     if isinstance(identifier, str) and identifier.strip():
-                        name_hint = view_lookup.get(identifier.strip())
-                        if name_hint:
-                            diagram["list_view_name"] = name_hint
+                        lookup_entry = view_lookup.get(identifier.strip())
+                        hint_name, hint_index = _view_lookup_details(lookup_entry)
+                        if hint_name:
+                            diagram["list_view_name"] = hint_name
                             if not diagram.get("name"):
-                                diagram["name"] = name_hint
+                                diagram["name"] = hint_name
+                        if hint_index is not None:
+                            diagram["list_view_index"] = hint_index
 
     store_blueprint(session_state, template, blueprint)
 
@@ -3104,10 +3163,15 @@ def describe_template(
                         include = True
                     if include:
                         if view_lookup:
-                            hint = view_lookup.get(str(diagram.get("identifier") or "").strip())
-                            if hint:
-                                diagram.setdefault("list_view_name", hint)
-                                diagram.setdefault("name", hint)
+                            lookup_entry = view_lookup.get(
+                                str(diagram.get("identifier") or "").strip()
+                            )
+                            hint_name, hint_index = _view_lookup_details(lookup_entry)
+                            if hint_name:
+                                diagram.setdefault("list_view_name", hint_name)
+                                diagram.setdefault("name", hint_name)
+                            if hint_index is not None:
+                                diagram.setdefault("list_view_index", hint_index)
                         filtered_diagrams.append(diagram)
                 if not filtered_diagrams:
                     raise ValueError(
