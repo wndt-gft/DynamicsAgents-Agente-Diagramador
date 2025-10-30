@@ -18,7 +18,6 @@ from .tools import (
     generate_archimate_diagram,
     generate_layout_preview,
     list_templates,
-    render_svg_preview,
     save_datamodel,
 )
 
@@ -61,7 +60,6 @@ diagramador_agent = Agent(
             generate_archimate_diagram,
             name="generate_archimate_diagram",
         ),
-        _make_tool(render_svg_preview, name="render_svg_preview"),
     ],
 )
 

@@ -27,7 +27,6 @@ from .finalize_datamodel import finalize_datamodel
 from .generate_archimate_diagram import generate_archimate_diagram
 from .generate_layout_preview import generate_layout_preview
 from .list_templates import list_templates
-from .render_svg import render_svg_preview
 from .save_datamodel import save_datamodel
 
 __all__ = [
@@ -56,6 +55,5 @@ __all__ = [
     "generate_layout_preview",
     "get_cached_artifact",
     "list_templates",
-    "render_svg_preview",
     "save_datamodel",
 ]
