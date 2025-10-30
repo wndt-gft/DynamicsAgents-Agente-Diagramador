@@ -28,12 +28,10 @@ from .tools.diagramador import (
     DEFAULT_DIAGRAM_FILENAME,
     DEFAULT_MODEL,
     SESSION_ARTIFACT_LAYOUT_PREVIEW,
-    SESSION_ARTIFACT_LOADED_PREVIEW,
     describe_template as _describe_template,
     finalize_datamodel as _finalize_datamodel,
     generate_archimate_diagram as _generate_archimate_diagram,
     generate_layout_preview as _generate_layout_preview,
-    load_layout_preview as _load_layout_preview,
     list_templates as _list_templates,
     save_datamodel as _save_datamodel,
 )
@@ -609,17 +607,13 @@ def _build_placeholder_replacements(
             layout_artifact = artifacts.get(SESSION_ARTIFACT_LAYOUT_PREVIEW)
             if isinstance(layout_artifact, Mapping):
                 alias_candidates.append(layout_artifact)
-            loaded_artifact = artifacts.get(SESSION_ARTIFACT_LOADED_PREVIEW)
-            if isinstance(loaded_artifact, Mapping):
-                alias_candidates.append(loaded_artifact)
-        direct_loaded = diagramador_bucket.get("load_layout_preview_response")
-        if isinstance(direct_loaded, Mapping):
-            alias_candidates.append(direct_loaded)
+        direct_layout = diagramador_bucket.get("layout_preview")
+        if isinstance(direct_layout, Mapping):
+            alias_candidates.append(direct_layout)
 
     primary_layout = next(iter(alias_candidates), None)
     if isinstance(primary_layout, Mapping):
         virtual_state.setdefault("layout_preview", primary_layout)
-        virtual_state.setdefault("load_layout_preview_response", primary_layout)
 
     for candidate in alias_candidates:
         replacements.update(_collect_layout_preview_replacements(candidate))
@@ -784,18 +778,6 @@ def generate_layout_preview(
     )
 
 
-def load_layout_preview(
-    view_filter: str,
-    session_state: str,
-):
-    coerced_state = _coerce_session_state(session_state)
-    filter_payload: Any | None = _empty_string_to_none(view_filter)
-    return _load_layout_preview(
-        view_filter=filter_payload,
-        session_state=coerced_state,
-    )
-
-
 def finalize_datamodel(
     datamodel: str,
     template_path: str,
@@ -855,7 +837,6 @@ diagramador_agent = Agent(
         _make_tool(list_templates, name="list_templates"),
         _make_tool(describe_template, name="describe_template"),
         _make_tool(generate_layout_preview, name="generate_layout_preview"),
-        _make_tool(load_layout_preview, name="load_layout_preview"),
         _make_tool(finalize_datamodel, name="finalize_datamodel"),
         _make_tool(save_datamodel, name="save_datamodel"),
         _make_tool(

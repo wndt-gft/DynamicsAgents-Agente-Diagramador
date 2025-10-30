@@ -57,7 +57,6 @@ SESSION_ARTIFACT_FINAL_DATAMODEL = "final_datamodel"
 SESSION_ARTIFACT_LAYOUT_PREVIEW = "layout_preview"
 SESSION_ARTIFACT_SAVED_DATAMODEL = "saved_datamodel"
 SESSION_ARTIFACT_ARCHIMATE_XML = "archimate_xml"
-SESSION_ARTIFACT_LOADED_PREVIEW = "load_layout_preview_response"
 
 
 def _error_response(message: str, *, code: str | None = None) -> Dict[str, Any]:
@@ -2623,6 +2622,9 @@ def generate_layout_preview(
         SESSION_ARTIFACT_LAYOUT_PREVIEW,
         response,
     )
+    bucket = get_session_bucket(session_state)
+    if isinstance(bucket, MutableMapping):
+        bucket["layout_preview"] = copy.deepcopy(response)
 
     status_payload: Dict[str, Any] = {
         "status": "ok",
@@ -2634,143 +2636,6 @@ def generate_layout_preview(
         status_payload["message"] = "Pré-visualização armazenada com sucesso."
 
     return status_payload
-
-
-def load_layout_preview(
-    view_filter: str | Sequence | None = None,
-    session_state: MutableMapping | None = None,
-) -> Dict[str, Any]:
-    """Recupera pré-visualizações armazenadas no estado de sessão."""
-
-    cached = get_cached_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW)
-    if not isinstance(cached, MutableMapping):
-        logger.warning(
-            "load_layout_preview não encontrou artefato em sessão para o identificador %s.",
-            SESSION_ARTIFACT_LAYOUT_PREVIEW,
-        )
-        return _error_response(
-            "Nenhuma pré-visualização foi armazenada anteriormente neste estado de sessão.",
-            code="preview_not_found",
-        )
-
-    filter_tokens = _normalize_view_filter(view_filter)
-    if filter_tokens:
-        set_view_focus(session_state, sorted(filter_tokens))
-    else:
-        filter_tokens = _session_view_filter(session_state)
-
-    artifacts_payload: list[Dict[str, Any]] = []
-    artifacts = cached.get("artifacts")
-    if isinstance(artifacts, Sequence):
-        for artifact in artifacts:
-            if isinstance(artifact, MutableMapping):
-                artifacts_payload.append(dict(artifact))
-
-    summaries = cached.get("preview_summaries")
-    if not isinstance(summaries, Sequence):
-        cached_views = cached.get("views")
-        if isinstance(cached_views, Sequence):
-            summaries, artifacts_fallback = _summarize_layout_previews(
-                [view for view in cached_views if isinstance(view, MutableMapping)]
-            )
-            if artifacts_fallback and not artifacts_payload:
-                artifacts_payload = [dict(item) for item in artifacts_fallback]
-        else:
-            logger.error(
-                "Artefato de pré-visualização não possui resumos nem visões serializadas."
-            )
-            return _error_response(
-                "A pré-visualização armazenada não contém resumos para apresentação.",
-                code="preview_invalid",
-            )
-
-    filtered_summaries: list[Dict[str, Any]] = []
-    for summary in summaries:
-        if not isinstance(summary, MutableMapping):
-            continue
-        if not _view_summary_matches_filter(summary, filter_tokens):
-            continue
-        filtered_summaries.append(dict(summary))
-
-    if not filtered_summaries:
-        logger.info(
-            "Nenhuma pré-visualização corresponde ao filtro informado ou foco atual."
-        )
-        return _error_response(
-            "Nenhuma pré-visualização corresponde ao filtro informado ou ao foco armazenado.",
-            code="preview_not_matched",
-        )
-
-    response: Dict[str, Any] = {
-        "status": "ok",
-        "view_count": len(filtered_summaries),
-        "previews": [],
-    }
-
-    preview_messages: list[str] = []
-
-    for summary in filtered_summaries:
-        inline_markdown = summary.get("inline_markdown")
-        download_markdown = summary.get("download_markdown")
-        download_uri = summary.get("download_uri")
-        inline_uri = summary.get("inline_uri")
-        inline_path = summary.get("inline_path")
-        download_path = summary.get("download_path")
-
-        normalized_download_md: str | None
-        if isinstance(download_markdown, str) and download_markdown.strip():
-            normalized_download_md = download_markdown.strip()
-        elif isinstance(download_uri, str) and download_uri.strip():
-            normalized_download_md = (
-                f"[Abrir diagrama em SVG]({download_uri.strip()})"
-            )
-        else:
-            normalized_download_md = None
-
-        preview_entry: Dict[str, Any] = {
-            "view_id": summary.get("view_id"),
-            "view_name": summary.get("view_name"),
-        }
-
-        if isinstance(inline_markdown, str) and inline_markdown.strip():
-            preview_entry["inline_markdown"] = inline_markdown.strip()
-        if isinstance(inline_uri, str) and inline_uri.strip():
-            preview_entry["inline_uri"] = inline_uri.strip()
-        if normalized_download_md:
-            preview_entry["download_markdown"] = normalized_download_md
-        if isinstance(download_uri, str) and download_uri.strip():
-            preview_entry["download_uri"] = download_uri.strip()
-        if isinstance(inline_path, str) and inline_path.strip():
-            preview_entry["inline_path"] = inline_path.strip()
-        if isinstance(download_path, str) and download_path.strip():
-            preview_entry["download_path"] = download_path.strip()
-
-        response["previews"].append(preview_entry)
-
-        markdown_message = _preview_summary_markdown(summary)
-        if markdown_message:
-            preview_messages.append(markdown_message)
-
-    if artifacts_payload:
-        response["artifacts"] = artifacts_payload
-
-    if preview_messages:
-        response["messages"] = preview_messages
-        response["message"] = "\n\n".join(preview_messages)
-
-    primary_preview = dict(response["previews"][0])
-    response["primary_preview"] = primary_preview
-
-    if session_state is not None:
-        store_artifact(
-            session_state,
-            SESSION_ARTIFACT_LOADED_PREVIEW,
-            response,
-        )
-        bucket = get_session_bucket(session_state)
-        bucket["load_layout_preview_response"] = copy.deepcopy(response)
-
-    return response
 
 
 def generate_archimate_diagram(
@@ -3033,11 +2898,9 @@ __all__ = [
     "SESSION_ARTIFACT_LAYOUT_PREVIEW",
     "SESSION_ARTIFACT_SAVED_DATAMODEL",
     "SESSION_ARTIFACT_ARCHIMATE_XML",
-    "SESSION_ARTIFACT_LOADED_PREVIEW",
     "list_templates",
     "describe_template",
     "generate_layout_preview",
-    "load_layout_preview",
     "finalize_datamodel",
     "save_datamodel",
     "generate_archimate_diagram",
