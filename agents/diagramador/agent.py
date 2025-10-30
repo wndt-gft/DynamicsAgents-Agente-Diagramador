@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 import logging
+import base64
+import html
+import mimetypes
 import re
+import urllib.parse
 import warnings
 from collections.abc import Mapping, MutableMapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable, Tuple
 
 from google.adk import Agent
 from google.adk.tools.function_tool import FunctionTool
@@ -117,6 +121,89 @@ def _normalize_bool_flag(value: Any) -> bool | None:
 
 
 _PLACEHOLDER_SEGMENT_RE = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _resolve_local_file(path_text: str | None, uri_text: str | None) -> Path | None:
+    """Identify um caminho local válido a partir de um path absoluto ou URI."""
+
+    candidates: Iterable[str] = []
+    normalized: list[str] = []
+
+    if isinstance(path_text, str) and path_text.strip():
+        normalized.append(path_text.strip())
+
+    if isinstance(uri_text, str) and uri_text.strip():
+        parsed = urllib.parse.urlparse(uri_text.strip())
+        if parsed.scheme == "file":
+            raw_path = urllib.parse.unquote(parsed.path or "")
+            if parsed.netloc:
+                raw_path = f"//{parsed.netloc}{raw_path}"
+            if raw_path:
+                normalized.append(raw_path)
+
+    candidates = normalized
+
+    for candidate in candidates:
+        try:
+            candidate_path = Path(candidate)
+        except Exception:  # pragma: no cover - caminhos inválidos
+            continue
+        resolved = candidate_path.expanduser().resolve(strict=False)
+        if resolved.exists():
+            return resolved
+    return None
+
+
+def _guess_mime_type(path: Path | None, fallback: str | None = None) -> str:
+    if path is not None:
+        mime_type, _ = mimetypes.guess_type(str(path), strict=False)
+        if mime_type:
+            return mime_type
+        suffix = path.suffix.lower()
+        if suffix == ".svg":
+            return "image/svg+xml"
+        if suffix == ".png":
+            return "image/png"
+    if fallback:
+        return fallback
+    return "application/octet-stream"
+
+
+def _encode_data_uri(path: Path | None, *, mime_hint: str | None = None) -> Tuple[str | None, str | None]:
+    if path is None:
+        return None, None
+    try:
+        payload = path.read_bytes()
+    except OSError:
+        return None, None
+    mime_type = _guess_mime_type(path, fallback=mime_hint)
+    encoded = base64.b64encode(payload).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}", mime_type
+
+
+def _build_image_html(data_uri: str | None, alt_text: str | None) -> str | None:
+    if not data_uri:
+        return None
+    safe_alt = html.escape(alt_text or "Pré-visualização", quote=True)
+    return f'<img src="{data_uri}" alt="{safe_alt}">' 
+
+
+def _extract_markdown_label(markdown: str | None) -> str | None:
+    if not markdown:
+        return None
+    match = re.match(r"\s*\[(?P<label>[^\]]+)\]\s*\(", markdown)
+    if match:
+        label = match.group("label").strip()
+        if label:
+            return label
+    return None
+
+
+def _build_link_html(data_uri: str | None, label: str | None) -> str | None:
+    if not data_uri:
+        return None
+    safe_label = html.escape(label or "Abrir diagrama", quote=False)
+    return f'<a href="{data_uri}" target="_blank" rel="noopener">{safe_label}</a>'
 
 
 def _stringify_placeholder_value(value: Any) -> str | None:
@@ -268,6 +355,23 @@ def _collect_layout_preview_replacements(
         inline_path = _stringify_placeholder_value(summary.get("inline_path"))
         download_path = _stringify_placeholder_value(summary.get("download_path"))
         filename = _coalesce_filename(summary)
+        alt_text = _stringify_placeholder_value(summary.get("view_name")) or "Pré-visualização"
+
+        inline_file = _resolve_local_file(inline_path, inline_uri)
+        inline_data_uri, inline_mime = _encode_data_uri(inline_file)
+
+        download_file = _resolve_local_file(download_path, download_uri)
+        download_data_uri, download_mime = _encode_data_uri(download_file)
+
+        if inline_data_uri is None and inline_uri and inline_uri == download_uri:
+            inline_data_uri = download_data_uri
+
+        inline_html = _build_image_html(inline_data_uri or download_data_uri, alt_text)
+        link_label = _extract_markdown_label(download_md) or alt_text or "Abrir diagrama"
+        download_html = _build_link_html(download_data_uri or inline_data_uri, link_label)
+
+        inline_value = inline_html or inline_md or inline_uri or inline_path
+        download_value = download_html or download_md or download_uri or inline_html
 
         placeholders = summary.get("placeholders")
         if isinstance(placeholders, Mapping):
@@ -283,52 +387,64 @@ def _collect_layout_preview_replacements(
                     base_key = base_key[len("bare_") :]
                 resolved: str | None = None
                 if base_key in {"image", "img", "embed"}:
-                    resolved = inline_md
+                    resolved = inline_value
                 elif base_key in {"link", "markdown_link"}:
-                    resolved = download_md or inline_md
+                    resolved = download_value
                 elif base_key in {"path", "relative_path"}:
                     resolved = (
-                        download_path
+                        download_data_uri
+                        or inline_data_uri
+                        or download_path
                         or inline_path
                         or download_uri
                         or inline_uri
                     )
                 elif base_key == "uri":
-                    resolved = download_uri or inline_uri
+                    resolved = (
+                        download_data_uri
+                        or inline_data_uri
+                        or download_uri
+                        or inline_uri
+                    )
                 elif base_key == "filename":
                     resolved = filename
                 if resolved:
                     _register_placeholder(mapping, placeholder_token, resolved)
 
-        _register_placeholder(mapping, summary.get("inline_placeholder"), inline_md)
+        _register_placeholder(mapping, summary.get("inline_placeholder"), inline_value)
         _register_placeholder(
-            mapping, summary.get("inline_placeholder_legacy"), inline_md
+            mapping, summary.get("inline_placeholder_legacy"), inline_value
         )
         _register_placeholder(
             mapping,
             summary.get("download_placeholder"),
-            download_md or inline_md,
+            download_value,
         )
         _register_placeholder(
             mapping,
             summary.get("download_placeholder_legacy"),
-            download_md or inline_md,
+            download_value,
         )
 
-        if inline_md:
-            lower_inline = inline_md.lower()
+        if inline_value:
+            lower_inline = inline_value.lower()
             if default_png is None and (
-                ".png" in lower_inline
+                "data:image/png" in lower_inline
+                or (inline_mime and inline_mime.endswith("png"))
                 or (inline_path and inline_path.lower().endswith(".png"))
             ):
-                default_png = inline_md
+                default_png = inline_value
 
         link_target = download_path or download_uri
-        if link_target and link_target.lower().endswith(".svg"):
+        if (
+            (download_value and "data:image" in download_value)
+            or (download_mime and download_mime.endswith("svg+xml"))
+            or (link_target and link_target.lower().endswith(".svg"))
+        ):
             if download_md:
-                default_svg = default_svg or download_md
+                default_svg = default_svg or download_value
             elif download_uri:
-                default_svg = default_svg or _format_download_link(download_uri)
+                default_svg = default_svg or download_value
 
     _process(layout)
     _process(layout.get("primary_preview"))
