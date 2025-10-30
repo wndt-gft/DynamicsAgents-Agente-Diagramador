@@ -4,15 +4,19 @@ from __future__ import annotations
 
 """Operações principais do agente Diagramador."""
 
+import base64
 import copy
+import html
 import itertools
 import json
 import logging
+import mimetypes
 import re
 import textwrap
+import unicodedata
 import warnings
 from pathlib import Path
-from collections.abc import Iterable, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from typing import Any, Dict, List, Optional, Tuple
 from xml.etree import ElementTree as ET
 
@@ -35,6 +39,7 @@ from .rendering import render_view_layout
 from .session import (
     get_cached_artifact,
     get_cached_blueprint,
+    get_session_bucket,
     get_view_focus,
     set_view_focus,
     store_artifact,
@@ -65,6 +70,309 @@ def _error_response(message: str, *, code: str | None = None) -> Dict[str, Any]:
         payload["code"] = code
     return payload
 
+
+def _placeholder_token(value: str, fallback: str = "preview") -> str:
+    token = re.sub(r"[^A-Za-z0-9_-]+", "-", str(value).strip())
+    token = token.strip("-")
+    return token or fallback
+
+
+def _state_var_token(value: str, fallback: str = "preview") -> str:
+    token = re.sub(r"[^A-Za-z0-9]+", "_", str(value).strip())
+    token = token.strip("_")
+    return token or fallback
+
+
+_CONTROL_CHAR_CLEAN_RE = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F]")
+_INVALID_ESCAPE_RE = re.compile(r"(?<!\\)\\([^\"\\/bfnrtu])")
+_MISSING_COMMA_RE = re.compile(r'([}\]])(\s*)(?=[{\[\"])', re.MULTILINE)
+_MISSING_COMMA_BETWEEN_PAIRS_RE = re.compile(
+    r'([}\]"0-9])(?P<ws>\s*)(?="[^"\\]+"\s*:)',
+    re.MULTILINE,
+)
+_MISSING_COMMA_GENERIC_RE = re.compile(
+    r'([}\]"0-9])(?P<ws>\s*)(?=[{\["0-9-])',
+    re.MULTILINE,
+)
+_TRAILING_COMMA_RE = re.compile(r",(\s*[}\]])")
+_TOKEN_SPLIT_RE = re.compile(r"[\s\-–—:/|]+")
+
+
+_CODE_FENCE_RE = re.compile(
+    r"^\s*(?:```|~~~)(?:json)?\s*(?P<body>.*?)(?:```|~~~)\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _strip_code_fences(text: str) -> str:
+    """Remove cercas de bloco (```/~~~) frequentemente usadas pelo modelo."""
+
+    match = _CODE_FENCE_RE.match(text)
+    if match:
+        return match.group("body").strip()
+    return text
+
+
+def _guess_mime_type(path: Path | None, fallback: str | None = None) -> str:
+    if path is not None:
+        mime_type, _ = mimetypes.guess_type(str(path), strict=False)
+        if mime_type:
+            return mime_type
+        suffix = path.suffix.lower()
+        if suffix == ".svg":
+            return "image/svg+xml"
+        if suffix == ".png":
+            return "image/png"
+    if fallback:
+        return fallback
+    return "application/octet-stream"
+
+
+def _ensure_data_uri(path_text: str | None, *, mime_hint: str | None = None) -> Optional[str]:
+    if not isinstance(path_text, str) or not path_text.strip():
+        return None
+    if path_text.strip().startswith("data:"):
+        return path_text.strip()
+    candidate = Path(path_text.strip())
+    try:
+        if not candidate.exists():
+            return None
+        payload = candidate.read_bytes()
+    except OSError:
+        return None
+    mime_type = _guess_mime_type(candidate, fallback=mime_hint)
+    encoded = base64.b64encode(payload).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
+def _build_image_html(data_uri: Optional[str], alt_text: Optional[str]) -> Optional[str]:
+    if not data_uri:
+        return None
+    safe_alt = html.escape(alt_text or "Pré-visualização", quote=True)
+    return f'<img src="{data_uri}" alt="{safe_alt}">'
+
+
+def _build_link_html(data_uri: Optional[str], label: Optional[str] = None) -> Optional[str]:
+    if not data_uri:
+        return None
+    safe_label = html.escape(label or "Abrir diagrama em SVG", quote=False)
+    return f'<a href="{data_uri}" target="_blank" rel="noopener">{safe_label}</a>'
+
+
+def _normalized_template_path(path: Path) -> str:
+    if path.is_absolute():
+        return str(path.resolve())
+    return str((Path.cwd() / path).resolve())
+
+
+def _template_view_lookup(
+    session_state: Optional[MutableMapping[str, Any]], template_path: Path
+) -> Dict[str, Dict[str, Any]]:
+    """Gera um mapa id->metadados da visão conforme ``list_templates``."""
+
+    listing = get_cached_artifact(session_state, SESSION_ARTIFACT_TEMPLATE_LISTING)
+    if not isinstance(listing, MutableMapping):
+        return {}
+
+    normalized_template = _normalized_template_path(template_path)
+    templates = listing.get("templates")
+    if not isinstance(templates, Sequence):
+        return {}
+
+    view_names: Dict[str, Dict[str, Any]] = {}
+
+    for entry in templates:
+        if not isinstance(entry, MutableMapping):
+            continue
+        path_text = entry.get("path") or entry.get("absolute_path")
+        if not isinstance(path_text, str) or not path_text.strip():
+            continue
+        try:
+            candidate = Path(path_text)
+        except Exception:
+            continue
+        if _normalized_template_path(candidate) != normalized_template:
+            continue
+        views = entry.get("views")
+        if not isinstance(views, Sequence):
+            continue
+        for index, view in enumerate(views):
+            if not isinstance(view, MutableMapping):
+                continue
+            identifier = view.get("identifier") or view.get("id")
+            name = view.get("name")
+            if not isinstance(identifier, str) or not identifier.strip():
+                continue
+            normalized_identifier = identifier.strip()
+            entry_payload: Dict[str, Any] = {}
+            if isinstance(name, str) and name.strip():
+                entry_payload["name"] = name.strip()
+            entry_payload["index"] = index
+            documentation = view.get("documentation")
+            if isinstance(documentation, str) and documentation.strip():
+                entry_payload["documentation"] = documentation.strip()
+            view_names[normalized_identifier] = entry_payload
+    return view_names
+
+
+def _view_lookup_details(entry: Any) -> tuple[Optional[str], Optional[int]]:
+    if isinstance(entry, MutableMapping):
+        name = entry.get("name")
+        index = entry.get("index")
+        return (
+            name.strip() if isinstance(name, str) and name.strip() else None,
+            int(index) if isinstance(index, int) else None,
+        )
+    if isinstance(entry, str) and entry.strip():
+        return (entry.strip(), None)
+    return (None, None)
+
+
+def _populate_preview_assets(
+    view_payload: MutableMapping[str, Any], preview: MutableMapping[str, Any]
+) -> None:
+    """Garante que o preview contenha data URIs e HTML prontos para substituição."""
+
+    view_name = str(view_payload.get("name") or view_payload.get("id") or "Visão")
+
+    svg_path = preview.get("local_path")
+    svg_data_uri = _ensure_data_uri(svg_path, mime_hint="image/svg+xml")
+    if not svg_data_uri:
+        svg_data_uri = _ensure_data_uri(preview.get("download_path"), mime_hint="image/svg+xml")
+    if not svg_data_uri:
+        svg_data_uri = preview.get("download_uri") if isinstance(preview.get("download_uri"), str) else None
+        if isinstance(svg_data_uri, str) and svg_data_uri.startswith("data:"):
+            svg_data_uri = svg_data_uri
+        else:
+            svg_data_uri = None
+
+    png_payload = preview.get("png")
+    png_data_uri: Optional[str] = None
+    if isinstance(png_payload, MutableMapping):
+        png_data_uri = _ensure_data_uri(png_payload.get("local_path"), mime_hint="image/png")
+        if not png_data_uri:
+            png_uri = png_payload.get("uri")
+            if isinstance(png_uri, str) and png_uri.strip().startswith("data:"):
+                png_data_uri = png_uri.strip()
+        if png_data_uri:
+            png_payload.setdefault("data_uri", png_data_uri)
+
+    if not png_data_uri:
+        inline_uri = preview.get("inline_uri")
+        if isinstance(inline_uri, str) and inline_uri.strip().startswith("data:image/png"):
+            png_data_uri = inline_uri.strip()
+
+    if not png_data_uri and svg_data_uri:
+        png_data_uri = svg_data_uri
+
+    if svg_data_uri:
+        preview.setdefault("download_data_uri", svg_data_uri)
+        preview.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir diagrama em SVG"))
+
+    if png_data_uri:
+        preview.setdefault("inline_data_uri", png_data_uri)
+        preview.setdefault("inline_html", _build_image_html(png_data_uri, view_name))
+
+    if isinstance(png_payload, MutableMapping) and png_data_uri:
+        png_payload.setdefault("inline_data_uri", png_data_uri)
+        png_payload.setdefault("inline_html", _build_image_html(png_data_uri, view_name))
+        if svg_data_uri:
+            png_payload.setdefault("download_data_uri", svg_data_uri)
+            png_payload.setdefault("download_html", _build_link_html(svg_data_uri, "Abrir diagrama em SVG"))
+
+    if svg_data_uri and not preview.get("download_uri"):
+        preview["download_uri"] = svg_data_uri
+
+def _safe_json_loads(raw_text: str) -> Any:
+    """Parse JSON tolerating minor formatting issues produced by the LLM."""
+
+    if not isinstance(raw_text, str):
+        raise TypeError("Esperado texto JSON para parsing.")
+
+    stripped = _strip_code_fences(raw_text.strip())
+    if not stripped:
+        raise ValueError("Conteúdo JSON vazio.")
+
+    last_error: json.JSONDecodeError | None = None
+
+    def _attempt_load(payload: str, *, strict: bool = True) -> Any | None:
+        nonlocal last_error
+        try:
+            return json.loads(payload, strict=strict)
+        except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+            last_error = exc
+            return None
+
+    # First attempt with the original payload for proper errors if already valid.
+    loaded = _attempt_load(stripped)
+    if loaded is not None:
+        return loaded
+
+    # Remove ASCII control characters that aren't valid in JSON.
+    sanitized = _CONTROL_CHAR_CLEAN_RE.sub("", stripped)
+    if sanitized != stripped:
+        loaded = _attempt_load(sanitized)
+        if loaded is not None:
+            return loaded
+    else:
+        sanitized = stripped
+
+    # Repair invalid escape sequences like Windows paths ("\folder\file").
+    def _fix_invalid_escape(match: re.Match[str]) -> str:
+        tail = match.group(1)
+        if tail is None:
+            return "\\\\"
+        return "\\\\" + tail
+
+    repaired = _INVALID_ESCAPE_RE.sub(_fix_invalid_escape, sanitized)
+    if repaired != sanitized:
+        loaded = _attempt_load(repaired)
+        if loaded is not None:
+            return loaded
+    else:
+        repaired = sanitized
+
+    # Remove trailing commas that o modelo pode inserir antes de chaves/colchetes.
+    relaxed = _TRAILING_COMMA_RE.sub(r"\1", repaired)
+    if relaxed != repaired:
+        loaded = _attempt_load(relaxed, strict=False)
+        if loaded is not None:
+            return loaded
+    else:
+        relaxed = repaired
+
+    # Corrige casos comuns de vírgula ausente entre blocos ``}{`` ou ``]{``.
+    patched = _MISSING_COMMA_RE.sub(r"\1,\2", relaxed)
+    if patched != relaxed:
+        loaded = _attempt_load(patched, strict=False)
+        if loaded is not None:
+            return loaded
+    else:
+        patched = relaxed
+
+    advanced = _MISSING_COMMA_BETWEEN_PAIRS_RE.sub(r"\1,\g<ws>", patched)
+    if advanced != patched:
+        loaded = _attempt_load(advanced, strict=False)
+        if loaded is not None:
+            return loaded
+    else:
+        advanced = patched
+
+    generic = _MISSING_COMMA_GENERIC_RE.sub(r"\1,\g<ws>", advanced)
+    if generic != advanced:
+        loaded = _attempt_load(generic, strict=False)
+        if loaded is not None:
+            return loaded
+    else:
+        generic = advanced
+
+    # Tentativa final com verificação flexível; se falhar, propaga o último erro.
+    loaded = _attempt_load(generic, strict=False)
+    if loaded is not None:
+        return loaded
+
+    assert last_error is not None
+    raise last_error
 
 def _resolve_package_path(path: Path) -> Path:
     """Resolve a resource path relative to the package when needed."""
@@ -1719,8 +2027,8 @@ def save_datamodel(
     if datamodel is not None:
         raw_text = _content_to_text(datamodel)
         try:
-            payload = json.loads(raw_text)
-        except json.JSONDecodeError as exc:
+            payload = _safe_json_loads(raw_text)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
             logger.error("Falha ao converter datamodel para JSON", exc_info=exc)
             raise ValueError(
                 "O conteúdo enviado para `save_datamodel` não é um JSON válido."
@@ -1739,8 +2047,8 @@ def save_datamodel(
                 payload = copy.deepcopy(cached.get("datamodel"))
                 if payload is None and cached.get("json"):
                     try:
-                        payload = json.loads(str(cached["json"]))
-                    except (TypeError, json.JSONDecodeError):
+                        payload = _safe_json_loads(str(cached["json"]))
+                    except (TypeError, ValueError, json.JSONDecodeError):
                         payload = None
                 if payload is not None:
                     raw_text = json.dumps(payload, indent=2, ensure_ascii=False)
@@ -1800,8 +2108,8 @@ def finalize_datamodel(
 
     raw_text = _content_to_text(datamodel)
     try:
-        base_payload = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
+        base_payload = _safe_json_loads(raw_text)
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
         logger.error("Datamodel de entrada inválido para finalização", exc_info=exc)
         raise ValueError("O conteúdo recebido não é um JSON válido.") from exc
 
@@ -1971,12 +2279,41 @@ def _view_token_candidates(source: Optional[Dict[str, Any]]) -> set[str]:
     tokens: set[str] = set()
     if not isinstance(source, dict):
         return tokens
-    for key in ("id", "identifier", "name", "alias"):
+    for key in ("id", "identifier", "name", "alias", "list_view_name"):
         value = source.get(key)
+        if isinstance(value, Mapping):
+            for candidate_key in ("text", "name", "label", "value"):
+                candidate_value = value.get(candidate_key)
+                if isinstance(candidate_value, str) and candidate_value.strip():
+                    value = candidate_value
+                    break
+        if isinstance(value, (list, tuple)):
+            for entry in value:
+                if isinstance(entry, str) and entry.strip():
+                    value = entry
+                    break
         if isinstance(value, str):
             candidate = value.strip()
             if candidate:
-                tokens.add(candidate.casefold())
+                normalized = unicodedata.normalize("NFKC", candidate)
+
+                def _register(token_value: str) -> None:
+                    trimmed = token_value.strip()
+                    if not trimmed:
+                        return
+                    tokens.add(trimmed.casefold())
+                    ascii_variant = unicodedata.normalize("NFD", trimmed)
+                    ascii_variant = "".join(
+                        ch for ch in ascii_variant if not unicodedata.combining(ch)
+                    )
+                    ascii_variant = unicodedata.normalize("NFC", ascii_variant).strip()
+                    if ascii_variant:
+                        tokens.add(ascii_variant.casefold())
+
+                _register(normalized)
+                for fragment in _TOKEN_SPLIT_RE.split(normalized):
+                    if fragment and len(fragment) >= 2:
+                        _register(fragment)
     return tokens
 
 
@@ -2031,7 +2368,19 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
     if isinstance(inline_markdown, str) and inline_markdown.strip():
         variant["inline_markdown"] = inline_markdown
 
-    download_uri = payload.get("download_uri") or payload.get("data_uri")
+    inline_uri = payload.get("inline_uri")
+    if isinstance(inline_uri, str) and inline_uri.strip():
+        variant["inline_uri"] = inline_uri.strip()
+
+    inline_data_uri = payload.get("inline_data_uri")
+    if isinstance(inline_data_uri, str) and inline_data_uri.strip():
+        variant["inline_data_uri"] = inline_data_uri.strip()
+
+    inline_html = payload.get("inline_html")
+    if isinstance(inline_html, str) and inline_html.strip():
+        variant["inline_html"] = inline_html.strip()
+
+    download_uri = payload.get("download_uri")
     if isinstance(download_uri, str) and download_uri.strip():
         variant["download_uri"] = download_uri
         download_markdown = payload.get("download_markdown")
@@ -2041,9 +2390,89 @@ def _build_preview_variant(payload: Any) -> Optional[Dict[str, Any]]:
             download_markdown = f"[Baixar {label_text}]({download_uri})"
         variant["download_markdown"] = download_markdown
 
+    download_data_uri = payload.get("download_data_uri")
+    if isinstance(download_data_uri, str) and download_data_uri.strip():
+        variant["download_data_uri"] = download_data_uri.strip()
+
+    download_html = payload.get("download_html")
+    if isinstance(download_html, str) and download_html.strip():
+        variant["download_html"] = download_html.strip()
+
+    local_path = payload.get("local_path")
+    if isinstance(local_path, str) and local_path.strip():
+        variant["local_path"] = local_path.strip()
+
     artifact_payload = payload.get("artifact")
     if isinstance(artifact_payload, MutableMapping):
         variant["artifact"] = dict(artifact_payload)
+
+    placeholder_source: Optional[str] = None
+    if isinstance(local_path, str) and local_path.strip():
+        placeholder_source = Path(local_path).name
+    elif isinstance(artifact_payload, MutableMapping):
+        candidate_name = artifact_payload.get("filename") or artifact_payload.get("name")
+        if isinstance(candidate_name, str) and candidate_name.strip():
+            placeholder_source = candidate_name
+
+    if placeholder_source:
+        token_base = _placeholder_token(placeholder_source, fallback="preview").lower()
+        state_var_base = _state_var_token(f"diagramador_{token_base}", fallback="diagramador_preview")
+        legacy_placeholders = {
+            "link": f"{{diagramador:{token_base}:link}}",
+            "image": f"{{diagramador:{token_base}:img}}",
+            "img": f"{{diagramador:{token_base}:img}}",
+            "path": f"{{diagramador:{token_base}:path}}",
+            "uri": f"{{diagramador:{token_base}:uri}}",
+            "url": f"{{diagramador:{token_base}:uri}}",
+            "markdown_link": f"{{diagramador:{token_base}:markdown_link}}",
+            "relative_path": f"{{diagramador:{token_base}:relative_path}}",
+            "filename": f"{{diagramador:{token_base}:filename}}",
+        }
+        state_placeholders = {
+            "link": f"{{state.{state_var_base}_link}}",
+            "image": f"{{state.{state_var_base}_image}}",
+            "img": f"{{state.{state_var_base}_img}}",
+            "path": f"{{state.{state_var_base}_path}}",
+            "uri": f"{{state.{state_var_base}_uri}}",
+            "url": f"{{state.{state_var_base}_url}}",
+            "markdown_link": f"{{state.{state_var_base}_markdown_link}}",
+            "relative_path": f"{{state.{state_var_base}_relative_path}}",
+            "filename": f"{{state.{state_var_base}_filename}}",
+        }
+        bare_placeholders = {
+            "link": f"{{{state_var_base}_link}}",
+            "image": f"{{{state_var_base}_image}}",
+            "img": f"{{{state_var_base}_img}}",
+            "path": f"{{{state_var_base}_path}}",
+            "uri": f"{{{state_var_base}_uri}}",
+            "url": f"{{{state_var_base}_url}}",
+            "markdown_link": f"{{{state_var_base}_markdown_link}}",
+            "relative_path": f"{{{state_var_base}_relative_path}}",
+            "filename": f"{{{state_var_base}_filename}}",
+        }
+
+        combined: Dict[str, Any] = {}
+        combined.update({key: value for key, value in state_placeholders.items()})
+        combined.update({f"legacy_{key}": value for key, value in legacy_placeholders.items()})
+        combined.update({f"bare_{key}": value for key, value in bare_placeholders.items()})
+
+        existing = variant.get("placeholders")
+        if isinstance(existing, MutableMapping):
+            merged = dict(existing)
+            merged.update(combined)
+            variant["placeholders"] = merged
+        else:
+            variant["placeholders"] = combined
+
+        variant["placeholder_token"] = token_base
+        variant["state_placeholder_prefix"] = state_var_base
+
+        if variant.get("inline_markdown") or variant.get("inline_uri"):
+            variant.setdefault("inline_placeholder", state_placeholders["image"])
+            variant.setdefault("inline_placeholder_legacy", legacy_placeholders["image"])
+        if variant.get("download_markdown") or variant.get("download_uri"):
+            variant.setdefault("download_placeholder", state_placeholders["link"])
+            variant.setdefault("download_placeholder_legacy", legacy_placeholders["link"])
 
     if not variant.get("inline_markdown") and not variant.get("download_uri"):
         return None
@@ -2133,15 +2562,62 @@ def _summarize_layout_previews(
             "variants": variants,
         }
 
+        list_view_name = view_payload.get("list_view_name")
+        if isinstance(list_view_name, str) and list_view_name.strip():
+            summary.setdefault("view_name", list_view_name.strip())
+            summary["list_view_name"] = list_view_name.strip()
+
+        placeholder_candidates = []
+        for variant in variants:
+            placeholders_payload = variant.get("placeholders")
+            if isinstance(placeholders_payload, MutableMapping):
+                placeholder_candidates.append(placeholders_payload)
+        if placeholder_candidates:
+            merged_placeholders: Dict[str, Any] = {}
+            for mapping in placeholder_candidates:
+                merged_placeholders.update(mapping)
+            summary["placeholders"] = merged_placeholders
+
         primary_inline = png_variant or variants[0]
         if "inline_markdown" in primary_inline:
             summary["inline_markdown"] = primary_inline["inline_markdown"]
+        if "inline_uri" in primary_inline:
+            summary["inline_uri"] = primary_inline["inline_uri"]
+        if "inline_data_uri" in primary_inline:
+            summary["inline_data_uri"] = primary_inline["inline_data_uri"]
+        if "inline_html" in primary_inline:
+            summary["inline_html"] = primary_inline["inline_html"]
+        if "local_path" in primary_inline:
+            summary["inline_path"] = primary_inline["local_path"]
+        if "inline_placeholder" in primary_inline:
+            summary["inline_placeholder"] = primary_inline["inline_placeholder"]
+        if "inline_placeholder_legacy" in primary_inline:
+            summary["inline_placeholder_legacy"] = primary_inline["inline_placeholder_legacy"]
 
         primary_download = svg_variant or variants[0]
         if "download_markdown" in primary_download:
             summary["download_markdown"] = primary_download["download_markdown"]
         if "download_uri" in primary_download:
             summary["download_uri"] = primary_download["download_uri"]
+        if "download_data_uri" in primary_download:
+            summary["download_data_uri"] = primary_download["download_data_uri"]
+        if "download_html" in primary_download:
+            summary["download_html"] = primary_download["download_html"]
+        if "local_path" in primary_download:
+            summary["download_path"] = primary_download["local_path"]
+        if "download_placeholder" in primary_download:
+            summary["download_placeholder"] = primary_download["download_placeholder"]
+        if "download_placeholder_legacy" in primary_download:
+            summary["download_placeholder_legacy"] = primary_download["download_placeholder_legacy"]
+
+        placeholder_token = primary_inline.get("placeholder_token") or primary_download.get("placeholder_token")
+        if isinstance(placeholder_token, str) and placeholder_token.strip():
+            summary["placeholder_token"] = placeholder_token.strip()
+        state_prefix = primary_inline.get("state_placeholder_prefix") or primary_download.get(
+            "state_placeholder_prefix"
+        )
+        if isinstance(state_prefix, str) and state_prefix.strip():
+            summary["state_placeholder_prefix"] = state_prefix.strip()
 
         summaries.append(summary)
 
@@ -2169,22 +2645,30 @@ def generate_layout_preview(
 ) -> Dict[str, Any]:
     payload: Optional[Dict[str, Any]] = None
 
+    parse_error = False
     if datamodel is not None:
         raw_text = _content_to_text(datamodel)
         try:
-            payload = json.loads(raw_text)
-        except json.JSONDecodeError as exc:
-            logger.error("Datamodel inválido para pré-visualização de layout", exc_info=exc)
-            raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
-    else:
+            payload = _safe_json_loads(raw_text)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            logger.error(
+                "Datamodel inválido para pré-visualização de layout",
+                exc_info=exc,
+            )
+            parse_error = True
+
+    if payload is None:
         cached = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
         if isinstance(cached, MutableMapping):
             payload = copy.deepcopy(cached.get("datamodel"))
             if payload is None and cached.get("json"):
                 try:
-                    payload = json.loads(str(cached["json"]))
-                except (TypeError, json.JSONDecodeError):
+                    payload = _safe_json_loads(str(cached["json"]))
+                except (TypeError, ValueError, json.JSONDecodeError):
                     payload = None
+
+    if payload is None and parse_error:
+        raise ValueError("O conteúdo enviado não é um JSON válido.")
 
     if not isinstance(payload, MutableMapping):
         raise ValueError(
@@ -2193,6 +2677,7 @@ def generate_layout_preview(
 
     template: Dict[str, Any] = {}
     template_metadata: Dict[str, Any] = {}
+    view_lookup: Dict[str, str] = {}
     if template_path:
         template_file = _resolve_package_path(Path(template_path))
         if not template_file.exists():
@@ -2202,6 +2687,7 @@ def generate_layout_preview(
         )
         store_blueprint(session_state, template_file, template)
         template_metadata["path"] = str(template_file.resolve())
+        view_lookup = _template_view_lookup(session_state, template_file)
 
     element_lookup = _build_element_lookup(template, payload)
     relation_lookup = _build_relationship_lookup(template, payload)
@@ -2251,6 +2737,8 @@ def generate_layout_preview(
             output_dir=layout_output_dir,
         )
         if preview:
+            if isinstance(preview, MutableMapping):
+                _populate_preview_assets(view_payload, preview)
             view_payload["layout_preview"] = preview
         return view_payload
 
@@ -2283,6 +2771,14 @@ def generate_layout_preview(
             datamodel_nodes,
             datamodel_connections,
         )
+        if view_lookup and view_id:
+            lookup_entry = view_lookup.get(str(view_id))
+            hint_name, hint_index = _view_lookup_details(lookup_entry)
+            if hint_name:
+                view_payload.setdefault("list_view_name", hint_name)
+                view_payload.setdefault("name", hint_name)
+            if hint_index is not None:
+                view_payload.setdefault("list_view_index", hint_index)
         results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
@@ -2308,6 +2804,14 @@ def generate_layout_preview(
             datamodel_nodes,
             datamodel_connections,
         )
+        if view_lookup and view_id:
+            lookup_entry = view_lookup.get(str(view_id))
+            hint_name, hint_index = _view_lookup_details(lookup_entry)
+            if hint_name:
+                view_payload.setdefault("list_view_name", hint_name)
+                view_payload.setdefault("name", hint_name)
+            if hint_index is not None:
+                view_payload.setdefault("list_view_index", hint_index)
         results.append(_attach_layout_preview(view_payload))
         if view_id:
             processed_ids.add(str(view_id))
@@ -2366,6 +2870,37 @@ def generate_layout_preview(
             "download_uri": primary_download_uri,
         }
 
+        inline_placeholder = primary.get("inline_placeholder")
+        download_placeholder = primary.get("download_placeholder")
+        if isinstance(inline_placeholder, str) and inline_placeholder.strip():
+            response["inline_placeholder"] = inline_placeholder
+            response["primary_preview"]["inline_placeholder"] = inline_placeholder
+        legacy_inline_placeholder = primary.get("inline_placeholder_legacy")
+        if isinstance(legacy_inline_placeholder, str) and legacy_inline_placeholder.strip():
+            response["inline_placeholder_legacy"] = legacy_inline_placeholder
+            response["primary_preview"]["inline_placeholder_legacy"] = legacy_inline_placeholder
+        if isinstance(download_placeholder, str) and download_placeholder.strip():
+            response["download_placeholder"] = download_placeholder
+            response["primary_preview"]["download_placeholder"] = download_placeholder
+        legacy_download_placeholder = primary.get("download_placeholder_legacy")
+        if isinstance(legacy_download_placeholder, str) and legacy_download_placeholder.strip():
+            response["download_placeholder_legacy"] = legacy_download_placeholder
+            response["primary_preview"]["download_placeholder_legacy"] = legacy_download_placeholder
+
+        placeholder_token = primary.get("placeholder_token")
+        if isinstance(placeholder_token, str) and placeholder_token.strip():
+            response["placeholder_token"] = placeholder_token.strip()
+            response["primary_preview"]["placeholder_token"] = placeholder_token.strip()
+        state_prefix = primary.get("state_placeholder_prefix")
+        if isinstance(state_prefix, str) and state_prefix.strip():
+            response["state_placeholder_prefix"] = state_prefix.strip()
+            response["primary_preview"]["state_placeholder_prefix"] = state_prefix.strip()
+
+        placeholders_payload = primary.get("placeholders")
+        if isinstance(placeholders_payload, MutableMapping):
+            response["placeholders"] = dict(placeholders_payload)
+            response["primary_preview"]["placeholders"] = dict(placeholders_payload)
+
         if primary_summary_markdown:
             response.setdefault("preview_messages", preview_messages)
             if not response.get("message"):
@@ -2380,6 +2915,9 @@ def generate_layout_preview(
         SESSION_ARTIFACT_LAYOUT_PREVIEW,
         response,
     )
+    bucket = get_session_bucket(session_state)
+    if isinstance(bucket, MutableMapping):
+        bucket["layout_preview"] = copy.deepcopy(response)
 
     status_payload: Dict[str, Any] = {
         "status": "ok",
@@ -2391,125 +2929,6 @@ def generate_layout_preview(
         status_payload["message"] = "Pré-visualização armazenada com sucesso."
 
     return status_payload
-
-
-def load_layout_preview(
-    view_filter: str | Sequence | None = None,
-    session_state: MutableMapping | None = None,
-) -> Dict[str, Any]:
-    """Recupera pré-visualizações armazenadas no estado de sessão."""
-
-    cached = get_cached_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW)
-    if not isinstance(cached, MutableMapping):
-        logger.warning(
-            "load_layout_preview não encontrou artefato em sessão para o identificador %s.",
-            SESSION_ARTIFACT_LAYOUT_PREVIEW,
-        )
-        return _error_response(
-            "Nenhuma pré-visualização foi armazenada anteriormente neste estado de sessão.",
-            code="preview_not_found",
-        )
-
-    filter_tokens = _normalize_view_filter(view_filter)
-    if filter_tokens:
-        set_view_focus(session_state, sorted(filter_tokens))
-    else:
-        filter_tokens = _session_view_filter(session_state)
-
-    artifacts_payload: list[Dict[str, Any]] = []
-    artifacts = cached.get("artifacts")
-    if isinstance(artifacts, Sequence):
-        for artifact in artifacts:
-            if isinstance(artifact, MutableMapping):
-                artifacts_payload.append(dict(artifact))
-
-    summaries = cached.get("preview_summaries")
-    if not isinstance(summaries, Sequence):
-        cached_views = cached.get("views")
-        if isinstance(cached_views, Sequence):
-            summaries, artifacts_fallback = _summarize_layout_previews(
-                [view for view in cached_views if isinstance(view, MutableMapping)]
-            )
-            if artifacts_fallback and not artifacts_payload:
-                artifacts_payload = [dict(item) for item in artifacts_fallback]
-        else:
-            logger.error(
-                "Artefato de pré-visualização não possui resumos nem visões serializadas."
-            )
-            return _error_response(
-                "A pré-visualização armazenada não contém resumos para apresentação.",
-                code="preview_invalid",
-            )
-
-    filtered_summaries: list[Dict[str, Any]] = []
-    for summary in summaries:
-        if not isinstance(summary, MutableMapping):
-            continue
-        if not _view_summary_matches_filter(summary, filter_tokens):
-            continue
-        filtered_summaries.append(dict(summary))
-
-    if not filtered_summaries:
-        logger.info(
-            "Nenhuma pré-visualização corresponde ao filtro informado ou foco atual."
-        )
-        return _error_response(
-            "Nenhuma pré-visualização corresponde ao filtro informado ou ao foco armazenado.",
-            code="preview_not_matched",
-        )
-
-    response: Dict[str, Any] = {
-        "status": "ok",
-        "view_count": len(filtered_summaries),
-        "previews": [],
-    }
-
-    preview_messages: list[str] = []
-
-    for summary in filtered_summaries:
-        inline_markdown = summary.get("inline_markdown")
-        download_markdown = summary.get("download_markdown")
-        download_uri = summary.get("download_uri")
-
-        normalized_download_md: str | None
-        if isinstance(download_markdown, str) and download_markdown.strip():
-            normalized_download_md = download_markdown.strip()
-        elif isinstance(download_uri, str) and download_uri.strip():
-            normalized_download_md = (
-                f"[Abrir diagrama em SVG]({download_uri.strip()})"
-            )
-        else:
-            normalized_download_md = None
-
-        preview_entry: Dict[str, Any] = {
-            "view_id": summary.get("view_id"),
-            "view_name": summary.get("view_name"),
-        }
-
-        if isinstance(inline_markdown, str) and inline_markdown.strip():
-            preview_entry["inline_markdown"] = inline_markdown.strip()
-        if normalized_download_md:
-            preview_entry["download_markdown"] = normalized_download_md
-        if isinstance(download_uri, str) and download_uri.strip():
-            preview_entry["download_uri"] = download_uri.strip()
-
-        response["previews"].append(preview_entry)
-
-        markdown_message = _preview_summary_markdown(summary)
-        if markdown_message:
-            preview_messages.append(markdown_message)
-
-    if artifacts_payload:
-        response["artifacts"] = artifacts_payload
-
-    if preview_messages:
-        response["messages"] = preview_messages
-        response["message"] = "\n\n".join(preview_messages)
-
-    primary_preview = dict(response["previews"][0])
-    response["primary_preview"] = primary_preview
-
-    return response
 
 
 def generate_archimate_diagram(
@@ -2631,7 +3050,7 @@ def list_templates(
                 "documentation": _text_payload(documentation_el),
             }
             views_metadata: List[Dict[str, Any]] = []
-            for view in root.findall("a:views/a:diagrams/a:view", ns):
+            for index, view in enumerate(root.findall("a:views/a:diagrams/a:view", ns)):
                 view_entry: Dict[str, Any] = {}
                 view_id = view.get("identifier")
                 if view_id:
@@ -2648,6 +3067,7 @@ def list_templates(
                 viewpoint_ref = view.get("viewpoint") or view.get("viewpointRef")
                 if viewpoint_ref:
                     view_entry["viewpoint"] = viewpoint_ref
+                view_entry["index"] = index
                 if view_entry:
                     views_metadata.append(view_entry)
             if views_metadata:
@@ -2699,6 +3119,27 @@ def describe_template(
             filter_tokens = _session_view_filter(session_state)
 
     blueprint = _parse_template_blueprint(template)
+    view_lookup = _template_view_lookup(session_state, template)
+
+    if view_lookup:
+        views_section = blueprint.get("views")
+        if isinstance(views_section, MutableMapping):
+            diagrams = views_section.get("diagrams")
+            if isinstance(diagrams, Sequence):
+                for diagram in diagrams:
+                    if not isinstance(diagram, MutableMapping):
+                        continue
+                    identifier = diagram.get("id") or diagram.get("identifier")
+                    if isinstance(identifier, str) and identifier.strip():
+                        lookup_entry = view_lookup.get(identifier.strip())
+                        hint_name, hint_index = _view_lookup_details(lookup_entry)
+                        if hint_name:
+                            diagram["list_view_name"] = hint_name
+                            if not diagram.get("name"):
+                                diagram["name"] = hint_name
+                        if hint_index is not None:
+                            diagram["list_view_index"] = hint_index
+
     store_blueprint(session_state, template, blueprint)
 
     matching_identifiers: set[str] = set()
@@ -2708,13 +3149,14 @@ def describe_template(
             if not isinstance(diagram, dict):
                 continue
             candidates = _view_token_candidates(diagram)
-            if candidates & filter_tokens:
+            matched_tokens = candidates & filter_tokens
+            if matched_tokens:
                 identifier = diagram.get("id") or diagram.get("identifier")
                 if isinstance(identifier, str):
                     identifier_text = identifier.strip()
                     if identifier_text:
                         matching_identifiers.add(identifier_text)
-                matching_tokens.update(candidates)
+                matching_tokens.update(matched_tokens)
         if not matching_identifiers and not matching_tokens:
             raise ValueError(
                 "Nenhuma visão do template corresponde ao filtro informado."
@@ -2741,6 +3183,16 @@ def describe_template(
                     if not include and tokens & (matching_tokens or filter_tokens):
                         include = True
                     if include:
+                        if view_lookup:
+                            lookup_entry = view_lookup.get(
+                                str(diagram.get("identifier") or "").strip()
+                            )
+                            hint_name, hint_index = _view_lookup_details(lookup_entry)
+                            if hint_name:
+                                diagram.setdefault("list_view_name", hint_name)
+                                diagram.setdefault("name", hint_name)
+                            if hint_index is not None:
+                                diagram.setdefault("list_view_index", hint_index)
                         filtered_diagrams.append(diagram)
                 if not filtered_diagrams:
                     raise ValueError(
@@ -2775,7 +3227,6 @@ __all__ = [
     "list_templates",
     "describe_template",
     "generate_layout_preview",
-    "load_layout_preview",
     "finalize_datamodel",
     "save_datamodel",
     "generate_archimate_diagram",
