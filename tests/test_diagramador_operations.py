@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import sys
+import urllib.parse
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -212,6 +213,24 @@ def test_generate_layout_preview_reuses_cache(sample_payload, session_state):
     assert "preview_messages" not in result
     assert "primary_preview" not in result
     assert "artifacts" not in result
+
+
+def test_register_placeholder_handles_percent_encoding():
+    replacements: dict[str, str] = {}
+    token = "{{state.preview_png}}"
+    value = "BASE64DATA"
+
+    diagramador_agent_module._register_placeholder(replacements, token, value)
+
+    encoded_token = urllib.parse.quote(token, safe="")
+    assert encoded_token in replacements
+    assert replacements[encoded_token] == value
+
+    sample_text = f"data:image/png;base64,{encoded_token}"
+    replaced = diagramador_agent_module._apply_replacements_to_text(
+        sample_text, replacements
+    )
+    assert replaced == f"data:image/png;base64,{value}"
 
 
 def test_generate_layout_preview_resolves_agent_relative_path(sample_payload, session_state):

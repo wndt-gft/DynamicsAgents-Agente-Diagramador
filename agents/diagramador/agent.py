@@ -370,6 +370,20 @@ def _coalesce_filename(summary: Mapping[str, Any]) -> str | None:
     return _stringify_placeholder_value(summary.get("view_name"))
 
 
+def _register_direct_placeholder(mapping: dict[str, str], token: str, value: str) -> None:
+    """Adiciona ``token`` ao mapa, incluindo variação por URL encoding."""
+
+    if not token:
+        return
+
+    if token not in mapping:
+        mapping[token] = value
+
+    encoded = urllib.parse.quote(token, safe="")
+    if encoded and encoded != token:
+        mapping.setdefault(encoded, value)
+
+
 def _register_square_placeholder_variants(
     mapping: dict[str, str], key_text: str, value_text: str
 ) -> None:
@@ -378,48 +392,68 @@ def _register_square_placeholder_variants(
     if not key_text:
         return
 
-    pending: set[str] = {key_text}
-    seen: set[str] = set()
+    seeds: list[str] = [key_text]
+    canonical: set[str] = set()
 
-    while pending:
-        candidate = pending.pop()
-        if not candidate or candidate in seen:
+    while seeds:
+        candidate = seeds.pop()
+        if not candidate or candidate in canonical:
             continue
-        seen.add(candidate)
-
-        token = f"[[{candidate}]]"
-        mapping.setdefault(token, value_text)
+        canonical.add(candidate)
 
         if candidate.startswith("app.state."):
             suffix = candidate[len("app.state.") :]
-            if suffix:
-                pending.add(suffix)
-                pending.add(f"state.{suffix}")
-        elif candidate.startswith("state."):
+            if suffix and suffix not in canonical:
+                seeds.append(suffix)
+        if candidate.startswith("state."):
             suffix = candidate[len("state.") :]
-            if suffix:
-                pending.add(suffix)
-                pending.add(f"app.state.{suffix}")
-        else:
-            pending.add(f"state.{candidate}")
-            pending.add(f"app.state.{candidate}")
+            if suffix and suffix not in canonical:
+                seeds.append(suffix)
+        if candidate.startswith("app_state_"):
+            suffix = candidate[len("app_state_") :]
+            if suffix and suffix not in canonical:
+                seeds.append(suffix)
+        if candidate.startswith("state_"):
+            suffix = candidate[len("state_") :]
+            if suffix and suffix not in canonical:
+                seeds.append(suffix)
 
         normalized = candidate.replace(".", "_")
         normalized = normalized.replace("-", "_")
         normalized = re.sub(r"__+", "_", normalized)
-        if normalized != candidate:
-            pending.add(normalized)
+        if normalized and normalized not in canonical:
+            seeds.append(normalized)
 
-        if candidate.startswith("state_"):
-            suffix = candidate[len("state_") :]
-            if suffix:
-                pending.add(suffix)
-                pending.add(f"app_state_{suffix}")
-        if candidate.startswith("app_state_"):
-            suffix = candidate[len("app_state_") :]
-            if suffix:
-                pending.add(suffix)
-                pending.add(f"state_{suffix}")
+    variants: set[str] = set()
+
+    for item in canonical:
+        if not item:
+            continue
+        variants.add(item)
+
+        core = item
+        if item.startswith("state."):
+            core = item[len("state.") :]
+        elif item.startswith("app.state."):
+            core = item[len("app.state.") :]
+        elif item.startswith("state_"):
+            core = item[len("state_") :]
+        elif item.startswith("app_state_"):
+            core = item[len("app_state_") :]
+
+        if core and core != item:
+            variants.add(core)
+
+        if core:
+            variants.add(f"state.{core}")
+            variants.add(f"app.state.{core}")
+            if "_" in core:
+                variants.add(f"state_{core}")
+                variants.add(f"app_state_{core}")
+
+    for variant in variants:
+        token = f"[[{variant}]]"
+        _register_direct_placeholder(mapping, token, value_text)
 
 
 def _register_placeholder(mapping: dict[str, str], placeholder: Any, value: str | None) -> None:
@@ -431,8 +465,7 @@ def _register_placeholder(mapping: dict[str, str], placeholder: Any, value: str 
     value_text = value.strip()
     if not value_text:
         return
-    if placeholder_text not in mapping:
-        mapping[placeholder_text] = value_text
+    _register_direct_placeholder(mapping, placeholder_text, value_text)
     if (
         placeholder_text.startswith("{")
         and placeholder_text.endswith("}")
@@ -440,7 +473,8 @@ def _register_placeholder(mapping: dict[str, str], placeholder: Any, value: str 
     ):
         inner = placeholder_text[1:-1].strip()
         if inner:
-            mapping.setdefault(f"{{{{{inner}}}}}", value_text)
+            nested = f"{{{{{inner}}}}}"
+            _register_direct_placeholder(mapping, nested, value_text)
             _register_square_placeholder_variants(mapping, inner, value_text)
 
     if placeholder_text.startswith("{{") and placeholder_text.endswith("}}"):  # pragma: no branch
@@ -621,9 +655,9 @@ def _build_placeholder_replacements(
     flat_paths: dict[str, str] = {}
     _flatten_state_for_placeholders(virtual_state, "", flat_paths)
     for path, value in flat_paths.items():
-        replacements.setdefault(f"{{{{state.{path}}}}}", value)
-        replacements.setdefault(f"{{{{app.state.{path}}}}}", value)
-        replacements.setdefault(f"{{{{{path}}}}}", value)
+        _register_direct_placeholder(replacements, f"{{{{state.{path}}}}}", value)
+        _register_direct_placeholder(replacements, f"{{{{app.state.{path}}}}}", value)
+        _register_direct_placeholder(replacements, f"{{{{{path}}}}}", value)
         _register_square_placeholder_variants(replacements, f"state.{path}", value)
 
     return replacements
