@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import base64
+import html
+import logging
 import math
 import re
 from pathlib import Path
@@ -16,6 +19,8 @@ try:  # pragma: no cover - fallback caso CairoSVG não esteja disponível
     import cairosvg  # type: ignore
 except Exception:  # pragma: no cover
     cairosvg = None  # type: ignore[assignment]
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MARGIN = 32
 DEFAULT_FONT_FAMILY = "Segoe UI"
@@ -188,6 +193,219 @@ def _edge_point(bounds: Dict[str, float], target_center: Tuple[float, float]) ->
     return cx + dx * scale, cy + dy * scale
 
 
+def _build_data_uri(path: Path) -> Optional[str]:
+    try:
+        payload = path.read_bytes()
+    except OSError:
+        logger.debug("Falha ao ler arquivo para gerar data URI", exc_info=True)
+        return None
+    encoded = base64.b64encode(payload).decode("ascii")
+    mime = "image/svg+xml" if path.suffix.lower() == ".svg" else "image/png"
+    return f"data:{mime};base64,{encoded}"
+
+
+def _finalize_svg_payload(
+    svg_bytes: bytes,
+    *,
+    slug: str,
+    width: float,
+    height: float,
+    view_name: str,
+    view_alias: str,
+    output_dir: Path,
+) -> Dict[str, Any]:
+    svg_path = output_dir / f"{slug}_layout.svg"
+    svg_path.write_bytes(svg_bytes)
+
+    svg_uri = svg_path.resolve().as_uri()
+    download_markdown = f"[Abrir diagrama em SVG]({svg_uri})"
+    inline_markup = f"![{_escape_markdown_alt(view_name or view_alias)}]({svg_uri})"
+
+    payload: Dict[str, Any] = {
+        "format": "svg",
+        "local_path": str(svg_path.resolve()),
+        "width": width,
+        "height": height,
+        "uri": svg_uri,
+        "download_uri": svg_uri,
+        "download_markdown": download_markdown,
+        "inline_markdown": inline_markup,
+        "inline_uri": svg_uri,
+        "download_filename": svg_path.name,
+        "artifact": {
+            "type": "image",
+            "mime_type": "image/svg+xml",
+            "encoding": "file",
+            "path": str(svg_path.resolve()),
+            "uri": svg_uri,
+            "filename": svg_path.name,
+        },
+    }
+    payload["artifacts"] = [payload["artifact"]]
+
+    svg_data_uri = _build_data_uri(svg_path)
+    if svg_data_uri:
+        payload["svg_data_uri"] = svg_data_uri
+
+    return payload
+
+
+def _render_without_svgwrite(
+    view_name: str,
+    view_alias: str,
+    nodes: list[Dict[str, Any]],
+    connections: list[Dict[str, Any]],
+    *,
+    bounds: Tuple[float, float, float, float],
+    output_dir: Path,
+) -> Dict[str, Any]:
+    min_x, min_y, max_x, max_y = bounds
+    width = max_x - min_x + 2 * DEFAULT_MARGIN
+    height = max_y - min_y + 2 * DEFAULT_MARGIN
+    slug = _slugify_identifier(view_alias or view_name)
+
+    svg_parts = [
+        "<svg xmlns=\"http://www.w3.org/2000/svg\"",
+        f"     width=\"{width}\" height=\"{height}\"",
+        f"     viewBox=\"0 0 {width} {height}\">",
+        f"  <defs>",
+        f"    <marker id=\"arrow-end\" viewBox=\"0 0 10 10\" refX=\"10\" refY=\"5\"",
+        f"            markerWidth=\"10\" markerHeight=\"10\" orient=\"auto\">",
+        f"      <path d=\"M0,0 L10,5 L0,10 z\" fill=\"#333333\" />",
+        f"    </marker>",
+        f"  </defs>",
+        f"  <rect width=\"{width}\" height=\"{height}\" fill=\"{BACKGROUND_COLOR}\" />",
+    ]
+
+    node_render_info: Dict[str, Dict[str, float]] = {}
+    alias_lookup: Dict[str, Dict[str, float]] = {}
+
+    for node in nodes:
+        raw_bounds = node.get("bounds") or {}
+        try:
+            raw_x = float(raw_bounds["x"])
+            raw_y = float(raw_bounds["y"])
+            raw_w = float(raw_bounds["w"])
+            raw_h = float(raw_bounds["h"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        x = raw_x - min_x + DEFAULT_MARGIN
+        y = raw_y - min_y + DEFAULT_MARGIN
+        w = raw_w
+        h = raw_h
+
+        render_bounds = {"x": x, "y": y, "w": w, "h": h}
+        identifiers = {
+            str(node.get(key))
+            for key in ("id", "identifier", "key", "element_ref")
+            if node.get(key)
+        }
+        for identifier in identifiers:
+            node_render_info[identifier] = render_bounds
+        alias = node.get("alias")
+        if alias:
+            alias_lookup[str(alias)] = render_bounds
+            node_render_info[str(alias)] = render_bounds
+
+        style = node.get("style") if isinstance(node.get("style"), dict) else {}
+        fill_color, fill_opacity = _resolve_fill_style(style)
+        stroke_color, stroke_opacity = _resolve_stroke_style(style)
+        rect_attrs = [
+            f"x=\"{x}\"",
+            f"y=\"{y}\"",
+            f"width=\"{w}\"",
+            f"height=\"{h}\"",
+            f"rx=\"8\"",
+            f"ry=\"8\"",
+            f"fill=\"{fill_color}\"",
+            f"stroke=\"{stroke_color}\"",
+            f"stroke-width=\"{DEFAULT_STROKE_WIDTH}\"",
+        ]
+        if fill_opacity is not None:
+            rect_attrs.append(f"fill-opacity=\"{fill_opacity}\"")
+        if stroke_opacity is not None:
+            rect_attrs.append(f"stroke-opacity=\"{stroke_opacity}\"")
+        svg_parts.append(f"  <rect {' '.join(rect_attrs)} />")
+
+        font_family, font_size, font_weight, font_color, font_opacity = _extract_font_settings(style)
+        title = node.get("title") or node.get("element_name") or node.get("label")
+        element_type = node.get("type") or node.get("element_type")
+        lines = [str(title).strip() if title else "Elemento"]
+        if element_type:
+            lines.append(str(element_type))
+
+        text_start = y + font_size + 6
+        for idx, line in enumerate(lines):
+            text_y = text_start + idx * (font_size + 4)
+            text_attrs = [
+                f"x=\"{x + w / 2}\"",
+                f"y=\"{text_y}\"",
+                "text-anchor=\"middle\"",
+                f"font-size=\"{font_size}\"",
+                f"font-family=\"{font_family}\"",
+                f"font-weight=\"{font_weight}\"",
+                f"fill=\"{font_color}\"",
+            ]
+            if font_opacity is not None:
+                text_attrs.append(f"fill-opacity=\"{font_opacity}\"")
+            svg_parts.append(f"  <text {' '.join(text_attrs)}>{html.escape(str(line))}</text>")
+
+    for connection in connections:
+        source_ref = connection.get("source") or connection.get("source_alias")
+        target_ref = connection.get("target") or connection.get("target_alias")
+        if not source_ref or not target_ref:
+            continue
+        source_bounds = node_render_info.get(str(source_ref)) or alias_lookup.get(
+            str(source_ref)
+        )
+        target_bounds = node_render_info.get(str(target_ref)) or alias_lookup.get(
+            str(target_ref)
+        )
+        if not source_bounds or not target_bounds:
+            continue
+        src_center = _node_center(source_bounds)
+        tgt_center = _node_center(target_bounds)
+        start = _edge_point(source_bounds, tgt_center)
+        end = _edge_point(target_bounds, src_center)
+        style = connection.get("style") if isinstance(connection.get("style"), dict) else {}
+        stroke_color, stroke_opacity = _resolve_stroke_style(style)
+        line_attrs = [
+            f"x1=\"{start[0]}\"",
+            f"y1=\"{start[1]}\"",
+            f"x2=\"{end[0]}\"",
+            f"y2=\"{end[1]}\"",
+            f"stroke=\"{stroke_color}\"",
+            f"stroke-width=\"{DEFAULT_STROKE_WIDTH}\"",
+            "marker-end=\"url(#arrow-end)\"",
+        ]
+        if stroke_opacity is not None:
+            line_attrs.append(f"stroke-opacity=\"{stroke_opacity}\"")
+        svg_parts.append(f"  <line {' '.join(line_attrs)} />")
+        label = connection.get("label")
+        if label:
+            mid_x = (start[0] + end[0]) / 2
+            mid_y = (start[1] + end[1]) / 2
+            svg_parts.append(
+                "  <text "
+                f"x=\"{mid_x}\" y=\"{mid_y - 4}\" text-anchor=\"middle\" "
+                f"font-size=\"{DEFAULT_FONT_SIZE}\" font-family=\"{DEFAULT_FONT_FAMILY}\" "
+                f"fill=\"#333333\">{html.escape(str(label))}</text>"
+            )
+
+    svg_parts.append("</svg>")
+    svg_markup = "\n".join(svg_parts)
+    svg_bytes = svg_markup.encode("utf-8")
+    return _finalize_svg_payload(
+        svg_bytes,
+        slug=slug,
+        width=width,
+        height=height,
+        view_name=view_name,
+        view_alias=view_alias,
+        output_dir=output_dir,
+    )
+
+
 def render_view_layout(
     view_name: str,
     view_alias: str,
@@ -197,9 +415,6 @@ def render_view_layout(
 ) -> Optional[Dict[str, Any]]:
     """Renderiza uma visão utilizando as coordenadas originais do template."""
 
-    if svgwrite is None:
-        return None
-
     if not layout:
         return None
 
@@ -207,6 +422,20 @@ def render_view_layout(
     bounds = _compute_bounds(nodes)
     if not bounds:
         return None
+
+    connections = [
+        conn for conn in layout.get("connections", []) if isinstance(conn, dict)
+    ]
+
+    if svgwrite is None:
+        return _render_without_svgwrite(
+            view_name,
+            view_alias,
+            nodes,
+            connections,
+            bounds=bounds,
+            output_dir=output_dir,
+        )
 
     min_x, min_y, max_x, max_y = bounds
     width = max_x - min_x + 2 * DEFAULT_MARGIN
@@ -308,9 +537,6 @@ def render_view_layout(
                 text_kwargs["fill_opacity"] = font_opacity
             drawing.add(drawing.text(line, **text_kwargs))
 
-    connections = [
-        conn for conn in layout.get("connections", []) if isinstance(conn, dict)
-    ]
     for connection in connections:
         source_ref = connection.get("source") or connection.get("source_alias")
         target_ref = connection.get("target") or connection.get("target_alias")
@@ -358,34 +584,15 @@ def render_view_layout(
     svg_markup = drawing.tostring()
     svg_bytes = svg_markup.encode("utf-8")
     slug = _slugify_identifier(view_alias or view_name)
-    svg_path = output_dir / f"{slug}_layout.svg"
-    svg_path.write_bytes(svg_bytes)
-
-    svg_uri = svg_path.resolve().as_uri()
-    download_markdown = f"[Abrir diagrama em SVG]({svg_uri})"
-    inline_markup = f"![{_escape_markdown_alt(view_name or view_alias)}]({svg_uri})"
-
-    payload: Dict[str, Any] = {
-        "format": "svg",
-        "local_path": str(svg_path.resolve()),
-        "width": width,
-        "height": height,
-        "uri": svg_uri,
-        "download_uri": svg_uri,
-        "download_markdown": download_markdown,
-        "inline_markdown": inline_markup,
-        "inline_uri": svg_uri,
-        "download_filename": svg_path.name,
-        "artifact": {
-            "type": "image",
-            "mime_type": "image/svg+xml",
-            "encoding": "file",
-            "path": str(svg_path.resolve()),
-            "uri": svg_uri,
-            "filename": svg_path.name,
-        },
-    }
-    payload["artifacts"] = [payload["artifact"]]
+    payload = _finalize_svg_payload(
+        svg_bytes,
+        slug=slug,
+        width=width,
+        height=height,
+        view_name=view_name,
+        view_alias=view_alias,
+        output_dir=output_dir,
+    )
 
     if cairosvg is not None:  # pragma: no cover - depende de lib externa
         try:
@@ -422,6 +629,10 @@ def render_view_layout(
             payload["inline_markdown"] = png_inline
             payload["inline_uri"] = png_uri
             payload["inline_format"] = "png"
+
+            png_data_uri = _build_data_uri(png_path)
+            if png_data_uri:
+                payload["png"]["data_uri"] = png_data_uri
 
     return payload
 
