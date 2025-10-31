@@ -20,7 +20,7 @@ from .constants import (
     OUTPUT_DIR,
 )
 from .session import get_cached_artifact, store_artifact
-from .templates import load_template_metadata
+from .templates import load_template_metadata, resolve_template_path
 
 __all__ = [
     "finalize_datamodel",
@@ -30,10 +30,7 @@ __all__ = [
 
 
 def _resolve_template(template_path: str | None) -> Path:
-    path = Path(template_path) if template_path else DEFAULT_TEMPLATE
-    if not path.is_absolute():
-        path = (Path.cwd() / path).resolve()
-    return path
+    return resolve_template_path(template_path)
 
 
 def _normalize_datamodel(datamodel: str | dict | None) -> tuple[dict[str, object], str]:

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any, MutableMapping
-
 from ..diagramador import (
     SESSION_ARTIFACT_TEMPLATE_LISTING,
     list_templates as _list_templates,
@@ -15,7 +13,7 @@ __all__ = ["SESSION_ARTIFACT_TEMPLATE_LISTING", "list_templates"]
 
 def list_templates(
     directory: str = "",
-    session_state: str | MutableMapping[str, Any] | None = None,
+    session_state: str = "",
 ):
     """Wrapper que normaliza parâmetros antes de chamar a implementação base."""
 

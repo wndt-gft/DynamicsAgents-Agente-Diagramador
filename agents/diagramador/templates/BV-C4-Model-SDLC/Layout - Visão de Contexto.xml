@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd" identifier="id-65a4951d-6114-409d-9562-9a80710d5866">
+  <name xml:lang="pt">25.3T.JT-XXXX.TE-XXXX-{{Nome da Solução}}</name>
+  <elements>
+    <element identifier="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-e493478723ba461f8f0731340cdff41f" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-da18b5f4b21a4bdab0c63fa99d95ba91" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Data Application Component</name>
+      <documentation xml:lang="pt">Exemplo: Dados de cartão</documentation>
+    </element>
+    <element identifier="id-a5185a2f58394a6891167652bb0b8021" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Gateway Outbound Component Element</name>
+      <documentation xml:lang="pt">Component referente as funcionalidades do gateway de saída, exemplo: "API Gateway Fatura out"</documentation>
+    </element>
+    <element identifier="id-42f016f285604cbca15dbafb7438ac18" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-3db4884e4ef2449292c1953d4bda30c7" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Chanel Application Component</name>
+      <documentation xml:lang="pt">Componentes diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-35719f23fe184d95ad5d2190c6f202be" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Gateway Inbound Component Element</name>
+      <documentation xml:lang="pt">Component referente as funcionalidades do gateway de entrada, exemplo: "API Gateway Conta in"</documentation>
+    </element>
+    <element identifier="id-06d59e4560d847a8861b915405296e0a" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-1662934bb0ff40f5b4c10e88f49dd8c0" xsi:type="ApplicationProcess">
+      <name xml:lang="pt">Chanel Process Component</name>
+      <documentation xml:lang="pt">Componentes especificos de processos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-ea78a465f32843da94bd2f5e8fdb1099" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Chanel Event Component</name>
+      <documentation xml:lang="pt">Componentes de eventos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-5816f0efb1ad40b0b1f6e67dc1fa86bb" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Chanel Application Component</name>
+      <documentation xml:lang="pt">Componentes de aplicação utilizados do canal</documentation>
+    </element>
+    <element identifier="id-c2dc90e4f7d74f3c919e2ea0c71dc054" xsi:type="ApplicationProcess">
+      <name xml:lang="pt">Chanel Process Component</name>
+      <documentation xml:lang="pt">Componentes especificos de processos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-a4e5d61e2fad4c96b8775d3fba9061ba" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Chanel Event Component</name>
+      <documentation xml:lang="pt">Componentes de eventos diversos utilizados do canal</documentation>
+    </element>
+    <element identifier="id-ff4420a980a4408ca3f37e186600eba5" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Sigla Event Component</name>
+      <documentation xml:lang="pt">Componente de evento da execução lógica relativo com a sigla, exemplo: &#xD;
+&#xD;
+- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo</documentation>
+    </element>
+    <element identifier="id-248825a7f0514d0883e8e72f271c6cdf" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Sigla Application Component</name>
+      <documentation xml:lang="pt">Componente de aplicação da execução lógica relativo com a sigla, exemplos: &#xD;
+&#xD;
+- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. "alteração de data de vencimento", "alteração de limite", "segunda via de cartão", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço.</documentation>
+    </element>
+    <element identifier="id-37401d37c1034a718ab785406022fc9c" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Data Event Component (copy)</name>
+      <documentation xml:lang="pt">Exemplo: Dados de eventos de cartão</documentation>
+    </element>
+    <element identifier="id-dafb5e39b03847c5beb7155f873d14de" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Sigla Application Component</name>
+      <documentation xml:lang="pt">Componente de aplicação da execução lógica relativo com a sigla, exemplos: &#xD;
+&#xD;
+- parent: IPRC (Sigla), type: Application Component, Label:orch contrato de credito, document: Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.Deve ser indicado o tipo de serviço de processamento (i.e. "alteração de data de vencimento", "alteração de limite", "segunda via de cartão", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço.</documentation>
+    </element>
+    <element identifier="id-d32ab69807e245f0bc44735baba04623" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-054a6684fc7c404f8c9d3d8718379a6d" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Sigla Event Component</name>
+      <documentation xml:lang="pt">Componente de evento da execução lógica relativo com a sigla, exemplo: &#xD;
+&#xD;
+- parent: GCOC (Sigla), type: Application Event, Label:events contrato de credito echo</documentation>
+    </element>
+    <element identifier="id-a4021f10be6c4c1096c75ea6cdc03f83" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Application Event</name>
+    </element>
+    <element identifier="id-7b0c03d4f05a410da57057c7e0b1ad25" xsi:type="ApplicationComponent">
+      <name xml:lang="pt">Application Component</name>
+    </element>
+    <element identifier="id-89aef989c04f448294e301fac2bb9f67" xsi:type="ApplicationEvent">
+      <name xml:lang="pt">Application Event</name>
+    </element>
+    <element identifier="id-9959e599181b4524bf9d082892d127da" xsi:type="Artifact">
+      <name xml:lang="pt">Artifact</name>
+    </element>
+    <element identifier="id-469670" xsi:type="Deliverable">
+      <name xml:lang="pt">Exemplo</name>
+    </element>
+    <element identifier="id-415459" xsi:type="WorkPackage">
+      <name xml:lang="pt">Exemplo</name>
+    </element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-5208d4b53f39489c875385ae1d18b89a" source="id-dafb5e39b03847c5beb7155f873d14de" target="id-054a6684fc7c404f8c9d3d8718379a6d" xsi:type="Triggering" />
+    <relationship identifier="id-44d0815f798249459770e25aa3e959d6" source="id-d32ab69807e245f0bc44735baba04623" target="id-a4021f10be6c4c1096c75ea6cdc03f83" xsi:type="Triggering" />
+    <relationship identifier="id-340253e03b0247bcb4fa80eae1b4367d" source="id-054a6684fc7c404f8c9d3d8718379a6d" target="id-d32ab69807e245f0bc44735baba04623" xsi:type="Triggering" />
+    <relationship identifier="id-9f4a255d7c7044ca950a4831328cf9f8" source="id-d32ab69807e245f0bc44735baba04623" target="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="Serving" />
+    <relationship identifier="id-b43ea55d2f554a7a8808c5f2226a1bea" source="id-9a9b5d551e904bfcbfce12a6197943a2" target="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="Serving" />
+    <relationship identifier="id-de5b98d2e4ad4e4c91be68c4d3f342c5" source="id-9a9b5d551e904bfcbfce12a6197943a2" target="id-e493478723ba461f8f0731340cdff41f" xsi:type="Triggering" />
+    <relationship identifier="id-71f6aa63a84848d8aec1570865dd7ac4" source="id-d32ab69807e245f0bc44735baba04623" target="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="Triggering" />
+    <relationship identifier="id-966a757c907e4dbf91bff9a20826aab9" source="id-d32ab69807e245f0bc44735baba04623" target="id-a5185a2f58394a6891167652bb0b8021" xsi:type="Triggering" />
+    <relationship identifier="id-d43696f3b326435d9389cacc19e73197" source="id-a5185a2f58394a6891167652bb0b8021" target="id-42f016f285604cbca15dbafb7438ac18" xsi:type="Triggering" />
+    <relationship identifier="id-e71170cc00c4413cb7c298469733418b" source="id-054a6684fc7c404f8c9d3d8718379a6d" target="id-da18b5f4b21a4bdab0c63fa99d95ba91" xsi:type="Triggering" />
+    <relationship identifier="id-a84d2dca787046568bcfdd292669cf2b" source="id-35719f23fe184d95ad5d2190c6f202be" target="id-3db4884e4ef2449292c1953d4bda30c7" xsi:type="Triggering" />
+    <relationship identifier="id-f751e171b27b4a7d9fef48c1c98be4c7" source="id-35719f23fe184d95ad5d2190c6f202be" target="id-dafb5e39b03847c5beb7155f873d14de" xsi:type="Triggering" />
+    <relationship identifier="id-eb8e066c2e25497abf12ed0d9be60aea" source="id-3db4884e4ef2449292c1953d4bda30c7" target="id-35719f23fe184d95ad5d2190c6f202be" xsi:type="Triggering" />
+    <relationship identifier="id-21b2d80dcea847cd92f828666d5f3a49" source="id-a5185a2f58394a6891167652bb0b8021" target="id-06d59e4560d847a8861b915405296e0a" xsi:type="Triggering" />
+    <relationship identifier="id-2eba8673d6ac473ab9436dc6db8a0d6d" source="id-a5185a2f58394a6891167652bb0b8021" target="id-5816f0efb1ad40b0b1f6e67dc1fa86bb" xsi:type="Triggering" />
+    <relationship identifier="id-9477c6ff875f4173a25aad33ad44f6ce" source="id-248825a7f0514d0883e8e72f271c6cdf" target="id-ff4420a980a4408ca3f37e186600eba5" xsi:type="Triggering" />
+    <relationship identifier="id-f87a6ce51213455d936c5cf5f09fa565" source="id-dafb5e39b03847c5beb7155f873d14de" target="id-248825a7f0514d0883e8e72f271c6cdf" xsi:type="Triggering" />
+    <relationship identifier="id-2225e175d1354879b7ec60544b87f732" source="id-248825a7f0514d0883e8e72f271c6cdf" target="id-a5185a2f58394a6891167652bb0b8021" xsi:type="Triggering" />
+    <relationship identifier="id-da865efeab8746989fe4b4fe9ffa2a90" source="id-37401d37c1034a718ab785406022fc9c" target="id-ff4420a980a4408ca3f37e186600eba5" xsi:type="Triggering" />
+    <relationship identifier="id-3d4a5b0c678e4befa1746f3172082d37" source="id-ff4420a980a4408ca3f37e186600eba5" target="id-37401d37c1034a718ab785406022fc9c" xsi:type="Triggering" />
+    <relationship identifier="id-469668" source="id-415459" target="id-469670" xsi:type="Realization" />
+  </relationships>
+  <organizations>
+    <item>
+      <label xml:lang="pt">Application</label>
+      <item>
+        <label xml:lang="pt">Application Layer</label>
+        <item identifierRef="id-dafb5e39b03847c5beb7155f873d14de" />
+        <item identifierRef="id-d32ab69807e245f0bc44735baba04623" />
+        <item identifierRef="id-054a6684fc7c404f8c9d3d8718379a6d" />
+        <item identifierRef="id-a4021f10be6c4c1096c75ea6cdc03f83" />
+      </item>
+      <item>
+        <label xml:lang="pt">Components</label>
+        <item>
+          <label xml:lang="pt">Container</label>
+          <item>
+            <label xml:lang="pt">Application Component</label>
+            <item identifierRef="id-7b0c03d4f05a410da57057c7e0b1ad25" />
+            <item identifierRef="id-89aef989c04f448294e301fac2bb9f67" />
+          </item>
+        </item>
+      </item>
+      <item identifierRef="id-9a9b5d551e904bfcbfce12a6197943a2" />
+      <item identifierRef="id-e493478723ba461f8f0731340cdff41f" />
+      <item identifierRef="id-da18b5f4b21a4bdab0c63fa99d95ba91" />
+      <item identifierRef="id-a5185a2f58394a6891167652bb0b8021" />
+      <item identifierRef="id-42f016f285604cbca15dbafb7438ac18" />
+      <item identifierRef="id-3db4884e4ef2449292c1953d4bda30c7" />
+      <item identifierRef="id-35719f23fe184d95ad5d2190c6f202be" />
+      <item identifierRef="id-06d59e4560d847a8861b915405296e0a" />
+      <item identifierRef="id-1662934bb0ff40f5b4c10e88f49dd8c0" />
+      <item identifierRef="id-ea78a465f32843da94bd2f5e8fdb1099" />
+      <item identifierRef="id-5816f0efb1ad40b0b1f6e67dc1fa86bb" />
+      <item identifierRef="id-c2dc90e4f7d74f3c919e2ea0c71dc054" />
+      <item identifierRef="id-a4e5d61e2fad4c96b8775d3fba9061ba" />
+      <item identifierRef="id-ff4420a980a4408ca3f37e186600eba5" />
+      <item identifierRef="id-248825a7f0514d0883e8e72f271c6cdf" />
+      <item identifierRef="id-37401d37c1034a718ab785406022fc9c" />
+    </item>
+    <item>
+      <label xml:lang="pt">Technology &amp; Physical</label>
+      <item>
+        <label xml:lang="pt">Components</label>
+        <item>
+          <label xml:lang="pt">Container</label>
+          <item>
+            <label xml:lang="pt">Application Component</label>
+            <item identifierRef="id-9959e599181b4524bf9d082892d127da" />
+          </item>
+        </item>
+      </item>
+    </item>
+    <item>
+      <label xml:lang="pt">Implementation &amp; Migration</label>
+      <item>
+        <label xml:lang="pt">Implementation and migration elements</label>
+        <item identifierRef="id-469670" />
+        <item identifierRef="id-415459" />
+      </item>
+    </item>
+    <item>
+      <label xml:lang="pt">Relations</label>
+      <item>
+        <label xml:lang="pt">Implementation and migration elements</label>
+        <item identifierRef="id-469668" />
+      </item>
+      <item identifierRef="id-5208d4b53f39489c875385ae1d18b89a" />
+      <item identifierRef="id-44d0815f798249459770e25aa3e959d6" />
+      <item identifierRef="id-340253e03b0247bcb4fa80eae1b4367d" />
+      <item identifierRef="id-9f4a255d7c7044ca950a4831328cf9f8" />
+      <item identifierRef="id-b43ea55d2f554a7a8808c5f2226a1bea" />
+      <item identifierRef="id-de5b98d2e4ad4e4c91be68c4d3f342c5" />
+      <item identifierRef="id-71f6aa63a84848d8aec1570865dd7ac4" />
+      <item identifierRef="id-966a757c907e4dbf91bff9a20826aab9" />
+      <item identifierRef="id-d43696f3b326435d9389cacc19e73197" />
+      <item identifierRef="id-e71170cc00c4413cb7c298469733418b" />
+      <item identifierRef="id-a84d2dca787046568bcfdd292669cf2b" />
+      <item identifierRef="id-f751e171b27b4a7d9fef48c1c98be4c7" />
+      <item identifierRef="id-eb8e066c2e25497abf12ed0d9be60aea" />
+      <item identifierRef="id-21b2d80dcea847cd92f828666d5f3a49" />
+      <item identifierRef="id-2eba8673d6ac473ab9436dc6db8a0d6d" />
+      <item identifierRef="id-9477c6ff875f4173a25aad33ad44f6ce" />
+      <item identifierRef="id-f87a6ce51213455d936c5cf5f09fa565" />
+      <item identifierRef="id-2225e175d1354879b7ec60544b87f732" />
+      <item identifierRef="id-da865efeab8746989fe4b4fe9ffa2a90" />
+      <item identifierRef="id-3d4a5b0c678e4befa1746f3172082d37" />
+    </item>
+    <item>
+      <label xml:lang="pt">Views</label>
+      <item identifierRef="id-154903" />
+    </item>
+  </organizations>
+  <views>
+    <diagrams>
+      <view identifier="id-154903" xsi:type="Diagram">
+        <name xml:lang="pt">Visão de Contexto</name>
+        <documentation xml:lang="pt">Botão "2. Visão de contexto" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/2. Visão de contexto</documentation>
+        <node identifier="id-c7fb756d3c594844ae39b43c9370e42a" xsi:type="Label" x="120" y="40" w="1540" h="40">
+          <label xml:lang="pt">{{Nome da Solução}}</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="24" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-f892d6c86ca945eeb1633275c49ea9eb" xsi:type="Label" x="120" y="80" w="1540" h="33">
+          <label xml:lang="pt">Visão de Contexto - {{Descrição}}</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="16">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327763" xsi:type="Label" x="80" y="673" w="340" h="107">
+          <label xml:lang="pt">Jornada Tech / Issue Fórum Arquitetura</label>
+          <style>
+            <fillColor r="251" g="251" b="251" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469669" elementRef="id-469670" xsi:type="Element" x="275" y="707" w="133" h="53">
+          <style>
+            <fillColor r="255" g="189" b="220" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469672" elementRef="id-415459" xsi:type="Element" x="106" y="707" w="133" h="53">
+          <style>
+            <fillColor r="255" g="189" b="220" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327766" xsi:type="Label" x="427" y="180" w="753" h="600">
+          <label xml:lang="pt">Contexto aplicacional interno</label>
+          <style>
+            <fillColor r="251" g="251" b="251" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327754" xsi:type="Label" x="680" y="200" w="487" h="567">
+          <label xml:lang="pt">Produtos e Serviços</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="8">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469656" xsi:type="Label" x="813" y="500" w="133" h="53">
+          <label xml:lang="pt">Exemplo</label>
+          <style>
+            <fillColor r="184" g="231" b="252" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469657" xsi:type="Label" x="813" y="380" w="133" h="53">
+          <label xml:lang="pt">Exemplo</label>
+          <style>
+            <fillColor r="184" g="231" b="252" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-469658" xsi:type="Label" x="813" y="260" w="133" h="53">
+          <label xml:lang="pt">Exemplo</label>
+          <style>
+            <fillColor r="184" g="231" b="252" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327750" xsi:type="Label" x="807" y="453" w="346" h="33">
+          <label xml:lang="pt">Exemplo</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327768" xsi:type="Label" x="793" y="324" w="360" h="36">
+          <label xml:lang="pt">Exemplo</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="0" />
+            <lineColor r="0" g="0" b="0" a="0" />
+            <font name="arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327753" xsi:type="Label" x="440" y="200" w="233" h="567">
+          <label xml:lang="pt">Canais</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="8">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327756" xsi:type="Label" x="80" y="180" w="340" h="487">
+          <label xml:lang="pt">Contexto atores</label>
+          <style>
+            <fillColor r="251" g="251" b="251" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="10" style="bold">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <node identifier="id-1327765" xsi:type="Label" x="97" y="200" w="313" h="460">
+          <label xml:lang="pt">Ambiente externo</label>
+          <style>
+            <fillColor r="255" g="255" b="255" a="100" />
+            <lineColor r="0" g="0" b="0" a="100" />
+            <font name="arial" size="8">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-469667" relationshipRef="id-469668" xsi:type="Relationship" source="id-469672" target="id-469669">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469662" xsi:type="Line" source="id-469656" target="id-469657">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469660" xsi:type="Line" source="id-469656" target="id-469672">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469659" xsi:type="Line" source="id-469657" target="id-469658">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469676" xsi:type="Line" source="id-469657" target="id-469672">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+        <connection identifier="id-469664" xsi:type="Line" source="id-469658" target="id-469672">
+          <style>
+            <lineColor r="0" g="0" b="0" />
+            <font name="Arial" size="10">
+              <color r="0" g="0" b="0" />
+            </font>
+          </style>
+        </connection>
+      </view>
+    </diagrams>
+  </views>
+</model>

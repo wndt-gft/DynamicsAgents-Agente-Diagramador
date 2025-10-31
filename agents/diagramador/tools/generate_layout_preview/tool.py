@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, MutableMapping
+from typing import Any
 
 from ..diagramador import (
     SESSION_ARTIFACT_LAYOUT_PREVIEW,
@@ -14,10 +14,10 @@ __all__ = ["SESSION_ARTIFACT_LAYOUT_PREVIEW", "generate_layout_preview"]
 
 
 def generate_layout_preview(
-    datamodel: str | None = None,
-    template_path: str | None = None,
-    view_filter: str | None = None,
-    session_state: str | MutableMapping[str, Any] | None = None,
+    datamodel: str = "",
+    template_path: str = "",
+    view_filter: str = "",
+    session_state: str = "",
 ):
     coerced_state = coerce_session_state(session_state)
     datamodel_payload: Any | None = datamodel

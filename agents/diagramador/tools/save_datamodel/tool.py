@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, MutableMapping
+from typing import Any
 
 from ..diagramador import (
     DEFAULT_DATAMODEL_FILENAME,
@@ -15,9 +15,9 @@ __all__ = ["SESSION_ARTIFACT_SAVED_DATAMODEL", "save_datamodel"]
 
 
 def save_datamodel(
-    datamodel: str | None = None,
-    filename: str | None = None,
-    session_state: str | MutableMapping[str, Any] | None = None,
+    datamodel: str = "",
+    filename: str = "",
+    session_state: str = "",
 ):
     target = empty_string_to_none(filename) or DEFAULT_DATAMODEL_FILENAME
     payload: Any | None = datamodel

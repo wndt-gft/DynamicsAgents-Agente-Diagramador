@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from typing import Callable
 
@@ -22,6 +23,13 @@ from .tools import (
 )
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
+
+_DEFAULT_LOG_LEVEL = os.getenv("DIAGRAMADOR_LOG_LEVEL", "INFO").upper()
+root_logger = logging.getLogger()
+if not root_logger.handlers:
+    logging.basicConfig(level=_DEFAULT_LOG_LEVEL)
+else:
+    root_logger.setLevel(_DEFAULT_LOG_LEVEL)
 
 logger = logging.getLogger(__name__)
 

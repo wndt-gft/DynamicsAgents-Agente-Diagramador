@@ -10,49 +10,70 @@ import re
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree as ET
 
 from .artifacts import (
     SESSION_ARTIFACT_FINAL_DATAMODEL,
     SESSION_ARTIFACT_LAYOUT_PREVIEW,
 )
-from .constants import ARCHIMATE_NS, DEFAULT_TEMPLATE, OUTPUT_DIR, XSI_ATTR
+from .constants import OUTPUT_DIR
 from .rendering import render_view_layout
 from .session import (
     get_cached_artifact,
-    get_cached_blueprint,
     store_artifact,
-    store_blueprint,
 )
-from .templates import TemplateMetadata, ViewMetadata, load_template_metadata
+from .templates import (
+    TemplateMetadata,
+    ViewMetadata,
+    load_template_blueprint,
+    load_template_metadata,
+    resolve_template_path,
+)
 
 __all__ = ["generate_layout_preview"]
 
 
 logger = logging.getLogger(__name__)
 
-_NS = {"a": ARCHIMATE_NS}
 _CODE_FENCE_RE = re.compile(
     r"^\s*(?:```|~~~)(?:json)?\s*(?P<body>.*?)(?:```|~~~)\s*$",
     re.IGNORECASE | re.DOTALL,
 )
+_PLACEHOLDER_RE = re.compile(r"\s*[-–]?\s*\{[^}]+\}")
+_WHITESPACE_RE = re.compile(r"\s+")
 
 
 def _resolve_template_path(template_path: str | None) -> Path:
-    path = Path(template_path) if template_path else DEFAULT_TEMPLATE
-    if not path.is_absolute():
-        path = (Path.cwd() / path).resolve()
-    return path
+    return resolve_template_path(template_path)
+
+
+def _expand_token_variants(value: Any) -> set[str]:
+    variants: set[str] = set()
+    if value is None:
+        return variants
+    base = str(value).strip()
+    if not base:
+        return variants
+    normalized = _WHITESPACE_RE.sub(" ", base.casefold()).strip()
+    if normalized:
+        variants.add(normalized)
+        sanitized = _WHITESPACE_RE.sub(" ", _PLACEHOLDER_RE.sub("", normalized)).strip()
+        if sanitized:
+            variants.add(sanitized)
+    return variants
 
 
 def _normalize_tokens(view_filter: Iterable[str] | str | None) -> set[str]:
+    tokens: set[str] = set()
     if view_filter is None:
-        return set()
+        return tokens
+    values: Iterable[Any]
     if isinstance(view_filter, str):
-        candidates = [token.strip().casefold() for token in view_filter.split(",")]
+        values = view_filter.split(",")
     else:
-        candidates = [str(token).strip().casefold() for token in view_filter]
-    return {token for token in candidates if token}
+        values = view_filter
+    for raw in values:
+        tokens.update(_expand_token_variants(raw))
+    return {token for token in tokens if token}
 
 
 def _select_views(
@@ -64,8 +85,12 @@ def _select_views(
 
     matched: list[ViewMetadata] = []
     for view in metadata.views:
-        values = {view.identifier.casefold(), view.name.casefold()}
-        if values & tokens:
+        candidates = set()
+        candidates.update(_expand_token_variants(view.identifier))
+        candidates.update(_expand_token_variants(view.name))
+        if view.viewpoint:
+            candidates.update(_expand_token_variants(view.viewpoint))
+        if candidates & tokens:
             matched.append(view)
     if not matched:
         raise ValueError("Nenhuma visão do template corresponde ao filtro informado.")
@@ -112,300 +137,39 @@ def _load_datamodel(
     return None
 
 
-def _text_payload(element: ET.Element | None) -> str | None:
-    if element is None or element.text is None:
-        return None
-    text = element.text.strip()
-    return text or None
-
-
-def _parse_color_element(element: ET.Element | None) -> dict[str, int] | None:
-    if element is None:
-        return None
-    payload: dict[str, int] = {}
-    for channel in ("r", "g", "b", "a"):
-        value = element.get(channel)
-        if value is None:
-            continue
-        try:
-            payload[channel] = int(value)
-        except (TypeError, ValueError):
-            continue
-    return payload or None
-
-
-def _parse_style_element(element: ET.Element | None) -> dict[str, Any] | None:
-    if element is None:
-        return None
-    style: dict[str, Any] = {}
-
-    fill_color = _parse_color_element(element.find("a:fillColor", _NS))
-    if fill_color:
-        style["fillColor"] = fill_color
-
-    line_color = _parse_color_element(element.find("a:lineColor", _NS))
-    if line_color:
-        style["lineColor"] = line_color
-
-    font_element = element.find("a:font", _NS)
-    if font_element is not None:
-        font: dict[str, Any] = {}
-        for attr in ("name", "size", "style"):
-            value = font_element.get(attr)
-            if value:
-                font[attr] = value if attr != "size" else float(value)
-        color = _parse_color_element(font_element.find("a:color", _NS))
-        if color:
-            font["color"] = color
-        if font:
-            style["font"] = font
-
-    return style or None
-
-
-def _coerce_float(value: str | None) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _parse_view_connection(node: ET.Element) -> dict[str, Any]:
-    data: dict[str, Any] = {}
-
-    identifier = node.get("identifier")
-    if identifier:
-        data["id"] = identifier
-
-    conn_type = node.get(XSI_ATTR)
-    if conn_type:
-        data["type"] = conn_type.split("}")[-1] if "}" in conn_type else conn_type
-
-    for attr in ("relationshipRef", "source", "target"):
-        value = node.get(attr)
-        if value:
-            data[attr] = value
-
-    label = _text_payload(node.find("a:label", _NS))
-    if label:
-        data["label"] = label
-
-    documentation = _text_payload(node.find("a:documentation", _NS))
-    if documentation:
-        data["documentation"] = documentation
-
-    style = _parse_style_element(node.find("a:style", _NS))
-    if style:
-        data["style"] = style
-
-    points: list[dict[str, float]] = []
-    for point in node.findall("a:points/a:point", _NS):
-        point_payload: dict[str, float] = {}
-        for coord in ("x", "y"):
-            coord_value = _coerce_float(point.get(coord))
-            if coord_value is not None:
-                point_payload[coord] = coord_value
-        if point_payload:
-            points.append(point_payload)
-    if points:
-        data["points"] = points
-
-    return data
-
-
-def _parse_view_node(node: ET.Element) -> dict[str, Any]:
-    data: dict[str, Any] = {}
-
-    identifier = node.get("identifier")
-    if identifier:
-        data["id"] = identifier
-
-    node_type = node.get(XSI_ATTR)
-    if node_type:
-        data["type"] = node_type.split("}")[-1] if "}" in node_type else node_type
-
-    bounds: dict[str, float] = {}
-    for attr in ("x", "y", "w", "h"):
-        number = _coerce_float(node.get(attr))
-        if number is not None:
-            bounds[attr] = number
-    if bounds:
-        data["bounds"] = bounds
-
-    for attr in ("elementRef", "relationshipRef", "viewRef"):
-        value = node.get(attr)
-        if value:
-            data[attr] = value
-
-    label = _text_payload(node.find("a:label", _NS))
-    if label:
-        data["label"] = label
-
-    documentation = _text_payload(node.find("a:documentation", _NS))
-    if documentation:
-        data["documentation"] = documentation
-
-    style = _parse_style_element(node.find("a:style", _NS))
-    if style:
-        data["style"] = style
-
-    child_nodes = [
-        _parse_view_node(child) for child in node.findall("a:node", _NS)
-    ]
-    if child_nodes:
-        data["nodes"] = child_nodes
-
-    child_connections = [
-        _parse_view_connection(child)
-        for child in node.findall("a:connection", _NS)
-    ]
-    if child_connections:
-        data["connections"] = child_connections
-
-    return data
-
-
-def _parse_view_diagram(view: ET.Element) -> dict[str, Any]:
-    data: dict[str, Any] = {}
-
-    identifier = view.get("identifier")
-    if identifier:
-        data["id"] = identifier
-
-    view_type = view.get(XSI_ATTR)
-    if view_type:
-        data["type"] = view_type.split("}")[-1] if "}" in view_type else view_type
-
-    name = _text_payload(view.find("a:name", _NS))
-    if name:
-        data["name"] = name
-
-    documentation = _text_payload(view.find("a:documentation", _NS))
-    if documentation:
-        data["documentation"] = documentation
-
-    nodes = [_parse_view_node(node) for node in view.findall("a:node", _NS)]
-    if nodes:
-        data["nodes"] = nodes
-
-    connections = [
-        _parse_view_connection(conn)
-        for conn in view.findall("a:connection", _NS)
-    ]
-    if connections:
-        data["connections"] = connections
-
-    return data
-
-
-def _parse_template_blueprint(template_path: Path) -> dict[str, Any]:
-    tree = ET.parse(str(template_path))
-    root = tree.getroot()
-
-    blueprint: dict[str, Any] = {
-        "model_identifier": root.get("identifier"),
-        "model_name": _text_payload(root.find("a:name", _NS)),
-        "model_documentation": _text_payload(root.find("a:documentation", _NS)),
-    }
-
-    elements: list[dict[str, Any]] = []
-    for element in root.findall("a:elements/a:element", _NS):
-        payload: dict[str, Any] = {}
-        identifier = element.get("identifier")
-        if identifier:
-            payload["id"] = identifier
-        element_type = element.get(XSI_ATTR)
-        if element_type:
-            payload["type"] = (
-                element_type.split("}")[-1] if "}" in element_type else element_type
-            )
-        name = _text_payload(element.find("a:name", _NS))
-        if name:
-            payload["name"] = name
-        documentation = _text_payload(element.find("a:documentation", _NS))
-        if documentation:
-            payload["documentation"] = documentation
-        if payload:
-            elements.append(payload)
-    if elements:
-        blueprint["elements"] = elements
-
-    relationships: list[dict[str, Any]] = []
-    for relationship in root.findall("a:relationships/a:relationship", _NS):
-        payload = {}
-        identifier = relationship.get("identifier")
-        if identifier:
-            payload["id"] = identifier
-        rel_type = relationship.get(XSI_ATTR)
-        if rel_type:
-            payload["type"] = rel_type.split("}")[-1] if "}" in rel_type else rel_type
-        for attr in ("source", "target"):
-            value = relationship.get(attr)
-            if value:
-                payload[attr] = value
-        documentation = _text_payload(relationship.find("a:documentation", _NS))
-        if documentation:
-            payload["documentation"] = documentation
-        if payload:
-            relationships.append(payload)
-    if relationships:
-        blueprint["relations"] = relationships
-
-    diagrams = [
-        _parse_view_diagram(view)
-        for view in root.findall("a:views/a:diagrams/a:view", _NS)
-    ]
-    if diagrams:
-        blueprint["views"] = {"diagrams": diagrams}
-
-    return blueprint
-
-
-def _load_template_blueprint(
-    template_path: Path, session_state: MutableMapping[str, object] | None
-) -> dict[str, Any]:
-    cached = get_cached_blueprint(session_state, template_path)
-    if isinstance(cached, Mapping):
-        return cached
-
-    blueprint = _parse_template_blueprint(template_path)
-    store_blueprint(session_state, template_path, blueprint)
-    return blueprint
-
-
 def _build_element_lookup(
     blueprint: Mapping[str, Any], datamodel: Mapping[str, Any] | None
 ) -> dict[str, dict[str, Any]]:
     lookup: dict[str, dict[str, Any]] = {}
 
-    blueprint_elements = blueprint.get("elements")
-    if isinstance(blueprint_elements, Sequence):
-        for element in blueprint_elements:
+    def register(element: Mapping[str, Any], *, prefer_existing: bool = False) -> None:
+        identifier = element.get("id") or element.get("identifier")
+        if not identifier:
+            return
+        key = str(identifier)
+        target = lookup.setdefault(key, {})
+        if prefer_existing and target:
+            return
+        name = element.get("name") or element.get("label")
+        elem_type = element.get("type") or element.get("kind")
+        if name:
+            target["name"] = name
+        if elem_type:
+            target["type"] = elem_type
+
+    def walk(elements: Sequence[Any] | None, *, prefer_existing: bool = False) -> None:
+        if not isinstance(elements, Sequence):
+            return
+        for element in elements:
             if not isinstance(element, Mapping):
                 continue
-            identifier = element.get("id")
-            if identifier:
-                lookup[str(identifier)] = {
-                    "name": element.get("name"),
-                    "type": element.get("type"),
-                }
+            register(element, prefer_existing=prefer_existing)
+            walk(element.get("children"), prefer_existing=prefer_existing)
+
+    walk(blueprint.get("elements"))
 
     if isinstance(datamodel, Mapping):
-        datamodel_elements = datamodel.get("elements")
-        if isinstance(datamodel_elements, Sequence):
-            for element in datamodel_elements:
-                if not isinstance(element, Mapping):
-                    continue
-                identifier = element.get("id")
-                if not identifier:
-                    continue
-                target = lookup.setdefault(str(identifier), {})
-                if element.get("name"):
-                    target["name"] = element.get("name")
-                if element.get("type"):
-                    target["type"] = element.get("type")
+        walk(datamodel.get("elements"), prefer_existing=False)
 
     return lookup
 
@@ -415,34 +179,34 @@ def _build_relationship_lookup(
 ) -> dict[str, dict[str, Any]]:
     lookup: dict[str, dict[str, Any]] = {}
 
-    blueprint_relations = blueprint.get("relations")
-    if isinstance(blueprint_relations, Sequence):
-        for relation in blueprint_relations:
-            if not isinstance(relation, Mapping):
-                continue
-            identifier = relation.get("id")
-            if identifier:
-                lookup[str(identifier)] = {
-                    "source": relation.get("source"),
-                    "target": relation.get("target"),
-                    "type": relation.get("type"),
-                }
+    def register(relation: Mapping[str, Any], *, prefer_existing: bool = False) -> None:
+        identifier = relation.get("id") or relation.get("identifier")
+        if not identifier:
+            return
+        key = str(identifier)
+        target = lookup.setdefault(key, {})
+        if prefer_existing and target:
+            return
+        for attr in ("source", "target", "type"):
+            value = relation.get(attr)
+            if value:
+                target[attr] = value
+        label = relation.get("label") or relation.get("name")
+        if label:
+            target["name"] = label
+
+    relations = blueprint.get("relations")
+    if isinstance(relations, Sequence):
+        for relation in relations:
+            if isinstance(relation, Mapping):
+                register(relation, prefer_existing=True)
 
     if isinstance(datamodel, Mapping):
         datamodel_relations = datamodel.get("relations")
         if isinstance(datamodel_relations, Sequence):
             for relation in datamodel_relations:
-                if not isinstance(relation, Mapping):
-                    continue
-                identifier = relation.get("id")
-                if not identifier:
-                    continue
-                target = lookup.setdefault(str(identifier), {})
-                for key in ("source", "target", "type"):
-                    if relation.get(key):
-                        target[key] = relation.get(key)
-                if relation.get("name"):
-                    target["name"] = relation.get("name")
+                if isinstance(relation, Mapping):
+                    register(relation, prefer_existing=False)
 
     return lookup
 
@@ -588,12 +352,22 @@ def _build_view_payload(
     if isinstance(datamodel_view, Mapping):
         base_view = _deep_merge(base_view, datamodel_view)
 
-    name = str(base_view.get("name") or metadata.name)
-    layout = {
-        "nodes": _build_layout_nodes(base_view, element_lookup),
-        "connections": _build_layout_connections(base_view, relationship_lookup),
-    }
+    def build_layout(source: Mapping[str, Any]) -> dict[str, Any]:
+        return {
+            "nodes": _build_layout_nodes(source, element_lookup),
+            "connections": _build_layout_connections(source, relationship_lookup),
+        }
 
+    layout = build_layout(base_view)
+    if not layout["nodes"] and blueprint_view:
+        fallback_view = copy.deepcopy(blueprint_view)
+        fallback_layout = build_layout(fallback_view)
+        if fallback_layout["nodes"]:
+            layout = fallback_layout
+            base_view.setdefault("nodes", fallback_view.get("nodes"))
+            base_view.setdefault("connections", fallback_view.get("connections"))
+
+    name = str(base_view.get("name") or metadata.name)
     return {
         "identifier": metadata.identifier,
         "name": name,
@@ -684,7 +458,7 @@ def generate_layout_preview(
     if not available_views:
         raise ValueError("O template selecionado não possui visões para pré-visualização.")
 
-    blueprint = _load_template_blueprint(target_template, session_state)
+    blueprint = load_template_blueprint(target_template, session_state)
     datamodel_payload = _load_datamodel(datamodel, session_state)
 
     datamodel_views = _index_datamodel_views(datamodel_payload)

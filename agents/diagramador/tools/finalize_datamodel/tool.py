@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import MutableMapping
-
 from ..diagramador import (
     SESSION_ARTIFACT_FINAL_DATAMODEL,
     finalize_datamodel as _finalize_datamodel,
@@ -16,7 +14,7 @@ __all__ = ["SESSION_ARTIFACT_FINAL_DATAMODEL", "finalize_datamodel"]
 def finalize_datamodel(
     datamodel: str,
     template_path: str,
-    session_state: str | MutableMapping[str, object] | None,
+    session_state: str = "",
 ):
     coerced_state = coerce_session_state(session_state)
     return _finalize_datamodel(
