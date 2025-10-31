@@ -363,10 +363,12 @@ def load_template_blueprint(
         if isinstance(views, dict):
             diagrams = views.get("diagrams")
         if isinstance(diagrams, Sequence) and diagrams:
+            logger.debug("load_template_blueprint: reutilizando cache para %s.", target)
             return copy.deepcopy(cached)
 
     blueprint = _parse_template_blueprint(target)
     store_blueprint(session_state, target, blueprint)
+    logger.debug("load_template_blueprint: blueprint carregado e armazenado para %s.", target)
     return copy.deepcopy(blueprint)
 
 
@@ -514,6 +516,10 @@ def _normalize_filter_tokens(filter_value: Iterable[str] | str | None) -> set[st
         values = filter_value
     for raw in values:
         tokens.update(_expand_token_variants(raw))
+    if not tokens and isinstance(filter_value, str) and filter_value.strip():
+        literal = _WHITESPACE_RE.sub(" ", filter_value.strip().casefold())
+        if literal:
+            tokens.add(literal)
     return {token for token in tokens if token}
 
 
@@ -589,8 +595,19 @@ def describe_template(
             view_entry["diagram"] = copy.deepcopy(diagram_payload)
         guidance["views"].append(view_entry)
 
+    logger.info(
+        "describe_template: %d visão(ões) preparada(s) para '%s' (%s).",
+        len(guidance["views"]),
+        metadata.model_name or metadata.model_identifier or "modelo",
+        metadata.path,
+    )
+
     if session_state is not None:
         store_artifact(session_state, SESSION_ARTIFACT_TEMPLATE_GUIDANCE, guidance)
+        logger.debug(
+            "describe_template: artefato '%s' persistido no estado de sessão.",
+            SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
+        )
         return {
             "status": "ok",
             "artifact": SESSION_ARTIFACT_TEMPLATE_GUIDANCE,

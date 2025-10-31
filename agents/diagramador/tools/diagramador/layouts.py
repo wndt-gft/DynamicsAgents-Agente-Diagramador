@@ -73,6 +73,9 @@ def _normalize_tokens(view_filter: Iterable[str] | str | None) -> set[str]:
         values = view_filter
     for raw in values:
         tokens.update(_expand_token_variants(raw))
+    # Se nenhuma variação foi encontrada, tenta usar o valor literal original.
+    if not tokens and isinstance(view_filter, str) and view_filter.strip():
+        tokens.add(_WHITESPACE_RE.sub(" ", view_filter.strip().casefold()))
     return {token for token in tokens if token}
 
 
@@ -377,8 +380,7 @@ def _build_view_payload(
 
 
 def _build_replacements(render_payload: Mapping[str, Any], view_name: str) -> dict[str, Any]:
-    inline = str(render_payload.get("inline_markdown") or "")
-    download = str(render_payload.get("download_markdown") or "")
+    label = "Abrir diagrama em SVG"
     data_uri = render_payload.get("svg_data_uri") or ""
     if not data_uri:
         local_path = render_payload.get("local_path")
@@ -390,17 +392,23 @@ def _build_replacements(render_payload: Mapping[str, Any], view_name: str) -> di
             if encoded:
                 data_uri = f"data:image/svg+xml;base64,{encoded}"
 
+    inline_markdown = render_payload.get("inline_markdown")
     if data_uri:
-        inline = f"![Pré-visualização]({data_uri})"
-        if not download:
-            download = f"[Abrir diagrama em SVG]({data_uri})"
+        inline_value = f"![Pré-visualização]({data_uri})"
+    else:
+        inline_value = str(inline_markdown or "")
 
-    return {
-        "layout_preview.inline": inline,
-        "layout_preview.download": download,
+    replacements = {
+        "layout_preview.inline": inline_value,
         "layout_preview.svg": data_uri,
         "layout_preview.view_name": view_name,
+        "layout_preview.download.url": data_uri,
+        "layout_preview.download.label": label,
+        "layout_preview.download.markdown": f"[{label}]({data_uri})" if data_uri else str(render_payload.get("download_markdown") or ""),
     }
+    replacements["layout_preview.download"] = replacements["layout_preview.download.markdown"]
+
+    return replacements
 
 
 def _index_datamodel_views(datamodel: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
@@ -460,6 +468,12 @@ def generate_layout_preview(
 
     blueprint = load_template_blueprint(target_template, session_state)
     datamodel_payload = _load_datamodel(datamodel, session_state)
+    logger.info(
+        "generate_layout_preview: template='%s', filtro='%s', datamodel=%s",
+        target_template,
+        view_filter or "<todas>",
+        "fornecido" if datamodel_payload else "template-base",
+    )
 
     datamodel_views = _index_datamodel_views(datamodel_payload)
     element_lookup = _build_element_lookup(blueprint, datamodel_payload)
@@ -483,6 +497,15 @@ def generate_layout_preview(
 
     if not primary_view["layout"]["nodes"]:
         raise ValueError("A visão selecionada não possui elementos para renderização.")
+
+    node_count = len(primary_view["layout"]["nodes"])
+    conn_count = len(primary_view["layout"].get("connections", []))
+    logger.info(
+        "generate_layout_preview: visão '%s' renderizada (%d nós / %d conexões).",
+        primary_view["name"],
+        node_count,
+        conn_count,
+    )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     render_payload = render_view_layout(
@@ -513,6 +536,13 @@ def generate_layout_preview(
         ],
         "render": dict(render_payload),
         "replacements": replacements,
+        "links": {
+            "layout_svg": {
+                "label": replacements.get("layout_preview.download.label"),
+                "url": replacements.get("layout_preview.download.url"),
+                "format": "svg",
+            }
+        },
     }
 
     if datamodel_payload is not None:
@@ -520,10 +550,17 @@ def generate_layout_preview(
 
     if session_state is not None:
         store_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW, artifact)
+        logger.debug(
+            "generate_layout_preview: artefato '%s' armazenado no estado de sessão.",
+            SESSION_ARTIFACT_LAYOUT_PREVIEW,
+        )
         return {
             "status": "ok",
             "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW,
             "view_name": primary_view["name"],
         }
 
+    logger.debug(
+        "generate_layout_preview: retornando artefato sem sessão explícita (modo fallback)."
+    )
     return artifact
