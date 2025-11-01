@@ -9,6 +9,7 @@ import json
 import random
 import re
 import unicodedata
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from pathlib import Path
@@ -67,6 +68,142 @@ _CODE_FENCE_RE = re.compile(
 _PLACEHOLDER_RE = re.compile(r"\s*[-–]?\s*\{[^}]+\}")
 _WHITESPACE_RE = re.compile(r"\s+")
 _PLACEHOLDER_TOKEN_RE = re.compile(r"\{\{[^{}]+\}\}|\[\[[^\[\]]+\]\]")
+
+
+def _has_meaningful_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    return True
+
+
+def _apply_reference_fields(target: MutableMapping[str, Any], refs: Mapping[str, Any]) -> None:
+    reference_map: dict[str, tuple[str, ...]] = {
+        "elementRef": ("elementRef", "element_ref"),
+        "relationshipRef": ("relationshipRef", "relationship_ref"),
+        "viewRef": ("viewRef", "view_ref"),
+        "source": ("source",),
+        "sourceRef": ("source",),
+        "target": ("target",),
+        "targetRef": ("target",),
+    }
+
+    for key, aliases in reference_map.items():
+        value = refs.get(key)
+        if not _has_meaningful_value(value):
+            continue
+        for alias in aliases:
+            if _has_meaningful_value(target.get(alias)):
+                continue
+            target[alias] = value
+
+
+def _normalize_connection_payload(connection: Mapping[str, Any]) -> dict[str, Any]:
+    payload: MutableMapping[str, Any] = copy.deepcopy(dict(connection))
+    refs = payload.get("refs")
+    if isinstance(refs, Mapping):
+        _apply_reference_fields(payload, refs)
+        payload.pop("refs", None)
+
+    relationship_ref = payload.get("relationshipRef") or payload.get("relationship_ref")
+    if _has_meaningful_value(relationship_ref):
+        payload["relationshipRef"] = relationship_ref
+        payload["relationship_ref"] = relationship_ref
+
+    for endpoint_key in ("source", "target"):
+        endpoint_value = payload.get(endpoint_key)
+        if not _has_meaningful_value(endpoint_value):
+            alt_key = f"{endpoint_key}Ref"
+            alt_value = payload.get(alt_key)
+            if _has_meaningful_value(alt_value):
+                payload[endpoint_key] = alt_value
+
+    return dict(payload)
+
+
+def _normalize_node_payload(node: Mapping[str, Any]) -> dict[str, Any]:
+    payload: MutableMapping[str, Any] = copy.deepcopy(dict(node))
+
+    refs = payload.get("refs")
+    if isinstance(refs, Mapping):
+        _apply_reference_fields(payload, refs)
+        payload.pop("refs", None)
+
+    element_ref = payload.get("elementRef") or payload.get("element_ref")
+    if _has_meaningful_value(element_ref):
+        payload["elementRef"] = element_ref
+        payload["element_ref"] = element_ref
+
+    relationship_ref = payload.get("relationshipRef") or payload.get("relationship_ref")
+    if _has_meaningful_value(relationship_ref):
+        payload["relationshipRef"] = relationship_ref
+        payload["relationship_ref"] = relationship_ref
+
+    child_sequences: list[Sequence[Any]] = []
+    for key in ("nodes", "children"):
+        value = payload.get(key)
+        if isinstance(value, Sequence):
+            child_sequences.append(value)
+    normalized_children: list[dict[str, Any]] = []
+    for sequence in child_sequences:
+        for child in sequence:
+            if isinstance(child, Mapping):
+                normalized_children.append(_normalize_node_payload(child))
+    if normalized_children:
+        payload["nodes"] = normalized_children
+    elif "nodes" in payload:
+        payload["nodes"] = []
+    payload.pop("children", None)
+
+    connections = payload.get("connections")
+    if isinstance(connections, Sequence):
+        normalized_connections = [
+            _normalize_connection_payload(conn)
+            for conn in connections
+            if isinstance(conn, Mapping)
+        ]
+        payload["connections"] = normalized_connections
+    elif "connections" in payload:
+        payload["connections"] = []
+
+    return dict(payload)
+
+
+def _normalize_view_structure(payload: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+
+    view_payload: MutableMapping[str, Any] = copy.deepcopy(dict(payload))
+
+    node_sequences: list[Sequence[Any]] = []
+    for key in ("nodes", "children"):
+        value = view_payload.get(key)
+        if isinstance(value, Sequence):
+            node_sequences.append(value)
+    normalized_nodes: list[dict[str, Any]] = []
+    for sequence in node_sequences:
+        for node in sequence:
+            if isinstance(node, Mapping):
+                normalized_nodes.append(_normalize_node_payload(node))
+    if normalized_nodes:
+        view_payload["nodes"] = normalized_nodes
+    elif "nodes" in view_payload:
+        view_payload["nodes"] = []
+    view_payload.pop("children", None)
+
+    connections = view_payload.get("connections")
+    if isinstance(connections, Sequence):
+        normalized_connections = [
+            _normalize_connection_payload(conn)
+            for conn in connections
+            if isinstance(conn, Mapping)
+        ]
+        view_payload["connections"] = normalized_connections
+    elif "connections" in view_payload:
+        view_payload["connections"] = []
+
+    return dict(view_payload)
 
 
 def _resolve_template_path(template_path: str | None) -> Path:
@@ -220,7 +357,13 @@ def _sanitize_datamodel(payload: Mapping[str, Any], *, context: str = "datamodel
 def _normalize_view_key(value: str | None) -> str | None:
     if not isinstance(value, str):
         return None
-    normalized = _WHITESPACE_RE.sub(" ", value.strip()).casefold()
+
+    # Remover diacríticos e normalizar espaços/pontuação para permitir matching
+    # resiliente entre nomes de visões informados pelo usuário e o template.
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.replace("-", " ").replace("_", " ")
+    normalized = _WHITESPACE_RE.sub(" ", normalized.strip()).casefold()
     return normalized or None
 
 
@@ -1204,31 +1347,428 @@ def _merge_connections(
     return merged_connections
 
 
+def _normalize_layer_label(value: str | None) -> str:
+    if not isinstance(value, str):
+        return ""
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.casefold()
+    normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
+    return normalized.strip()
+
+
 def _merge_view_structures(
     template_view: Mapping[str, Any] | None,
     user_view: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    if not template_view and not user_view:
+    if template_view is None and user_view is None:
         return {}
 
-    base_view: dict[str, Any] = copy.deepcopy(dict(template_view)) if isinstance(template_view, Mapping) else {}
-    if not isinstance(user_view, Mapping):
-        return base_view or (copy.deepcopy(dict(user_view)) if isinstance(user_view, Mapping) else {})
+    template_payload = (
+        copy.deepcopy(dict(template_view)) if isinstance(template_view, Mapping) else None
+    )
+    user_payload = copy.deepcopy(dict(user_view)) if isinstance(user_view, Mapping) else None
 
-    for key, value in user_view.items():
+    if template_payload is None and user_payload is not None:
+        return user_payload
+
+    base_view: dict[str, Any] = template_payload or {}
+    if user_payload is None:
+        return base_view
+
+    for key, value in user_payload.items():
         if key in {"nodes", "connections"}:
             continue
         base_view[key] = copy.deepcopy(value)
 
-    template_nodes = template_view.get("nodes") if isinstance(template_view, Mapping) else None
-    user_nodes = user_view.get("nodes")
+    template_nodes = template_payload.get("nodes") if isinstance(template_payload, Mapping) else None
+    user_nodes = user_payload.get("nodes") if isinstance(user_payload, Mapping) else None
     base_view["nodes"] = _merge_nodes(template_nodes, user_nodes)
 
-    template_connections = template_view.get("connections") if isinstance(template_view, Mapping) else None
-    user_connections = user_view.get("connections")
+    template_connections = (
+        template_payload.get("connections") if isinstance(template_payload, Mapping) else None
+    )
+    user_connections = (
+        user_payload.get("connections") if isinstance(user_payload, Mapping) else None
+    )
     base_view["connections"] = _merge_connections(template_connections, user_connections)
 
     return base_view
+
+
+def _gather_container_entries(
+    view_payload: Mapping[str, Any]
+) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+
+    def walk(
+        node: Mapping[str, Any],
+        *,
+        parent: MutableMapping[str, Any] | None,
+        parent_label: str | None,
+    ) -> None:
+        if not isinstance(node, Mapping):
+            return
+        node_type = node.get("type")
+        label = node.get("label")
+        normalized_label = _normalize_layer_label(label)
+        entry_parent_label = parent_label
+        if node_type == "Container":
+            entries.append(
+                {
+                    "node": node,
+                    "label": label,
+                    "normalized_label": normalized_label,
+                    "parent": parent,
+                    "parent_label": parent_label,
+                    "parent_normalized": _normalize_layer_label(parent_label),
+                }
+            )
+            entry_parent_label = label if isinstance(label, str) else parent_label
+
+        children = node.get("nodes")
+        if isinstance(children, Sequence):
+            for child in children:
+                if isinstance(child, Mapping):
+                    walk(
+                        child,
+                        parent=node if node_type == "Container" else parent,
+                        parent_label=entry_parent_label,
+                    )
+
+    root = {"nodes": view_payload.get("nodes") or []}
+    walk(root, parent=None, parent_label=None)
+    return entries
+
+
+def _resolve_container_hosts(
+    view_payload: Mapping[str, Any],
+) -> dict[str, list[MutableMapping[str, Any]]]:
+    entries = _gather_container_entries(view_payload)
+
+    def _find_entry(
+        label_tokens: Iterable[str],
+        *,
+        parent_tokens: Iterable[str] | None = None,
+    ) -> list[MutableMapping[str, Any]]:
+        label_set = {token for token in label_tokens if token}
+        parent_set = {token for token in parent_tokens or [] if token}
+        matches: list[MutableMapping[str, Any]] = []
+        for entry in entries:
+            if label_set and entry["normalized_label"] not in label_set:
+                continue
+            if parent_set and entry["parent_normalized"] not in parent_set:
+                continue
+            node = entry.get("node")
+            if isinstance(node, MutableMapping):
+                matches.append(node)
+        return matches
+
+    hosts: dict[str, list[MutableMapping[str, Any]]] = {}
+
+    # Channels -> inner container when available.
+    channel_containers = _find_entry({"container de canais"})
+    if not channel_containers:
+        channel_containers = _find_entry({"layer de canais", "layer channels"})
+    hosts["channels"] = channel_containers
+
+    # Gateway inbound/outbound/data/execution/external direct containers.
+    hosts["gateway_inbound"] = _find_entry({"layer gateway inbound"})
+    hosts["gateway_outbound"] = _find_entry({"layer gateway outbound"})
+    hosts["data_management"] = _find_entry({"layer data management"})
+
+    execution_hosts = _find_entry({"container de siglas"})
+    if not execution_hosts:
+        execution_hosts = _find_entry({"layer execution logic"})
+    hosts["execution"] = execution_hosts
+
+    external_hosts = _find_entry({"group"}, parent_tokens={"layer external integration"})
+    if not external_hosts:
+        external_hosts = _find_entry({"layer external integration"})
+    hosts["external"] = external_hosts
+
+    hosts["steps"] = _find_entry({"layer etapas"})
+
+    return hosts
+
+
+def _extract_style_sample(container: Mapping[str, Any]) -> dict[str, Any] | None:
+    nodes = container.get("nodes")
+    if isinstance(nodes, Sequence):
+        for child in nodes:
+            if isinstance(child, Mapping) and child.get("type") == "Element":
+                style = child.get("style")
+                if isinstance(style, Mapping):
+                    return copy.deepcopy(dict(style))
+    return None
+
+
+def _filter_placeholder_elements(elements: Sequence[Mapping[str, Any]] | None) -> list[dict[str, Any]]:
+    filtered: list[dict[str, Any]] = []
+    if not isinstance(elements, Sequence):
+        return filtered
+    for element in elements:
+        if not isinstance(element, Mapping):
+            continue
+        name = element.get("name")
+        documentation = element.get("documentation")
+        if isinstance(name, str) and "não aplic" in name.casefold():
+            continue
+        if isinstance(documentation, str) and "exemplo" in documentation.casefold() and "substitua" in documentation.casefold():
+            continue
+        filtered.append(dict(element))
+    return filtered
+
+
+def _classify_element_for_layer(element: Mapping[str, Any]) -> str:
+    name = (element.get("name") or "").casefold()
+    documentation = (element.get("documentation") or "").casefold()
+    elem_type = (element.get("type") or "").casefold()
+
+    keywords = name + " " + documentation
+
+    def has(*tokens: str) -> bool:
+        return any(token in keywords for token in tokens)
+
+    if elem_type == "dataobject" or has("banco", "base", "dados", "storage", "cache", "hsm", "redis", "postgres", "mongodb", "datastore", "hadoop", "kafka"):
+        return "data_management"
+
+    if has("gateway", "balanceador"):
+        if has("outbound", "notific", "push", "extern", "saida", "bus", "fila"):
+            return "gateway_outbound"
+        return "gateway_inbound"
+
+    if has("canal", "cliente", "portal", "frontend", "mobile", "app", "ux", "web") or elem_type in {"businessactor", "applicationcollaboration"}:
+        return "channels"
+
+    if has("bacen", "extern", "parceiro", "sistema de preven", "core banking", "legacy", "externo", "provedor", "terceiro") or elem_type in {"businesscollaboration", "businessactor"}:
+        return "external"
+
+    if has("notific", "mensageria", "fila", "queue") and "gateway" not in keywords:
+        return "gateway_outbound"
+
+    if has("etapa", "passo", "workflow"):
+        return "steps"
+
+    return "execution"
+
+
+def _make_layer_node(
+    *,
+    container_id: str,
+    element: Mapping[str, Any],
+    style: Mapping[str, Any] | None,
+    index: int,
+) -> dict[str, Any]:
+    identifier = f"{container_id}-elem-{index+1}"
+    node: dict[str, Any] = {
+        "id": identifier,
+        "type": "Element",
+        "elementRef": element.get("id"),
+        "label": element.get("name"),
+    }
+    if style:
+        node["style"] = copy.deepcopy(dict(style))
+    return node
+
+
+def _update_steps_panel(
+    hosts: Mapping[str, Sequence[MutableMapping[str, Any]]],
+    *,
+    relations: Sequence[Mapping[str, Any]] | None,
+    element_lookup: Mapping[str, Mapping[str, Any]],
+) -> None:
+    step_containers = hosts.get("steps") or []
+    if not step_containers:
+        return
+
+    elements_by_id: dict[str, Mapping[str, Any]] = {}
+    for element_id, payload in element_lookup.items():
+        if isinstance(payload, Mapping):
+            elements_by_id[element_id] = payload
+
+    steps: list[str] = []
+    if isinstance(relations, Sequence):
+        for index, relation in enumerate(relations, start=1):
+            if not isinstance(relation, Mapping):
+                continue
+            source = relation.get("source") or relation.get("sourceRef")
+            target = relation.get("target") or relation.get("targetRef")
+            if not source or not target:
+                continue
+            source_info = elements_by_id.get(str(source))
+            target_info = elements_by_id.get(str(target))
+            if not source_info or not target_info:
+                continue
+            source_name = source_info.get("name") or source
+            target_name = target_info.get("name") or target
+            label = relation.get("label") or relation.get("name") or relation.get("type")
+            if label:
+                step_text = f"{index}. {source_name} → {target_name} ({label})"
+            else:
+                step_text = f"{index}. {source_name} → {target_name}"
+            steps.append(step_text)
+            if len(steps) >= 7:
+                break
+
+    if not steps:
+        return
+
+    panel_text = "\n".join(steps)
+    for container in step_containers:
+        nodes = container.get("nodes")
+        if not isinstance(nodes, Sequence):
+            continue
+        for node in nodes:
+            if isinstance(node, MutableMapping) and node.get("type") == "Label":
+                node["label"] = panel_text
+
+
+def _inject_view_layers(
+    base_view: MutableMapping[str, Any],
+    datamodel: Mapping[str, Any] | None,
+    *,
+    element_lookup: Mapping[str, Mapping[str, Any]],
+) -> None:
+    if not isinstance(datamodel, Mapping):
+        return
+
+    elements = _filter_placeholder_elements(datamodel.get("elements"))
+    if not elements:
+        return
+
+    hosts = _resolve_container_hosts(base_view)
+    if not hosts:
+        return
+
+    assignments: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for element in elements:
+        element_id = element.get("id")
+        if not element_id:
+            continue
+        layer = _classify_element_for_layer(element)
+        assignments[layer].append(element)
+
+    valid_element_ids = {str(element.get("id")) for element in elements if element.get("id")}
+
+    element_to_node: dict[str, str] = {}
+    layer_node_counts: dict[str, int] = defaultdict(int)
+    for layer_name, containers in hosts.items():
+        if layer_name == "steps":
+            continue
+        if not containers:
+            continue
+        elements_for_layer = assignments.get(layer_name)
+        if not elements_for_layer and layer_name == "execution":
+            # fallback: ensure execution receives remaining elements
+            remaining = []
+            for key, values in list(assignments.items()):
+                if key in {"channels", "gateway_inbound", "gateway_outbound", "data_management", "external"}:
+                    continue
+                remaining.extend(values)
+                assignments.pop(key, None)
+            elements_for_layer = remaining
+        if not elements_for_layer:
+            continue
+
+        container_cycle = list(containers)
+        if not container_cycle:
+            continue
+
+        style_sample = None
+        for container in container_cycle:
+            sample = _extract_style_sample(container)
+            if sample:
+                style_sample = sample
+                break
+
+        for container in container_cycle:
+            existing_nodes = container.get("nodes")
+            if isinstance(existing_nodes, list):
+                container["nodes"] = [
+                    node
+                    for node in existing_nodes
+                    if isinstance(node, MutableMapping) and node.get("type") != "Element"
+                ]
+            else:
+                container["nodes"] = []
+
+        for index, element in enumerate(elements_for_layer):
+            container = container_cycle[index % len(container_cycle)]
+            nodes = container.setdefault("nodes", [])
+            if not isinstance(nodes, list):
+                nodes = []
+                container["nodes"] = nodes
+            container_identifier = str(container.get("id") or layer_name)
+            position = layer_node_counts[container_identifier]
+            new_node = _make_layer_node(
+                container_id=container_identifier,
+                element=element,
+                style=style_sample,
+                index=position,
+            )
+            nodes.append(new_node)
+            layer_node_counts[container_identifier] += 1
+            element_id = element.get("id")
+            if element_id:
+                element_to_node[str(element_id)] = new_node["id"]
+
+    def prune_unused(node: MutableMapping[str, Any]) -> None:
+        children = node.get("nodes")
+        if not isinstance(children, list):
+            return
+        pruned_children: list[MutableMapping[str, Any]] = []
+        for child in children:
+            if not isinstance(child, MutableMapping):
+                continue
+            if child.get("type") == "Element":
+                element_ref = child.get("elementRef") or child.get("element_ref")
+                if not element_ref or str(element_ref) not in valid_element_ids:
+                    continue
+            prune_unused(child)
+            pruned_children.append(child)
+        node["nodes"] = pruned_children
+
+    prune_unused(base_view)
+
+    _update_steps_panel(hosts, relations=datamodel.get("relations"), element_lookup=element_lookup)
+
+    if not element_to_node:
+        return
+
+    connections: list[dict[str, Any]] = []
+    existing_connection_ids: set[str] = set()
+    relations = datamodel.get("relations")
+    if isinstance(relations, Sequence):
+        for relation in relations:
+            if not isinstance(relation, Mapping):
+                continue
+            source = relation.get("source") or relation.get("sourceRef")
+            target = relation.get("target") or relation.get("targetRef")
+            if not source or not target:
+                continue
+            source_node = element_to_node.get(str(source))
+            target_node = element_to_node.get(str(target))
+            if not source_node or not target_node:
+                continue
+            relation_id = relation.get("id") or relation.get("identifier")
+            if not relation_id:
+                relation_id = _generate_identifier(existing_connection_ids, "rel")
+            else:
+                existing_connection_ids.add(str(relation_id))
+            connection: dict[str, Any] = {
+                "id": str(relation_id),
+                "type": "Relationship",
+                "relationshipRef": relation_id,
+                "source": source_node,
+                "target": target_node,
+            }
+            label = relation.get("label") or relation.get("name")
+            if label:
+                connection["label"] = label
+            connections.append(connection)
+
+    base_view["connections"] = connections
 
 
 def _build_layout_nodes(
@@ -1346,7 +1886,25 @@ def _build_view_payload(
     model_name: str | None,
     datamodel: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    base_view: dict[str, Any] = _merge_view_structures(blueprint_view, datamodel_view)
+    normalized_blueprint_view = _normalize_view_structure(blueprint_view)
+    normalized_datamodel_view = _normalize_view_structure(datamodel_view)
+
+    base_view: dict[str, Any] = _merge_view_structures(
+        normalized_blueprint_view,
+        normalized_datamodel_view,
+    )
+    has_custom_nodes = False
+    if isinstance(normalized_datamodel_view, Mapping):
+        nodes = normalized_datamodel_view.get("nodes")
+        if isinstance(nodes, Sequence) and any(isinstance(node, Mapping) for node in nodes):
+            has_custom_nodes = True
+
+    if not has_custom_nodes:
+        _inject_view_layers(
+            base_view,
+            datamodel,
+            element_lookup=element_lookup,
+        )
     _autolayout_nodes(base_view)
 
     def build_layout(source: Mapping[str, Any]) -> dict[str, Any]:
@@ -1356,8 +1914,8 @@ def _build_view_payload(
         }
 
     layout = build_layout(base_view)
-    if not layout["nodes"] and blueprint_view:
-        fallback_view = copy.deepcopy(blueprint_view)
+    if not layout["nodes"] and normalized_blueprint_view:
+        fallback_view = copy.deepcopy(normalized_blueprint_view)
         fallback_layout = build_layout(fallback_view)
         if fallback_layout["nodes"]:
             layout = fallback_layout
@@ -1756,6 +2314,7 @@ def generate_layout_preview(
     model_name = _resolve_model_name(datamodel_payload) if datamodel_payload else None
 
     view_payloads: list[dict[str, Any]] = []
+    single_view_selection = len(available_views) == 1
     for meta in available_views:
         blueprint_view = _match_blueprint_view(blueprint, meta.identifier)
         datamodel_view = datamodel_views_by_id.get(meta.identifier)
@@ -1763,6 +2322,29 @@ def generate_layout_preview(
             normalized_name = _normalize_view_key(meta.name)
             if normalized_name:
                 datamodel_view = datamodel_views_by_name.get(normalized_name)
+                if datamodel_view is None:
+                    for candidate_key, candidate_view in datamodel_views_by_name.items():
+                        if not candidate_key or not isinstance(candidate_view, Mapping):
+                            continue
+                        if candidate_key.startswith(normalized_name) or normalized_name.startswith(candidate_key):
+                            datamodel_view = candidate_view
+                            break
+        if datamodel_view is None and has_datamodel_views and single_view_selection:
+            unique_candidates: list[Mapping[str, Any]] = []
+            seen_ids: set[int] = set()
+            for payload in list(datamodel_views_by_id.values()) + list(
+                datamodel_views_by_name.values()
+            ):
+                if not isinstance(payload, Mapping):
+                    continue
+                payload_id = id(payload)
+                if payload_id in seen_ids:
+                    continue
+                seen_ids.add(payload_id)
+                unique_candidates.append(payload)
+            if len(unique_candidates) == 1:
+                datamodel_view = unique_candidates[0]
+
         if datamodel_view is None and has_datamodel_views:
             available_identifiers = sorted(datamodel_views_by_id.keys())
             available_names = sorted(

@@ -102,6 +102,186 @@ def test_generate_layout_preview_creates_replacements(session_state):
     assert "data:image/svg+xml" in replacements["layout_preview.svg"]
 
 
+def test_generate_layout_preview_populates_layer_elements(session_state):
+    datamodel = _load_sample_datamodel()
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    layout_nodes = artifact["view"]["layout"]["nodes"]
+
+    element_refs = {
+        node.get("element_ref") or node.get("elementRef")
+        for node in layout_nodes
+        if (node.get("element_ref") or node.get("elementRef"))
+    }
+    expected_refs = {
+        "id-da18b5f4b21a4bdab0c63fa99d95ba91",
+        "id-37401d37c1034a718ab785406022fc9c",
+        "id-7b0c03d4f05a410da57057c7e0b1ad25",
+        "id-89aef989c04f448294e301fac2bb9f67",
+    }
+    assert expected_refs <= element_refs
+
+    layer_labels = {
+        node.get("label") for node in layout_nodes if node.get("type") == "Container"
+    }
+    assert "Layer DATA MANAGEMENT" in layer_labels
+    assert "Layer CHANNELS" in layer_labels
+
+
+def test_generate_layout_preview_matches_view_without_accents(session_state):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+
+    diagrams = datamodel.setdefault("views", {}).get("diagrams") or []
+    assert diagrams, "Sample datamodel must contain at least one diagram"
+    diagrams[0].pop("id", None)
+    diagrams[0].pop("identifier", None)
+    diagrams[0]["name"] = "Visao de Container - Sistema de Transferencias PIX"
+
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    assert artifact["view"]["identifier"]
+    assert artifact["view"]["name"].startswith("Visao de Container")
+    assert artifact["view"]["layout"]["nodes"]
+
+
+def test_generate_layout_preview_populates_layers_when_view_missing(session_state):
+    datamodel = {
+        "model_identifier": "auto-layer-test",
+        "model_name": "Plataforma PIX Teste",
+        "elements": [
+            {
+                "id": "elem-channel",
+                "type": "ApplicationComponent",
+                "name": "App Mobile Varejo",
+                "documentation": "Canal digital onde o cliente inicia transferências PIX.",
+            },
+            {
+                "id": "elem-inbound",
+                "type": "TechnologyService",
+                "name": "API Gateway Central",
+                "documentation": "Gateway de entrada com autenticação e roteamento.",
+            },
+            {
+                "id": "elem-exec",
+                "type": "ApplicationComponent",
+                "name": "Motor Orquestrador PIX",
+                "documentation": "Serviço core que coordena validações e liquidação.",
+            },
+            {
+                "id": "elem-data",
+                "type": "DataObject",
+                "name": "Banco de Dados PIX",
+                "documentation": "Base transacional com histórico de transferências.",
+            },
+            {
+                "id": "elem-outbound",
+                "type": "TechnologyService",
+                "name": "Serviço de Notificações Push",
+                "documentation": "Canal outbound que envia alertas ao cliente.",
+            },
+            {
+                "id": "elem-external",
+                "type": "ApplicationCollaboration",
+                "name": "DICT BACEN",
+                "documentation": "Integração com diretório de chaves do Banco Central.",
+            },
+        ],
+        "relations": [
+            {
+                "id": "rel-1",
+                "source": "elem-channel",
+                "target": "elem-inbound",
+                "type": "Triggering",
+                "label": "Inicia requisição",
+            },
+            {
+                "id": "rel-2",
+                "source": "elem-inbound",
+                "target": "elem-exec",
+                "type": "Serving",
+                "label": "Encaminha",
+            },
+            {
+                "id": "rel-3",
+                "source": "elem-exec",
+                "target": "elem-data",
+                "type": "Access",
+                "label": "Persiste",
+            },
+            {
+                "id": "rel-4",
+                "source": "elem-exec",
+                "target": "elem-outbound",
+                "type": "Serving",
+                "label": "Notifica",
+            },
+            {
+                "id": "rel-5",
+                "source": "elem-exec",
+                "target": "elem-external",
+                "type": "Triggering",
+                "label": "Consulta",
+            },
+        ],
+        "views": {
+            "diagrams": [
+                {
+                    "id": "id-171323",
+                    "name": "Visão de Container - Plataforma PIX Teste",
+                    "nodes": [],
+                    "connections": [],
+                }
+            ]
+        },
+    }
+
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    layout = artifact["view"]["layout"]
+    layout_nodes = layout["nodes"]
+
+    element_refs = {
+        node.get("element_ref")
+        for node in layout_nodes
+        if node.get("element_ref")
+    }
+    assert {"elem-channel", "elem-inbound", "elem-exec", "elem-data", "elem-outbound", "elem-external"} <= element_refs
+
+    container_labels = {
+        node.get("label") for node in layout_nodes if node.get("type") == "Container"
+    }
+    assert "Layer GATEWAY INBOUND" in container_labels
+    assert "Layer DATA MANAGEMENT" in container_labels
+    assert "Layer GATEWAY OUTBOUND" in container_labels
+
+    connections = layout.get("connections", [])
+    assert len(connections) == len(datamodel["relations"])
+    connection_refs = {conn.get("relationship_ref") for conn in connections}
+    assert set(rel["id"] for rel in datamodel["relations"]) == connection_refs
+
+    step_labels = [
+        node.get("label")
+        for node in layout_nodes
+        if node.get("type") == "Label" and isinstance(node.get("label"), str)
+    ]
+    assert any("1." in label for label in step_labels)
+
 def test_generate_layout_preview_requires_datamodel(session_state):
     with pytest.raises(ValueError):
         generate_layout_preview(
