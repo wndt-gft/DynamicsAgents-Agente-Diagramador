@@ -40,6 +40,30 @@ def _metadata(view_id: str = "view-1") -> TemplateMetadata:
     )
 
 
+def _two_view_metadata() -> TemplateMetadata:
+    view_meta_a = ViewMetadata(
+        identifier="view-1",
+        name="Visão Camada A",
+        documentation=None,
+        viewpoint=None,
+        index=0,
+    )
+    view_meta_b = ViewMetadata(
+        identifier="view-2",
+        name="Visão Camada B",
+        documentation=None,
+        viewpoint=None,
+        index=1,
+    )
+    return TemplateMetadata(
+        path=Path("template.xml"),
+        model_identifier="template",
+        model_name="Template",
+        documentation=None,
+        views=(view_meta_a, view_meta_b),
+    )
+
+
 def test_generate_layout_preview_errors_on_missing_element_ref(monkeypatch):
     metadata = _metadata()
     blueprint = {
@@ -143,4 +167,71 @@ def test_generate_layout_preview_errors_on_blueprint_metadata(monkeypatch):
     assert "Preencha os componentes" in message
     assert exc.value.reason == "template_content_not_customized"
     assert any("node-placeholder" in issue for issue in exc.value.issues)
+
+
+def test_generate_layout_preview_errors_on_missing_selected_view(monkeypatch):
+    metadata = _two_view_metadata()
+    blueprint = {
+        "elements": [
+            {"id": "element-a", "name": "Elemento A"},
+            {"id": "element-b", "name": "Elemento B"},
+        ],
+        "views": {
+            "diagrams": [
+                {
+                    "id": "view-1",
+                    "name": "Visão Camada A",
+                    "nodes": [
+                        {
+                            "id": "node-a",
+                            "elementRef": "element-a",
+                            "bounds": {"x": 0, "y": 0, "w": 120, "h": 80},
+                        }
+                    ],
+                },
+                {
+                    "id": "view-2",
+                    "name": "Visão Camada B",
+                    "nodes": [
+                        {
+                            "id": "node-b",
+                            "elementRef": "element-b",
+                            "bounds": {"x": 0, "y": 0, "w": 120, "h": 80},
+                        }
+                    ],
+                },
+            ]
+        },
+    }
+    _patch_template_sources(monkeypatch, metadata, blueprint)
+
+    datamodel = {
+        "model_name": "Modelo do Usuário",
+        "elements": [
+            {"id": "element-a", "name": "Elemento Ajustado A"},
+            {"id": "element-b", "name": "Elemento Ajustado B"},
+        ],
+        "views": {
+            "diagrams": [
+                {
+                    "id": "view-2",
+                    "name": "Visão Camada B",
+                    "nodes": [
+                        {
+                            "id": "node-b",
+                            "elementRef": "element-b",
+                            "bounds": {"x": 0, "y": 0, "w": 120, "h": 80},
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+
+    with pytest.raises(ValueError) as exc_info:
+        generate_layout_preview(datamodel, "template.xml")
+
+    message = str(exc_info.value)
+    assert "id='view-1'" in message
+    assert "Visões encontradas" in message
 
