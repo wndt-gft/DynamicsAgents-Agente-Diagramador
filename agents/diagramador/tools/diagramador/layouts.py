@@ -452,7 +452,7 @@ def _build_relationship_lookup(
             value = relation.get(attr)
             if value:
                 target[attr] = value
-        label = relation.get("label") or relation.get("name")
+        label = relation.get("label") or relation.get("name") or relation.get("documentation")
         if label:
             target["name"] = label
         documentation = relation.get("documentation") or relation.get("description")
@@ -501,15 +501,165 @@ def _collect_connections(
             _collect_connections(node, store)
 
 
-def _deep_merge(target: dict[str, Any], source: Mapping[str, Any]) -> dict[str, Any]:
-    for key, value in source.items():
-        if isinstance(value, Mapping) and isinstance(target.get(key), Mapping):
-            _deep_merge(target[key], value)
-        elif isinstance(value, list):
-            target[key] = copy.deepcopy(value)
-        else:
-            target[key] = copy.deepcopy(value)
-    return target
+def _find_matching_node(
+    template_node: Mapping[str, Any],
+    user_nodes: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    def _pop(predicate):
+        for index, candidate in enumerate(user_nodes):
+            if predicate(candidate):
+                return user_nodes.pop(index)
+        return None
+
+    template_id = template_node.get("id") or template_node.get("identifier")
+    if template_id is not None:
+        match = _pop(lambda candidate: (candidate.get("id") or candidate.get("identifier")) == template_id)
+        if match is not None:
+            return match
+
+    template_ref = template_node.get("elementRef") or template_node.get("element_ref")
+    if template_ref is not None:
+        match = _pop(
+            lambda candidate: (candidate.get("elementRef") or candidate.get("element_ref")) == template_ref
+        )
+        if match is not None:
+            return match
+
+    template_type = template_node.get("type")
+    match = _pop(lambda candidate: candidate.get("type") == template_type)
+    if match is not None:
+        return match
+
+    if user_nodes:
+        return user_nodes.pop(0)
+    return None
+
+
+def _merge_nodes(
+    template_nodes: Sequence[Any] | None,
+    user_nodes: Sequence[Any] | None,
+) -> list[dict[str, Any]]:
+    template_nodes = template_nodes or []
+    user_pool: list[dict[str, Any]] = []
+    if isinstance(user_nodes, Sequence):
+        for node in user_nodes:
+            if isinstance(node, Mapping):
+                user_pool.append(copy.deepcopy(dict(node)))
+
+    merged_nodes: list[dict[str, Any]] = []
+    for template_node in template_nodes:
+        if not isinstance(template_node, Mapping):
+            continue
+        template_copy = copy.deepcopy(dict(template_node))
+        match = _find_matching_node(template_node, user_pool)
+        if isinstance(match, Mapping):
+            for key, value in match.items():
+                if key in {"nodes", "connections"}:
+                    continue
+                if key in {"bounds", "style"} and not value:
+                    continue
+                template_copy[key] = copy.deepcopy(value)
+
+        template_children = template_node.get("nodes") if isinstance(template_node, Mapping) else None
+        user_children = match.get("nodes") if isinstance(match, Mapping) else None
+        if template_children or user_children:
+            template_copy["nodes"] = _merge_nodes(template_children, user_children)
+
+        template_connections = template_node.get("connections") if isinstance(template_node, Mapping) else None
+        user_connections = match.get("connections") if isinstance(match, Mapping) else None
+        if template_connections or user_connections:
+            template_copy["connections"] = _merge_connections(template_connections, user_connections)
+
+        merged_nodes.append(template_copy)
+
+    # Append remaining user nodes that did not match any template node.
+    for leftover in user_pool:
+        if not isinstance(leftover, Mapping):
+            continue
+        merged_nodes.append(copy.deepcopy(dict(leftover)))
+
+    return merged_nodes
+
+
+def _merge_connections(
+    template_connections: Sequence[Any] | None,
+    user_connections: Sequence[Any] | None,
+) -> list[dict[str, Any]]:
+    template_connections = template_connections or []
+    user_pool: list[dict[str, Any]] = []
+    if isinstance(user_connections, Sequence):
+        for conn in user_connections:
+            if isinstance(conn, Mapping):
+                user_pool.append(copy.deepcopy(dict(conn)))
+
+    merged_connections: list[dict[str, Any]] = []
+
+    def _pop(predicate):
+        for index, candidate in enumerate(user_pool):
+            if predicate(candidate):
+                return user_pool.pop(index)
+        return None
+
+    for template_conn in template_connections:
+        if not isinstance(template_conn, Mapping):
+            continue
+        template_copy = copy.deepcopy(dict(template_conn))
+        connection_id = template_conn.get("id") or template_conn.get("identifier")
+        relationship_ref = template_conn.get("relationshipRef") or template_conn.get("relationship_ref")
+
+        match = None
+        if connection_id is not None:
+            match = _pop(lambda candidate: (candidate.get("id") or candidate.get("identifier")) == connection_id)
+        if match is None and relationship_ref is not None:
+            match = _pop(
+                lambda candidate: (candidate.get("relationshipRef") or candidate.get("relationship_ref"))
+                == relationship_ref
+            )
+
+        if match is None and user_pool:
+            match = user_pool.pop(0)
+
+        if isinstance(match, Mapping):
+            for key, value in match.items():
+                if key in {"id", "identifier"} and value is None:
+                    continue
+                if key in {"source", "sourceRef", "target", "targetRef"} and not value:
+                    continue
+                if key in {"label", "documentation", "relationshipRef", "relationship_ref"}:
+                    template_copy[key] = copy.deepcopy(value)
+
+        merged_connections.append(template_copy)
+
+    # Append remaining connections (new connections specified by usuário)
+    merged_connections.extend(user_pool)
+    return merged_connections
+
+
+def _merge_view_structures(
+    template_view: Mapping[str, Any] | None,
+    user_view: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not template_view and not user_view:
+        return {}
+
+    base_view: dict[str, Any] = copy.deepcopy(dict(template_view)) if isinstance(template_view, Mapping) else {}
+    if not isinstance(user_view, Mapping):
+        return base_view or (copy.deepcopy(dict(user_view)) if isinstance(user_view, Mapping) else {})
+
+    for key, value in user_view.items():
+        if key in {"nodes", "connections"}:
+            continue
+        base_view[key] = copy.deepcopy(value)
+
+    template_nodes = template_view.get("nodes") if isinstance(template_view, Mapping) else None
+    user_nodes = user_view.get("nodes")
+    base_view["nodes"] = _merge_nodes(template_nodes, user_nodes)
+
+    template_connections = template_view.get("connections") if isinstance(template_view, Mapping) else None
+    user_connections = user_view.get("connections")
+    base_view["connections"] = _merge_connections(template_connections, user_connections)
+
+    return base_view
 
 
 def _build_layout_nodes(
@@ -615,9 +765,7 @@ def _build_view_payload(
     model_name: str | None,
     datamodel: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    base_view: dict[str, Any] = copy.deepcopy(blueprint_view) if blueprint_view else {}
-    if isinstance(datamodel_view, Mapping):
-        base_view = _deep_merge(base_view, datamodel_view)
+    base_view: dict[str, Any] = _merge_view_structures(blueprint_view, datamodel_view)
 
     def build_layout(source: Mapping[str, Any]) -> dict[str, Any]:
         return {
@@ -631,8 +779,10 @@ def _build_view_payload(
         fallback_layout = build_layout(fallback_view)
         if fallback_layout["nodes"]:
             layout = fallback_layout
-            base_view.setdefault("nodes", fallback_view.get("nodes"))
-            base_view.setdefault("connections", fallback_view.get("connections"))
+            if not base_view.get("nodes"):
+                base_view["nodes"] = fallback_view.get("nodes")
+            if not base_view.get("connections"):
+                base_view["connections"] = fallback_view.get("connections")
 
     view_name = (
         base_view.get("name")

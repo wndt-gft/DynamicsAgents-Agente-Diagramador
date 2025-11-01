@@ -124,6 +124,14 @@ def test_generate_layout_preview_replaces_template_placeholders(session_state):
     layout_snapshot = json.dumps(artifact["view"]["layout"])
     assert "[[" not in layout_snapshot
     assert "{{" not in layout_snapshot
+    layout_nodes = artifact["view"]["layout"]["nodes"]
+    labels = {node.get("label") for node in layout_nodes if node.get("element_ref")}
+    assert "Mobile Banking App" in labels
+    assert "Conector SPI/BACEN" in labels
+    connections = artifact["view"]["layout"]["connections"]
+    connection_labels = {conn.get("label") for conn in connections if conn.get("relationship_ref")}
+    assert "Roteamento autenticado" in connection_labels
+    assert "Portal web envia requisições PIX" in connection_labels
 
 
 def test_finalize_and_save_datamodel(session_state):

@@ -60,10 +60,32 @@ _WHITESPACE_RE = re.compile(r"\s+")
 
 
 def _resolve_templates_dir(directory: str | None) -> Path:
-    base = Path(directory) if directory else DEFAULT_TEMPLATES_DIR
-    if not base.is_absolute():
-        base = (Path.cwd() / base).resolve()
-    return base
+    if not directory or not str(directory).strip():
+        return DEFAULT_TEMPLATES_DIR
+
+    provided = Path(directory)
+    candidates: list[Path] = []
+    if provided.is_absolute():
+        candidates.append(provided.resolve())
+    else:
+        candidates.extend(
+            [
+                (Path.cwd() / provided).resolve(),
+                (DEFAULT_TEMPLATES_DIR / provided).resolve(),
+                (DEFAULT_TEMPLATE.parent / provided).resolve(),
+            ]
+        )
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    logger.warning(
+        "Diretório de templates '%s' não encontrado; utilizando diretório padrão '%s'.",
+        directory,
+        DEFAULT_TEMPLATES_DIR,
+    )
+    return DEFAULT_TEMPLATES_DIR
 
 
 def _read_text(element) -> str | None:

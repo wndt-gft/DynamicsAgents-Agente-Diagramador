@@ -23,7 +23,28 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = PACKAGE_ROOT.parents[1]
 PACKAGE_TEMPLATES_DIR = (PACKAGE_ROOT / "templates").resolve()
 DEFAULT_MODEL = os.getenv("DIAGRAMADOR_MODEL", "gemini-2.5-pro")
-OUTPUT_DIR = Path("outputs")
+
+
+def _resolve_path(
+    value: str | None,
+    fallback: Path,
+    *,
+    extras: Sequence[Path] = (),
+) -> Path:
+    """Resolve ``value`` against several bases, falling back when missing."""
+
+    if value:
+        for candidate in _candidate_paths(value, extras):
+            if candidate.exists():
+                return candidate
+    return fallback.resolve()
+
+
+OUTPUT_DIR = _resolve_path(
+    os.getenv("DIAGRAMADOR_OUTPUT_DIR"),
+    Path("outputs"),
+    extras=[PACKAGE_ROOT, REPO_ROOT],
+)
 DEFAULT_DATAMODEL_FILENAME = "diagramador_datamodel.json"
 DEFAULT_DIAGRAM_FILENAME = "diagramador_container_diagram.xml"
 
@@ -47,24 +68,10 @@ def _candidate_paths(value: str, extras: Sequence[Path] = ()) -> Iterable[Path]:
         yield (base / raw).resolve()
 
 
-def _resolve_path(
-    value: str | None,
-    fallback: Path,
-    *,
-    extras: Sequence[Path] = (),
-) -> Path:
-    """Resolve ``value`` against several bases, falling back when missing."""
-
-    if value:
-        for candidate in _candidate_paths(value, extras):
-            if candidate.exists():
-                return candidate
-    return fallback.resolve()
-
-
 DEFAULT_TEMPLATES_DIR = _resolve_path(
     os.getenv("DIAGRAMADOR_TEMPLATES_DIR"),
     PACKAGE_TEMPLATES_DIR,
+    extras=[PACKAGE_ROOT, REPO_ROOT],
 )
 
 _packaged_default_template = (PACKAGE_TEMPLATES_DIR / "BV-C4-Model-SDLC/Layout - Visão de Container.xml").resolve()

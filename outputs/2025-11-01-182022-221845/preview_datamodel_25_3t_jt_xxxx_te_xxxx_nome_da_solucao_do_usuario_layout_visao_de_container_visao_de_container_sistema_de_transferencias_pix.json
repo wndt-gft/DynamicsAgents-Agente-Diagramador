@@ -1,0 +1,6044 @@
+{
+  "model_identifier": "pix-container-c4",
+  "model_name": "JT-XXXX.TE-XXXX - Solução de Pagamentos XYZ",
+  "elements": [
+    {
+      "id": "id-9a9b5d551e904bfcbfce12a6197943a2",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Limites PIX",
+      "documentation": "Controla limites diários e horários, garantindo teto de R$ 50.000 para clientes PF."
+    },
+    {
+      "id": "id-e493478723ba461f8f0731340cdff41f",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Validação de Saldo",
+      "documentation": "Valida saldo disponível em tempo real consultando cache e core banking."
+    },
+    {
+      "id": "id-da18b5f4b21a4bdab0c63fa99d95ba91",
+      "type": "DataObject",
+      "name": "PostgreSQL Transacional PIX",
+      "documentation": "Base transacional que persiste lançamentos definitivos das transferências PIX."
+    },
+    {
+      "id": "id-a5185a2f58394a6891167652bb0b8021",
+      "type": "TechnologyService",
+      "name": "Gateway de Notificações Push",
+      "documentation": "Canal outbound que envia notificações push para os dispositivos cadastrados."
+    },
+    {
+      "id": "id-42f016f285604cbca15dbafb7438ac18",
+      "type": "TechnologyService",
+      "name": "Conector Core Banking",
+      "documentation": "Integração com o core banking COBOL para consulta e débito em conta."
+    },
+    {
+      "id": "id-3db4884e4ef2449292c1953d4bda30c7",
+      "type": "ApplicationCollaboration",
+      "name": "Mobile Banking App",
+      "documentation": "Aplicativo móvel para clientes PF com autenticação biométrica e token integrado."
+    },
+    {
+      "id": "id-35719f23fe184d95ad5d2190c6f202be",
+      "type": "TechnologyService",
+      "name": "API Gateway PIX (Inbound)",
+      "documentation": "Gateway de entrada com OAuth 2.0 + JWT, responsável por autenticar e roteiar requisições PIX."
+    },
+    {
+      "id": "id-06d59e4560d847a8861b915405296e0a",
+      "type": "TechnologyService",
+      "name": "Load Balancer PIX",
+      "documentation": "Balanceador de carga que distribui as requisições entre as instâncias dos microserviços PIX."
+    },
+    {
+      "id": "id-1662934bb0ff40f5b4c10e88f49dd8c0",
+      "type": "ApplicationCollaboration",
+      "name": "Internet Banking",
+      "documentation": "Portal web com autenticação multifator (MFA) para acesso às transferências PIX."
+    },
+    {
+      "id": "id-ea78a465f32843da94bd2f5e8fdb1099",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Notificações PIX",
+      "documentation": "Consome eventos do Kafka e dispara notificações push em tempo real para o cliente."
+    },
+    {
+      "id": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb",
+      "type": "TechnologyService",
+      "name": "Conector DICT/BACEN",
+      "documentation": "Interface que consulta o Diretório de Identificadores de Contas Transacionais do BACEN."
+    },
+    {
+      "id": "id-c2dc90e4f7d74f3c919e2ea0c71dc054",
+      "type": "TechnologyService",
+      "name": "Conector SPI/BACEN",
+      "documentation": "Integração com o Sistema de Pagamentos Instantâneos para liquidação das transferências."
+    },
+    {
+      "id": "id-a4e5d61e2fad4c96b8775d3fba9061ba",
+      "type": "TechnologyService",
+      "name": "Conector Bureau SPC/Serasa",
+      "documentation": "Integração com bureaus externos para validações antifraude adicionais."
+    },
+    {
+      "id": "id-ff4420a980a4408ca3f37e186600eba5",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Auditoria PIX",
+      "documentation": "Registra trilhas de auditoria detalhadas de cada transferência para compliance e auditoria."
+    },
+    {
+      "id": "id-248825a7f0514d0883e8e72f271c6cdf",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Comprovantes Digitais",
+      "documentation": "Gera comprovantes digitais, armazena histórico e disponibiliza para consulta pelo cliente."
+    },
+    {
+      "id": "id-37401d37c1034a718ab785406022fc9c",
+      "type": "DataObject",
+      "name": "Kafka Topics PIX",
+      "documentation": "Tópicos de mensageria usados para eventos de transferência, notificações e auditoria."
+    },
+    {
+      "id": "id-dafb5e39b03847c5beb7155f873d14de",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Transferências PIX",
+      "documentation": "Microserviço Spring Boot que orquestra a jornada completa da transferência PIX."
+    },
+    {
+      "id": "id-d32ab69807e245f0bc44735baba04623",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Autenticação Transacional",
+      "documentation": "Executa MFA (token mobile ou biometria) para autorizar transferências acima de R$ 1.000."
+    },
+    {
+      "id": "id-054a6684fc7c404f8c9d3d8718379a6d",
+      "type": "ApplicationComponent",
+      "name": "Motor Antifraude PIX",
+      "documentation": "Analisa transações em tempo real consultando regras internas e bureaus externos."
+    },
+    {
+      "id": "id-a4021f10be6c4c1096c75ea6cdc03f83",
+      "type": "ApplicationComponent",
+      "name": "Serviço de Chaves PIX",
+      "documentation": "Gerencia chaves PIX (CPF, e-mail, telefone e aleatória) com armazenamento seguro no HSM."
+    },
+    {
+      "id": "id-7b0c03d4f05a410da57057c7e0b1ad25",
+      "type": "DataObject",
+      "name": "Redis Cache PIX",
+      "documentation": "Cache distribuído utilizado para consultas rápidas de saldo e limites."
+    },
+    {
+      "id": "id-89aef989c04f448294e301fac2bb9f67",
+      "type": "DataObject",
+      "name": "HSM Storage PIX",
+      "documentation": "Hardware Security Module para custodiar chaves criptográficas sensíveis."
+    },
+    {
+      "id": "id-9959e599181b4524bf9d082892d127da",
+      "type": "ApplicationCollaboration",
+      "name": "Core Banking Mainframe",
+      "documentation": "Sistema legado COBOL responsável pela conta corrente do cliente."
+    },
+    {
+      "id": "id-469670",
+      "type": "ApplicationCollaboration",
+      "name": "DICT BACEN",
+      "documentation": "Diretório de Identificadores de Contas Transacionais mantido pelo Banco Central."
+    },
+    {
+      "id": "id-415459",
+      "type": "ApplicationCollaboration",
+      "name": "SPI BACEN",
+      "documentation": "Sistema de Pagamentos Instantâneos do Banco Central."
+    },
+    {
+      "id": "id-system-main",
+      "type": "ApplicationComponent",
+      "name": "Sistema de Transferências PIX",
+      "documentation": "Plataforma integrada que orquestra as transferências PIX para clientes pessoa física, garantindo segurança, velocidade e auditoria completa."
+    },
+    {
+      "id": "id-sigla-ofrd-onbd",
+      "type": "ApplicationCollaboration",
+      "name": "OFRD-ONBD",
+      "documentation": "Domínio corporativo responsável pelo onboarding seguro e pela orquestração transacional das transferências PIX."
+    },
+    {
+      "id": "id-sigla-clam-cdir",
+      "type": "ApplicationCollaboration",
+      "name": "CLAM-CDIR",
+      "documentation": "Diretório corporativo de identidade e chaves que suporta o gerenciamento seguro das chaves PIX dos clientes."
+    },
+    {
+      "id": "id-sigla-hfao",
+      "type": "ApplicationCollaboration",
+      "name": "HFAO",
+      "documentation": "Plataforma de autenticação multifator utilizada para validar transações sensíveis via token mobile ou biometria."
+    },
+    {
+      "id": "id-sigla-ofrd-tran",
+      "type": "ApplicationCollaboration",
+      "name": "OFRD-TRAN",
+      "documentation": "Sigla responsável pela prevenção e análise de risco das transações PIX em tempo real."
+    },
+    {
+      "id": "id-actor-clientes",
+      "type": "BusinessActor",
+      "name": "Clientes PF Autenticados",
+      "documentation": "Clientes pessoa física autenticados via MFA que iniciam transferências PIX pelos canais digitais."
+    }
+  ],
+  "relations": [
+    {
+      "id": "rel-mobile-gateway",
+      "type": "FlowRelationship",
+      "source": "id-3db4884e4ef2449292c1953d4bda30c7",
+      "target": "id-35719f23fe184d95ad5d2190c6f202be",
+      "documentation": "Canal mobile envia requisições PIX"
+    },
+    {
+      "id": "rel-internet-gateway",
+      "type": "FlowRelationship",
+      "source": "id-1662934bb0ff40f5b4c10e88f49dd8c0",
+      "target": "id-35719f23fe184d95ad5d2190c6f202be",
+      "documentation": "Portal web envia requisições PIX"
+    },
+    {
+      "id": "rel-gateway-lb",
+      "type": "FlowRelationship",
+      "source": "id-35719f23fe184d95ad5d2190c6f202be",
+      "target": "id-06d59e4560d847a8861b915405296e0a",
+      "documentation": "Roteamento autenticado"
+    },
+    {
+      "id": "rel-lb-transfer",
+      "type": "FlowRelationship",
+      "source": "id-06d59e4560d847a8861b915405296e0a",
+      "target": "id-dafb5e39b03847c5beb7155f873d14de",
+      "documentation": "Distribuição para microserviços"
+    },
+    {
+      "id": "rel-transfer-saldo",
+      "type": "FlowRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-e493478723ba461f8f0731340cdff41f",
+      "documentation": "Consulta saldo disponível"
+    },
+    {
+      "id": "rel-transfer-limites",
+      "type": "FlowRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-9a9b5d551e904bfcbfce12a6197943a2",
+      "documentation": "Validação de limite diário"
+    },
+    {
+      "id": "rel-transfer-autenticacao",
+      "type": "FlowRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-d32ab69807e245f0bc44735baba04623",
+      "documentation": "Solicita MFA"
+    },
+    {
+      "id": "rel-transfer-chaves",
+      "type": "FlowRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-a4021f10be6c4c1096c75ea6cdc03f83",
+      "documentation": "Resolução de chave PIX"
+    },
+    {
+      "id": "rel-transfer-antifraude",
+      "type": "FlowRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-054a6684fc7c404f8c9d3d8718379a6d",
+      "documentation": "Validação antifraude"
+    },
+    {
+      "id": "rel-transfer-postgres",
+      "type": "AccessRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-da18b5f4b21a4bdab0c63fa99d95ba91",
+      "documentation": "Persistência transacional"
+    },
+    {
+      "id": "rel-transfer-kafka",
+      "type": "FlowRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-37401d37c1034a718ab785406022fc9c",
+      "documentation": "Publicação de eventos"
+    },
+    {
+      "id": "rel-chaves-hsm",
+      "type": "AccessRelationship",
+      "source": "id-a4021f10be6c4c1096c75ea6cdc03f83",
+      "target": "id-89aef989c04f448294e301fac2bb9f67",
+      "documentation": "Custódia de chaves"
+    },
+    {
+      "id": "rel-saldo-redis",
+      "type": "AccessRelationship",
+      "source": "id-e493478723ba461f8f0731340cdff41f",
+      "target": "id-7b0c03d4f05a410da57057c7e0b1ad25",
+      "documentation": "Cache de saldos"
+    },
+    {
+      "id": "rel-kafka-notificacoes",
+      "type": "FlowRelationship",
+      "source": "id-37401d37c1034a718ab785406022fc9c",
+      "target": "id-ea78a465f32843da94bd2f5e8fdb1099",
+      "documentation": "Eventos para notificações"
+    },
+    {
+      "id": "rel-kafka-comprovantes",
+      "type": "FlowRelationship",
+      "source": "id-37401d37c1034a718ab785406022fc9c",
+      "target": "id-248825a7f0514d0883e8e72f271c6cdf",
+      "documentation": "Eventos para comprovantes"
+    },
+    {
+      "id": "rel-kafka-auditoria",
+      "type": "FlowRelationship",
+      "source": "id-37401d37c1034a718ab785406022fc9c",
+      "target": "id-ff4420a980a4408ca3f37e186600eba5",
+      "documentation": "Eventos para trilha de auditoria"
+    },
+    {
+      "id": "rel-transfer-dict",
+      "type": "ServingRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb",
+      "documentation": "Consulta diretório DICT"
+    },
+    {
+      "id": "rel-saldo-core",
+      "type": "ServingRelationship",
+      "source": "id-e493478723ba461f8f0731340cdff41f",
+      "target": "id-42f016f285604cbca15dbafb7438ac18",
+      "documentation": "Consulta core banking"
+    },
+    {
+      "id": "rel-antifraude-bureau",
+      "type": "ServingRelationship",
+      "source": "id-054a6684fc7c404f8c9d3d8718379a6d",
+      "target": "id-a4e5d61e2fad4c96b8775d3fba9061ba",
+      "documentation": "Consulta bureaus SPC/Serasa"
+    },
+    {
+      "id": "rel-transfer-spi",
+      "type": "ServingRelationship",
+      "source": "id-dafb5e39b03847c5beb7155f873d14de",
+      "target": "id-c2dc90e4f7d74f3c919e2ea0c71dc054",
+      "documentation": "Envio para SPI"
+    },
+    {
+      "id": "rel-notificacao-gateway",
+      "type": "FlowRelationship",
+      "source": "id-ea78a465f32843da94bd2f5e8fdb1099",
+      "target": "id-a5185a2f58394a6891167652bb0b8021",
+      "documentation": "Envio de push notifications"
+    },
+    {
+      "id": "rel-ofrd-onbd-transfer",
+      "type": "CompositionRelationship",
+      "source": "id-sigla-ofrd-onbd",
+      "target": "id-dafb5e39b03847c5beb7155f873d14de",
+      "documentation": "O domínio OFRD-ONBD agrega o serviço central de orquestração das transferências PIX."
+    },
+    {
+      "id": "rel-ofrd-onbd-saldo",
+      "type": "CompositionRelationship",
+      "source": "id-sigla-ofrd-onbd",
+      "target": "id-e493478723ba461f8f0731340cdff41f",
+      "documentation": "OFRD-ONBD inclui o serviço de validação de saldo para garantir disponibilidade antes da transferência."
+    },
+    {
+      "id": "rel-ofrd-onbd-limites",
+      "type": "CompositionRelationship",
+      "source": "id-sigla-ofrd-onbd",
+      "target": "id-9a9b5d551e904bfcbfce12a6197943a2",
+      "documentation": "OFRD-ONBD controla os limites transacionais aplicados às transferências PIX."
+    },
+    {
+      "id": "rel-clam-chaves",
+      "type": "CompositionRelationship",
+      "source": "id-sigla-clam-cdir",
+      "target": "id-a4021f10be6c4c1096c75ea6cdc03f83",
+      "documentation": "CLAM-CDIR provê o serviço corporativo de gerenciamento das chaves PIX."
+    },
+    {
+      "id": "rel-hfao-autentic",
+      "type": "CompositionRelationship",
+      "source": "id-sigla-hfao",
+      "target": "id-d32ab69807e245f0bc44735baba04623",
+      "documentation": "HFAO disponibiliza os mecanismos de autenticação multifator consumidos pelo serviço transacional."
+    },
+    {
+      "id": "rel-ofrd-tran-antifraude",
+      "type": "CompositionRelationship",
+      "source": "id-sigla-ofrd-tran",
+      "target": "id-054a6684fc7c404f8c9d3d8718379a6d",
+      "documentation": "OFRD-TRAN centraliza o motor antifraude utilizado para bloquear movimentações suspeitas."
+    },
+    {
+      "id": "rel-ofrd-tran-auditoria",
+      "type": "CompositionRelationship",
+      "source": "id-sigla-ofrd-tran",
+      "target": "id-ff4420a980a4408ca3f37e186600eba5",
+      "documentation": "OFRD-TRAN mantém o serviço de auditoria responsável pelas trilhas de compliance das transferências."
+    },
+    {
+      "id": "rel-system-gateway",
+      "type": "ServingRelationship",
+      "source": "id-35719f23fe184d95ad5d2190c6f202be",
+      "target": "id-system-main",
+      "documentation": "O API Gateway expõe o Sistema de Transferências PIX aos canais digitais."
+    },
+    {
+      "id": "id-469668",
+      "type": "AssociationRelationship",
+      "source": "id-415459",
+      "target": "id-469670",
+      "documentation": "Integração regulatória entre SPI e DICT garante endereçamento e liquidação das transferências PIX."
+    },
+    {
+      "id": "rel-sigla-ofrd-onbd-hfao",
+      "type": "FlowRelationship",
+      "source": "id-sigla-ofrd-onbd",
+      "target": "id-sigla-hfao",
+      "documentation": "OFRD-ONBD aciona a plataforma HFAO para validar autenticação multifator nas transferências PIX."
+    },
+    {
+      "id": "rel-sigla-ofrd-onbd-clam",
+      "type": "FlowRelationship",
+      "source": "id-sigla-ofrd-onbd",
+      "target": "id-sigla-clam-cdir",
+      "documentation": "OFRD-ONBD consulta o diretório corporativo CLAM-CDIR para sincronizar chaves e perfis de clientes."
+    },
+    {
+      "id": "rel-sigla-ofrd-onbd-ofrd-tran",
+      "type": "FlowRelationship",
+      "source": "id-sigla-ofrd-onbd",
+      "target": "id-sigla-ofrd-tran",
+      "documentation": "OFRD-ONBD envia eventos de onboarding para OFRD-TRAN executar análises de risco em tempo real."
+    },
+    {
+      "id": "rel-sigla-ofrd-tran-spi",
+      "type": "FlowRelationship",
+      "source": "id-sigla-ofrd-tran",
+      "target": "id-415459",
+      "documentation": "OFRD-TRAN comunica o SPI BACEN com as regras de risco aplicadas para liberar a liquidação."
+    },
+    {
+      "id": "rel-sigla-clam-dict",
+      "type": "FlowRelationship",
+      "source": "id-sigla-clam-cdir",
+      "target": "id-469670",
+      "documentation": "CLAM-CDIR sincroniza dados de identificação com o DICT BACEN para garantir endereçamento correto das chaves PIX."
+    },
+    {
+      "id": "rel-sigla-ofrd-onbd-spi",
+      "type": "FlowRelationship",
+      "source": "id-sigla-ofrd-onbd",
+      "target": "id-415459",
+      "documentation": "OFRD-ONBD publica mensagens de liquidação diretamente no SPI BACEN após as validações corporativas."
+    }
+  ],
+  "organizations": [
+    {
+      "label": "Estrutura de visões PIX",
+      "children": [
+        {
+          "label": "Application Layer",
+          "children": [
+            {
+              "attrs": {
+                "identifierRef": "id-dafb5e39b03847c5beb7155f873d14de"
+              },
+              "child_order": []
+            },
+            {
+              "attrs": {
+                "identifierRef": "id-d32ab69807e245f0bc44735baba04623"
+              },
+              "child_order": []
+            },
+            {
+              "attrs": {
+                "identifierRef": "id-054a6684fc7c404f8c9d3d8718379a6d"
+              },
+              "child_order": []
+            },
+            {
+              "attrs": {
+                "identifierRef": "id-a4021f10be6c4c1096c75ea6cdc03f83"
+              },
+              "child_order": []
+            }
+          ],
+          "child_order": [
+            "label",
+            "item",
+            "item",
+            "item",
+            "item"
+          ]
+        },
+        {
+          "label": "Components",
+          "children": [
+            {
+              "label": "Container",
+              "children": [
+                {
+                  "label": "Application Component",
+                  "children": [
+                    {
+                      "attrs": {
+                        "identifierRef": "id-7b0c03d4f05a410da57057c7e0b1ad25"
+                      },
+                      "child_order": []
+                    },
+                    {
+                      "attrs": {
+                        "identifierRef": "id-89aef989c04f448294e301fac2bb9f67"
+                      },
+                      "child_order": []
+                    }
+                  ],
+                  "child_order": [
+                    "label",
+                    "item",
+                    "item"
+                  ]
+                }
+              ],
+              "child_order": [
+                "label",
+                "item"
+              ]
+            }
+          ],
+          "child_order": [
+            "label",
+            "item"
+          ]
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-9a9b5d551e904bfcbfce12a6197943a2"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-e493478723ba461f8f0731340cdff41f"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-a5185a2f58394a6891167652bb0b8021"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-42f016f285604cbca15dbafb7438ac18"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-3db4884e4ef2449292c1953d4bda30c7"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-35719f23fe184d95ad5d2190c6f202be"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-06d59e4560d847a8861b915405296e0a"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-1662934bb0ff40f5b4c10e88f49dd8c0"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-ea78a465f32843da94bd2f5e8fdb1099"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-c2dc90e4f7d74f3c919e2ea0c71dc054"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-a4e5d61e2fad4c96b8775d3fba9061ba"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-ff4420a980a4408ca3f37e186600eba5"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-248825a7f0514d0883e8e72f271c6cdf"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-37401d37c1034a718ab785406022fc9c"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-system-main"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-sigla-ofrd-onbd"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-sigla-clam-cdir"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-sigla-hfao"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-sigla-ofrd-tran"
+          },
+          "child_order": []
+        }
+      ],
+      "child_order": [
+        "label",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item"
+      ]
+    },
+    {
+      "label": "Technology & Physical",
+      "children": [
+        {
+          "label": "Components",
+          "children": [
+            {
+              "label": "Container",
+              "children": [
+                {
+                  "label": "Application Component",
+                  "children": [
+                    {
+                      "attrs": {
+                        "identifierRef": "id-9959e599181b4524bf9d082892d127da"
+                      },
+                      "child_order": []
+                    }
+                  ],
+                  "child_order": [
+                    "label",
+                    "item"
+                  ]
+                }
+              ],
+              "child_order": [
+                "label",
+                "item"
+              ]
+            }
+          ],
+          "child_order": [
+            "label",
+            "item"
+          ]
+        }
+      ],
+      "child_order": [
+        "label",
+        "item"
+      ]
+    },
+    {
+      "label": "Implementation & Migration",
+      "children": [
+        {
+          "label": "Implementation and migration elements",
+          "children": [
+            {
+              "attrs": {
+                "identifierRef": "id-469670"
+              },
+              "child_order": []
+            },
+            {
+              "attrs": {
+                "identifierRef": "id-415459"
+              },
+              "child_order": []
+            }
+          ],
+          "child_order": [
+            "label",
+            "item",
+            "item"
+          ]
+        }
+      ],
+      "child_order": [
+        "label",
+        "item"
+      ]
+    },
+    {
+      "label": "Relations",
+      "children": [
+        {
+          "label": "Implementation and migration elements",
+          "children": [],
+          "child_order": [
+            "label",
+            "item"
+          ]
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-5208d4b53f39489c875385ae1d18b89a"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-44d0815f798249459770e25aa3e959d6"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-340253e03b0247bcb4fa80eae1b4367d"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-9f4a255d7c7044ca950a4831328cf9f8"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-b43ea55d2f554a7a8808c5f2226a1bea"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-de5b98d2e4ad4e4c91be68c4d3f342c5"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-71f6aa63a84848d8aec1570865dd7ac4"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-966a757c907e4dbf91bff9a20826aab9"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-d43696f3b326435d9389cacc19e73197"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-e71170cc00c4413cb7c298469733418b"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-a84d2dca787046568bcfdd292669cf2b"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-f751e171b27b4a7d9fef48c1c98be4c7"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-eb8e066c2e25497abf12ed0d9be60aea"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-21b2d80dcea847cd92f828666d5f3a49"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-2eba8673d6ac473ab9436dc6db8a0d6d"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-9477c6ff875f4173a25aad33ad44f6ce"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-f87a6ce51213455d936c5cf5f09fa565"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-2225e175d1354879b7ec60544b87f732"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-da865efeab8746989fe4b4fe9ffa2a90"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-3d4a5b0c678e4befa1746f3172082d37"
+          },
+          "child_order": []
+        }
+      ],
+      "child_order": [
+        "label",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item"
+      ]
+    },
+    {
+      "label": "Views",
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "attrs": {
+                        "identifierRef": "id-171323"
+                      },
+                      "child_order": []
+                    }
+                  ],
+                  "child_order": [
+                    "item"
+                  ]
+                },
+                {
+                  "attrs": {
+                    "identifierRef": "id-219315"
+                  },
+                  "child_order": []
+                },
+                {
+                  "attrs": {
+                    "identifierRef": "id-154903"
+                  },
+                  "child_order": []
+                },
+                {
+                  "attrs": {
+                    "identifierRef": "id-194586"
+                  },
+                  "child_order": []
+                }
+              ],
+              "child_order": [
+                "item",
+                "item",
+                "item",
+                "item"
+              ]
+            }
+          ],
+          "child_order": [
+            "item"
+          ]
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-209915"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-207637"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-222409"
+          },
+          "child_order": []
+        },
+        {
+          "attrs": {
+            "identifierRef": "id-196480"
+          },
+          "child_order": []
+        }
+      ],
+      "child_order": [
+        "label",
+        "item",
+        "item",
+        "item",
+        "item",
+        "item"
+      ]
+    }
+  ],
+  "views": {
+    "diagrams": [
+      {
+        "id": "id-171323",
+        "type": "Diagram",
+        "name": "Visão de Container - Sistema de Transferências PIX",
+        "nodes": [
+          {
+            "id": "id-1328065",
+            "type": "Label",
+            "bounds": {
+              "x": 0,
+              "y": 47,
+              "w": 620,
+              "h": 80
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "id-1328062",
+            "type": "Label",
+            "bounds": {
+              "x": 127,
+              "y": 87,
+              "w": 1540,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Fluxo de containers e integrações-chave do PIX",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1328082",
+            "type": "Label",
+            "bounds": {
+              "x": 127,
+              "y": 47,
+              "w": 1540,
+              "h": 40
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Sistema de Transferências PIX",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1328081",
+            "type": "Container",
+            "bounds": {
+              "x": 480,
+              "y": 700,
+              "w": 533,
+              "h": 120
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Layer DATA MANAGEMENT",
+            "documentation": "Conatiner de elementos de gerenciamento de dados",
+            "children": [
+              {
+                "id": "node-postgres",
+                "type": "Element",
+                "bounds": {
+                  "x": 528,
+                  "y": 748,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-kafka",
+                "type": "Element",
+                "bounds": {
+                  "x": 768,
+                  "y": 748,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-37401d37c1034a718ab785406022fc9c"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-redis",
+                "type": "Element",
+                "bounds": {
+                  "x": 528,
+                  "y": 808,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-7b0c03d4f05a410da57057c7e0b1ad25"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-hsm",
+                "type": "Element",
+                "bounds": {
+                  "x": 768,
+                  "y": 808,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-89aef989c04f448294e301fac2bb9f67"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "documentation",
+              "style",
+              "node",
+              "node",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1328074",
+            "type": "Container",
+            "bounds": {
+              "x": 1200,
+              "y": 193,
+              "w": 200,
+              "h": 627
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Layer EXTERNAL INTEGRATION",
+            "documentation": "Integrações regulatórias e serviços externos ligados ao PIX.",
+            "children": [
+              {
+                "id": "external-systems",
+                "type": "Container",
+                "bounds": {
+                  "x": 1212,
+                  "y": 241,
+                  "w": 169,
+                  "h": 320
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Sistemas Externos",
+                "documentation": "Sistemas regulatórios e legados conectados ao ecossistema PIX.",
+                "children": [
+                  {
+                    "id": "node-dict-bacen",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 1236,
+                      "y": 257,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-469670"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-spi-bacen",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 1236,
+                      "y": 317,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-415459"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-core-mainframe",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 1236,
+                      "y": 377,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-9959e599181b4524bf9d082892d127da"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  }
+                ],
+                "child_order": [
+                  "label",
+                  "documentation",
+                  "style",
+                  "node",
+                  "node",
+                  "node"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "documentation",
+              "style",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1328078",
+            "type": "Container",
+            "bounds": {
+              "x": 1020,
+              "y": 193,
+              "w": 173,
+              "h": 627
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Layer GATEWAY OUTBOUND",
+            "documentation": "Container de Gateways de Entrada",
+            "children": [
+              {
+                "id": "node-connector-dict",
+                "type": "Element",
+                "bounds": {
+                  "x": 1044,
+                  "y": 257,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-connector-spi",
+                "type": "Element",
+                "bounds": {
+                  "x": 1044,
+                  "y": 317,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-c2dc90e4f7d74f3c919e2ea0c71dc054"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-connector-core",
+                "type": "Element",
+                "bounds": {
+                  "x": 1044,
+                  "y": 377,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-42f016f285604cbca15dbafb7438ac18"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-connector-bureau",
+                "type": "Element",
+                "bounds": {
+                  "x": 1044,
+                  "y": 437,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-a4e5d61e2fad4c96b8775d3fba9061ba"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "documentation",
+              "style",
+              "node",
+              "node",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1328066",
+            "type": "Container",
+            "bounds": {
+              "x": 273,
+              "y": 193,
+              "w": 200,
+              "h": 627
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Layer GATEWAY INBOUND",
+            "documentation": "Container de Gateways de Entrada",
+            "children": [
+              {
+                "id": "node-gw-inbound",
+                "type": "Element",
+                "bounds": {
+                  "x": 309,
+                  "y": 277,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-35719f23fe184d95ad5d2190c6f202be"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-lb-pix",
+                "type": "Element",
+                "bounds": {
+                  "x": 309,
+                  "y": 349,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-06d59e4560d847a8861b915405296e0a"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "documentation",
+              "style",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1328077",
+            "type": "Container",
+            "bounds": {
+              "x": 1407,
+              "y": 193,
+              "w": 260,
+              "h": 627
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Etapas principais",
+            "documentation": "1) Autenticação, 2) Validações, 3) Execução via SPI, 4) Notificação e Auditoria.",
+            "children": [
+              {
+                "id": "id-1328083",
+                "type": "Label",
+                "bounds": {
+                  "x": 1420,
+                  "y": 227,
+                  "w": 233,
+                  "h": 75
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 255,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "arial",
+                    "size": 10,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Elemento de nota para as Regras Aplicadas e Observações.\n\nExemplo:\n1 - Orch GCOC subscreve o tópico do GLIT que informa o novo limite garantido por CDB. 2 - Consulta os parâmetros do Cartão no atom PPRC. 3 - Recupera dados de Quina no CART. 4 - orch do GCOC requisita o orch do IPRC para realizar criação do contrato de crédito. 5 - Recupera token de identificação. 6 - O atom pessiste a requisição na base para atulização posterior após recebimento de evento de confirmação. 7- Envia a requisição de criaçãod e contrato de crédito para a Bankly. 8 - Por meio do webhook a Bankly envia os eventos de criação de contrato e liberação de limite.",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "documentation",
+              "style",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1328072",
+            "type": "Container",
+            "bounds": {
+              "x": 67,
+              "y": 193,
+              "w": 200,
+              "h": 627
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Layer CHANNELS",
+            "documentation": "Container de canais",
+            "children": [
+              {
+                "id": "node-channel-mobile",
+                "type": "Element",
+                "bounds": {
+                  "x": 103,
+                  "y": 277,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-3db4884e4ef2449292c1953d4bda30c7"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              },
+              {
+                "id": "node-channel-internet",
+                "type": "Element",
+                "bounds": {
+                  "x": 103,
+                  "y": 349,
+                  "w": 133,
+                  "h": 55
+                },
+                "refs": {
+                  "elementRef": "id-1662934bb0ff40f5b4c10e88f49dd8c0"
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 181,
+                    "g": 255,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 92,
+                    "g": 92,
+                    "b": 92,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Segoe UI",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "child_order": [
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "documentation",
+              "style",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1328068",
+            "type": "Container",
+            "bounds": {
+              "x": 480,
+              "y": 193,
+              "w": 533,
+              "h": 500
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Layer EXECUTION LOGIC",
+            "documentation": "Siglas e microserviços que compõem a lógica de execução do PIX.",
+            "children": [
+              {
+                "id": "container-ofrd-onbd",
+                "type": "Container",
+                "bounds": {
+                  "x": 500,
+                  "y": 229,
+                  "w": 190,
+                  "h": 230
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 240,
+                    "g": 240,
+                    "b": 240,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 10,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "OFRD-ONBD",
+                "documentation": "Domínio responsável pela orquestração e onboarding seguro das transferências PIX.",
+                "children": [
+                  {
+                    "id": "node-transfer",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 520,
+                      "y": 247,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-dafb5e39b03847c5beb7155f873d14de"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-saldo",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 520,
+                      "y": 307,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-e493478723ba461f8f0731340cdff41f"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-limites",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 520,
+                      "y": 367,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-9a9b5d551e904bfcbfce12a6197943a2"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-comprovantes",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 520,
+                      "y": 427,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-248825a7f0514d0883e8e72f271c6cdf"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  }
+                ],
+                "child_order": [
+                  "label",
+                  "documentation",
+                  "style",
+                  "node",
+                  "node",
+                  "node",
+                  "node"
+                ]
+              },
+              {
+                "id": "container-clam-hfao",
+                "type": "Container",
+                "bounds": {
+                  "x": 720,
+                  "y": 229,
+                  "w": 190,
+                  "h": 230
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 240,
+                    "g": 240,
+                    "b": 240,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 10,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "CLAM-CDIR & HFAO",
+                "documentation": "Serviços de identidade, chaves PIX e autenticação multifator.",
+                "children": [
+                  {
+                    "id": "node-autenticacao",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 740,
+                      "y": 247,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-d32ab69807e245f0bc44735baba04623"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-chaves",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 740,
+                      "y": 307,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-a4021f10be6c4c1096c75ea6cdc03f83"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-notificacoes",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 740,
+                      "y": 367,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-ea78a465f32843da94bd2f5e8fdb1099"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  }
+                ],
+                "child_order": [
+                  "label",
+                  "documentation",
+                  "style",
+                  "node",
+                  "node",
+                  "node"
+                ]
+              },
+              {
+                "id": "container-ofrd-tran",
+                "type": "Container",
+                "bounds": {
+                  "x": 720,
+                  "y": 480,
+                  "w": 190,
+                  "h": 200
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 240,
+                    "g": 240,
+                    "b": 240,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 10,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "OFRD-TRAN",
+                "documentation": "Análise de risco e auditoria contínua das transações.",
+                "children": [
+                  {
+                    "id": "node-antifraude",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 740,
+                      "y": 500,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-054a6684fc7c404f8c9d3d8718379a6d"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "id": "node-auditoria",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 740,
+                      "y": 560,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-ff4420a980a4408ca3f37e186600eba5"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  }
+                ],
+                "child_order": [
+                  "label",
+                  "documentation",
+                  "style",
+                  "node",
+                  "node"
+                ]
+              },
+              {
+                "id": "container-support",
+                "type": "Container",
+                "bounds": {
+                  "x": 500,
+                  "y": 480,
+                  "w": 190,
+                  "h": 200
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 240,
+                    "g": 240,
+                    "b": 240,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 10,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Gateway Push",
+                "documentation": "Gateway outbound utilizado pelos serviços para envio de notificações push.",
+                "children": [
+                  {
+                    "id": "node-notas",
+                    "type": "Element",
+                    "bounds": {
+                      "x": 520,
+                      "y": 500,
+                      "w": 133,
+                      "h": 55
+                    },
+                    "refs": {
+                      "elementRef": "id-a5185a2f58394a6891167652bb0b8021"
+                    },
+                    "style": {
+                      "fillColor": {
+                        "r": 181,
+                        "g": 255,
+                        "b": 255,
+                        "a": 100
+                      },
+                      "lineColor": {
+                        "r": 92,
+                        "g": 92,
+                        "b": 92,
+                        "a": 100
+                      },
+                      "font": {
+                        "name": "Segoe UI",
+                        "size": 9,
+                        "color": {
+                          "r": 0,
+                          "g": 0,
+                          "b": 0
+                        }
+                      }
+                    },
+                    "child_order": [
+                      "style"
+                    ]
+                  }
+                ],
+                "child_order": [
+                  "label",
+                  "documentation",
+                  "style",
+                  "node"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "documentation",
+              "style",
+              "node",
+              "node",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-482165",
+            "type": "Label",
+            "bounds": {
+              "x": 300,
+              "y": 132,
+              "w": 193,
+              "h": 34
+            },
+            "refs": {
+              "viewRef": "id-154903"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão de contexto - Sistema de Transferências PIX",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-482164",
+            "type": "Label",
+            "bounds": {
+              "x": 133,
+              "y": 132,
+              "w": 160,
+              "h": 34
+            },
+            "refs": {
+              "viewRef": "id-219315"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão de negócio - Transferências PIX",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-482166",
+            "type": "Element",
+            "bounds": {
+              "x": 880,
+              "y": 193,
+              "w": 133,
+              "h": 20
+            },
+            "refs": {
+              "elementRef": "id-415459"
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 189,
+                "b": 220,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "Arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          }
+        ],
+        "connections": [
+          {
+            "id": "conn-rel-mobile-gateway",
+            "type": "Relationship",
+            "relationshipRef": "rel-mobile-gateway",
+            "source": "node-channel-mobile",
+            "target": "node-gw-inbound",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-internet-gateway",
+            "type": "Relationship",
+            "relationshipRef": "rel-internet-gateway",
+            "source": "node-channel-internet",
+            "target": "node-gw-inbound",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-gateway-lb",
+            "type": "Relationship",
+            "relationshipRef": "rel-gateway-lb",
+            "source": "node-gw-inbound",
+            "target": "node-lb-pix",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-lb-transfer",
+            "type": "Relationship",
+            "relationshipRef": "rel-lb-transfer",
+            "source": "node-lb-pix",
+            "target": "node-transfer",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-saldo",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-saldo",
+            "source": "node-transfer",
+            "target": "node-saldo",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-limites",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-limites",
+            "source": "node-transfer",
+            "target": "node-limites",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-autenticacao",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-autenticacao",
+            "source": "node-transfer",
+            "target": "node-autenticacao",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-chaves",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-chaves",
+            "source": "node-transfer",
+            "target": "node-chaves",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-antifraude",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-antifraude",
+            "source": "node-transfer",
+            "target": "node-antifraude",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-postgres",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-postgres",
+            "source": "node-transfer",
+            "target": "node-postgres",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-kafka",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-kafka",
+            "source": "node-transfer",
+            "target": "node-kafka",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-chaves-hsm",
+            "type": "Relationship",
+            "relationshipRef": "rel-chaves-hsm",
+            "source": "node-chaves",
+            "target": "node-hsm",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-saldo-redis",
+            "type": "Relationship",
+            "relationshipRef": "rel-saldo-redis",
+            "source": "node-saldo",
+            "target": "node-redis",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-kafka-notificacoes",
+            "type": "Relationship",
+            "relationshipRef": "rel-kafka-notificacoes",
+            "source": "node-kafka",
+            "target": "node-notificacoes",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-kafka-comprovantes",
+            "type": "Relationship",
+            "relationshipRef": "rel-kafka-comprovantes",
+            "source": "node-kafka",
+            "target": "node-comprovantes",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-kafka-auditoria",
+            "type": "Relationship",
+            "relationshipRef": "rel-kafka-auditoria",
+            "source": "node-kafka",
+            "target": "node-auditoria",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-dict",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-dict",
+            "source": "node-transfer",
+            "target": "node-connector-dict",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-saldo-core",
+            "type": "Relationship",
+            "relationshipRef": "rel-saldo-core",
+            "source": "node-saldo",
+            "target": "node-connector-core",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-antifraude-bureau",
+            "type": "Relationship",
+            "relationshipRef": "rel-antifraude-bureau",
+            "source": "node-antifraude",
+            "target": "node-connector-bureau",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-transfer-spi",
+            "type": "Relationship",
+            "relationshipRef": "rel-transfer-spi",
+            "source": "node-transfer",
+            "target": "node-connector-spi",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "conn-rel-notificacao-gateway",
+            "type": "Relationship",
+            "relationshipRef": "rel-notificacao-gateway",
+            "source": "node-notificacoes",
+            "target": "node-notas",
+            "style": {
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          }
+        ],
+        "child_order": [
+          "name",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "connection",
+          "connection",
+          "connection",
+          "connection",
+          "connection",
+          "connection",
+          "connection",
+          "connection",
+          "connection"
+        ]
+      },
+      {
+        "id": "id-219315",
+        "type": "Diagram",
+        "name": "1. Visão de negócio",
+        "documentation": "Botão \"1. Visão de negócio\" para ir para a view existente da visão do negócio localizado em Views/Folder/Folder/1. Visão de negócio",
+        "nodes": [
+          {
+            "id": "id-1327722",
+            "type": "Container",
+            "bounds": {
+              "x": 333,
+              "y": 60,
+              "w": 1027,
+              "h": 347
+            },
+            "style": {
+              "fillColor": {
+                "r": 234,
+                "g": 234,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "Arial",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Motivação",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327736",
+            "type": "Container",
+            "bounds": {
+              "x": 333,
+              "y": 413,
+              "w": 1027,
+              "h": 287
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 245,
+                "b": 234,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "Arial",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Estratégia",
+            "children": [
+              {
+                "id": "id-1327744",
+                "type": "Label",
+                "bounds": {
+                  "x": 347,
+                  "y": 580,
+                  "w": 980,
+                  "h": 107
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 255,
+                    "g": 245,
+                    "b": 234,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Capacidades",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              },
+              {
+                "id": "id-1327741",
+                "type": "Label",
+                "bounds": {
+                  "x": 347,
+                  "y": 447,
+                  "w": 980,
+                  "h": 120
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 255,
+                    "g": 245,
+                    "b": 234,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Fluxo de valor",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "style",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1327727",
+            "type": "Container",
+            "bounds": {
+              "x": 333,
+              "y": 707,
+              "w": 1033,
+              "h": 340
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 191,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Camada de Negócio",
+            "children": [
+              {
+                "id": "id-1327740",
+                "type": "Label",
+                "bounds": {
+                  "x": 347,
+                  "y": 740,
+                  "w": 980,
+                  "h": 147
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 255,
+                    "g": 255,
+                    "b": 191,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Funções",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              },
+              {
+                "id": "id-1327737",
+                "type": "Label",
+                "bounds": {
+                  "x": 347,
+                  "y": 900,
+                  "w": 980,
+                  "h": 133
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 255,
+                    "g": 255,
+                    "b": 191,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Processos",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "style",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1327733",
+            "type": "Container",
+            "bounds": {
+              "x": 335,
+              "y": 1053,
+              "w": 1033,
+              "h": 347
+            },
+            "style": {
+              "fillColor": {
+                "r": 215,
+                "g": 245,
+                "b": 255,
+                "a": 20
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "Arial",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Camadas de Aplicação",
+            "children": [
+              {
+                "id": "id-1327725",
+                "type": "Label",
+                "bounds": {
+                  "x": 347,
+                  "y": 1087,
+                  "w": 980,
+                  "h": 147
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 215,
+                    "g": 245,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Siglas",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              },
+              {
+                "id": "id-1327730",
+                "type": "Label",
+                "bounds": {
+                  "x": 343,
+                  "y": 1247,
+                  "w": 980,
+                  "h": 133
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 215,
+                    "g": 245,
+                    "b": 255,
+                    "a": 100
+                  },
+                  "lineColor": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "Arial",
+                    "size": 9,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Building Blocks",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "style",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1327747",
+            "type": "Container",
+            "bounds": {
+              "x": 13,
+              "y": 60,
+              "w": 313,
+              "h": 1340
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 191,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Atores & Interfaces",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          }
+        ],
+        "child_order": [
+          "name",
+          "documentation",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node"
+        ]
+      },
+      {
+        "id": "id-154903",
+        "type": "Diagram",
+        "name": "Visão de Contexto - Sistema de Transferências PIX",
+        "documentation": "Expõe como canais digitais, domínios corporativos (OFRD-ONBD, CLAM-CDIR, HFAO, OFRD-TRAN) e integrações regulatórias BACEN (SPI, DICT) sustentam as transferências PIX PF, tratando limites, autenticação e notificações em tempo real.",
+        "nodes": [
+          {
+            "id": "id-1327767",
+            "type": "Label",
+            "bounds": {
+              "x": 0,
+              "y": 40,
+              "w": 620,
+              "h": 80
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327770",
+            "type": "Label",
+            "bounds": {
+              "x": 120,
+              "y": 80,
+              "w": 620,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão de contexto - Sistema de Transferências PIX",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327760",
+            "type": "Label",
+            "bounds": {
+              "x": 120,
+              "y": 40,
+              "w": 607,
+              "h": 40
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Ecossistema PIX - Siglas corporativas e integrações",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327763",
+            "type": "Label",
+            "bounds": {
+              "x": 80,
+              "y": 673,
+              "w": 340,
+              "h": 107
+            },
+            "style": {
+              "fillColor": {
+                "r": 251,
+                "g": 251,
+                "b": 251,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Jornada Tech / Governança corporativa",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-469669",
+            "type": "Element",
+            "bounds": {
+              "x": 275,
+              "y": 707,
+              "w": 133,
+              "h": 53
+            },
+            "refs": {
+              "elementRef": "id-469670"
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 189,
+                "b": 220,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "Arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "DICT BACEN",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-469672",
+            "type": "Element",
+            "bounds": {
+              "x": 106,
+              "y": 707,
+              "w": 133,
+              "h": 53
+            },
+            "refs": {
+              "elementRef": "id-415459"
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 189,
+                "b": 220,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "Arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "SPI BACEN",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327766",
+            "type": "Label",
+            "bounds": {
+              "x": 427,
+              "y": 180,
+              "w": 753,
+              "h": 600
+            },
+            "style": {
+              "fillColor": {
+                "r": 251,
+                "g": 251,
+                "b": 251,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Contexto aplicacional interno",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327754",
+            "type": "Label",
+            "bounds": {
+              "x": 680,
+              "y": 200,
+              "w": 487,
+              "h": 567
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 8,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Produtos e Serviços",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327753",
+            "type": "Label",
+            "bounds": {
+              "x": 440,
+              "y": 200,
+              "w": 233,
+              "h": 567
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 8,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Canais",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-469656",
+            "type": "Element",
+            "bounds": {
+              "x": 813,
+              "y": 500,
+              "w": 133,
+              "h": 53
+            },
+            "refs": {
+              "elementRef": "id-sigla-hfao"
+            },
+            "style": {
+              "fillColor": {
+                "r": 181,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 92,
+                "g": 92,
+                "b": 92,
+                "a": 100
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "HFAO",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-469657",
+            "type": "Element",
+            "bounds": {
+              "x": 813,
+              "y": 380,
+              "w": 133,
+              "h": 53
+            },
+            "refs": {
+              "elementRef": "id-sigla-clam-cdir"
+            },
+            "style": {
+              "fillColor": {
+                "r": 181,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 92,
+                "g": 92,
+                "b": 92,
+                "a": 100
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "CLAM-CDIR",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-469658",
+            "type": "Element",
+            "bounds": {
+              "x": 813,
+              "y": 260,
+              "w": 133,
+              "h": 53
+            },
+            "refs": {
+              "elementRef": "id-sigla-ofrd-tran"
+            },
+            "style": {
+              "fillColor": {
+                "r": 181,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 92,
+                "g": 92,
+                "b": 92,
+                "a": 100
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "OFRD-TRAN",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-ctx-node-ofrd-onbd",
+            "type": "Element",
+            "bounds": {
+              "x": 560,
+              "y": 280,
+              "w": 160,
+              "h": 60
+            },
+            "refs": {
+              "elementRef": "id-sigla-ofrd-onbd"
+            },
+            "style": {
+              "fillColor": {
+                "r": 181,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 92,
+                "g": 92,
+                "b": 92,
+                "a": 100
+              },
+              "font": {
+                "name": "Segoe UI",
+                "size": 9,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "OFRD-ONBD",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327750",
+            "type": "Label",
+            "bounds": {
+              "x": 807,
+              "y": 453,
+              "w": 147,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Compliance & confirmação transacional",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327768",
+            "type": "Label",
+            "bounds": {
+              "x": 793,
+              "y": 340,
+              "w": 173,
+              "h": 20
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Eventos assíncronos via Kafka",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-469674",
+            "type": "Label",
+            "bounds": {
+              "x": 247,
+              "y": 133,
+              "w": 160,
+              "h": 20
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visões de container",
+            "refs": {
+              "viewRef": "id-222409"
+            },
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-1327756",
+            "type": "Label",
+            "bounds": {
+              "x": 80,
+              "y": 180,
+              "w": 340,
+              "h": 487
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Contexto atores",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327765",
+            "type": "Label",
+            "bounds": {
+              "x": 97,
+              "y": 200,
+              "w": 313,
+              "h": 460
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Ambiente externo",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-469671",
+            "type": "Label",
+            "bounds": {
+              "x": 87,
+              "y": 133,
+              "w": 153,
+              "h": 20
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão de negócio - Sistema PIX",
+            "refs": {
+              "viewRef": "id-219315"
+            },
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          }
+        ],
+        "connections": [
+          {
+            "id": "conn-sigla-spi-dict",
+            "type": "Relationship",
+            "relationshipRef": "id-469668",
+            "source": "id-469672",
+            "target": "id-469669"
+          },
+          {
+            "id": "conn-sigla-ofrd-onbd-hfao",
+            "type": "Relationship",
+            "relationshipRef": "rel-sigla-ofrd-onbd-hfao",
+            "source": "id-ctx-node-ofrd-onbd",
+            "target": "id-469656"
+          },
+          {
+            "id": "conn-sigla-ofrd-onbd-clam",
+            "type": "Relationship",
+            "relationshipRef": "rel-sigla-ofrd-onbd-clam",
+            "source": "id-ctx-node-ofrd-onbd",
+            "target": "id-469657"
+          },
+          {
+            "id": "conn-sigla-ofrd-onbd-ofrd-tran",
+            "type": "Relationship",
+            "relationshipRef": "rel-sigla-ofrd-onbd-ofrd-tran",
+            "source": "id-ctx-node-ofrd-onbd",
+            "target": "id-469658"
+          },
+          {
+            "id": "conn-sigla-ofrd-tran-spi",
+            "type": "Relationship",
+            "relationshipRef": "rel-sigla-ofrd-tran-spi",
+            "source": "id-469658",
+            "target": "id-469672"
+          },
+          {
+            "id": "conn-sigla-clam-dict",
+            "type": "Relationship",
+            "relationshipRef": "rel-sigla-clam-dict",
+            "source": "id-469657",
+            "target": "id-469669"
+          },
+          {
+            "id": "conn-sigla-ofrd-onbd-spi",
+            "type": "Relationship",
+            "relationshipRef": "rel-sigla-ofrd-onbd-spi",
+            "source": "id-ctx-node-ofrd-onbd",
+            "target": "id-469672"
+          }
+        ],
+        "child_order": [
+          "name",
+          "documentation",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node"
+        ]
+      },
+      {
+        "id": "id-194586",
+        "type": "Diagram",
+        "name": "Visão Técnica - Sistema de Pagamentos PIX",
+        "nodes": [
+          {
+            "id": "id-1327805",
+            "type": "Container",
+            "bounds": {
+              "x": 27,
+              "y": 160,
+              "w": 120,
+              "h": 320
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Channels",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327800",
+            "type": "Container",
+            "bounds": {
+              "x": 287,
+              "y": 160,
+              "w": 633,
+              "h": 493
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Execution Logic",
+            "children": [
+              {
+                "id": "id-1327802",
+                "type": "Container",
+                "bounds": {
+                  "x": 300,
+                  "y": 187,
+                  "w": 607,
+                  "h": 233
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 215,
+                    "g": 245,
+                    "b": 255,
+                    "a": 20
+                  },
+                  "lineColor": {
+                    "r": 128,
+                    "g": 128,
+                    "b": 128,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "arial",
+                    "size": 10,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "Google Cloud Platform",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              },
+              {
+                "id": "id-1327810",
+                "type": "Container",
+                "bounds": {
+                  "x": 300,
+                  "y": 433,
+                  "w": 600,
+                  "h": 200
+                },
+                "style": {
+                  "fillColor": {
+                    "r": 192,
+                    "g": 192,
+                    "b": 192,
+                    "a": 20
+                  },
+                  "lineColor": {
+                    "r": 128,
+                    "g": 128,
+                    "b": 128,
+                    "a": 100
+                  },
+                  "font": {
+                    "name": "arial",
+                    "size": 10,
+                    "color": {
+                      "r": 0,
+                      "g": 0,
+                      "b": 0
+                    }
+                  }
+                },
+                "label": "BV OnPremisses",
+                "child_order": [
+                  "label",
+                  "style"
+                ]
+              }
+            ],
+            "child_order": [
+              "label",
+              "style",
+              "node",
+              "node"
+            ]
+          },
+          {
+            "id": "id-1327791",
+            "type": "Container",
+            "bounds": {
+              "x": 1053,
+              "y": 160,
+              "w": 160,
+              "h": 320
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "External Integration Layer",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327809",
+            "type": "Container",
+            "bounds": {
+              "x": 927,
+              "y": 487,
+              "w": 287,
+              "h": 167
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Etapas",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327806",
+            "type": "Container",
+            "bounds": {
+              "x": 160,
+              "y": 166,
+              "w": 120,
+              "h": 320
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Gateway Inbound",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327793",
+            "type": "Container",
+            "bounds": {
+              "x": 927,
+              "y": 159,
+              "w": 107,
+              "h": 320
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Gateway Outbound",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327808",
+            "type": "Container",
+            "bounds": {
+              "x": 287,
+              "y": 660,
+              "w": 640,
+              "h": 120
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 128,
+                "g": 128,
+                "b": 128,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Data Management",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327795",
+            "type": "Label",
+            "bounds": {
+              "x": 0,
+              "y": 53,
+              "w": 620,
+              "h": 80
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327799",
+            "type": "Label",
+            "bounds": {
+              "x": 133,
+              "y": 93,
+              "w": 787,
+              "h": 27
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão técnica - Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327796",
+            "type": "Label",
+            "bounds": {
+              "x": 127,
+              "y": 53,
+              "w": 793,
+              "h": 40
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Plataforma e Produtos de Dados",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-415458",
+            "type": "Element",
+            "bounds": {
+              "x": 760,
+              "y": 160,
+              "w": 133,
+              "h": 20
+            },
+            "refs": {
+              "elementRef": "id-415459"
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 189,
+                "b": 220,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "Arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          }
+        ],
+        "child_order": [
+          "name",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node"
+        ]
+      },
+      {
+        "id": "id-209915",
+        "type": "Diagram",
+        "name": "JT-XXXX.TE-XXXX - Solução de Pagamentos XYZ",
+        "nodes": [
+          {
+            "id": "id-384486",
+            "type": "Label",
+            "bounds": {
+              "x": 70,
+              "y": 207,
+              "w": 380,
+              "h": 60
+            },
+            "refs": {
+              "viewRef": "id-207637"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão de negócios e solução",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-384490",
+            "type": "Label",
+            "bounds": {
+              "x": 70,
+              "y": 280,
+              "w": 380,
+              "h": 60
+            },
+            "refs": {
+              "viewRef": "id-196480"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visões técnicas",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-1327642",
+            "type": "Label",
+            "bounds": {
+              "x": 20,
+              "y": 60,
+              "w": 620,
+              "h": 80
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327643",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 100,
+              "w": 387,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327644",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 60,
+              "w": 473,
+              "h": 40
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Plataforma e Produtos de Dados",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          }
+        ],
+        "child_order": [
+          "name",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node"
+        ]
+      },
+      {
+        "id": "id-207637",
+        "type": "Diagram",
+        "name": "Visão de negócios e solução",
+        "nodes": [
+          {
+            "id": "id-1327647",
+            "type": "Label",
+            "bounds": {
+              "x": 160,
+              "y": 247,
+              "w": 333,
+              "h": 53
+            },
+            "refs": {
+              "viewRef": "id-154903"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "2. Visão de contexto",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-1327666",
+            "type": "Label",
+            "bounds": {
+              "x": 17,
+              "y": 40,
+              "w": 620,
+              "h": 80
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327671",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 80,
+              "w": 640,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327670",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 40,
+              "w": 667,
+              "h": 40
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Plataforma e Produtos de Dados",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327649",
+            "type": "Label",
+            "bounds": {
+              "x": 160,
+              "y": 300,
+              "w": 333,
+              "h": 60
+            },
+            "refs": {
+              "viewRef": "id-222409"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "3. Visões de container",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-1327645",
+            "type": "Label",
+            "bounds": {
+              "x": 160,
+              "y": 187,
+              "w": 333,
+              "h": 60
+            },
+            "refs": {
+              "viewRef": "id-219315"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "1. Visão de negócio",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          }
+        ],
+        "child_order": [
+          "name",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node"
+        ]
+      },
+      {
+        "id": "id-222409",
+        "type": "Diagram",
+        "name": "3. Visões de container",
+        "nodes": [
+          {
+            "id": "id-1327720",
+            "type": "Label",
+            "bounds": {
+              "x": 17,
+              "y": 40,
+              "w": 620,
+              "h": 80
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327716",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 80,
+              "w": 593,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327719",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 40,
+              "w": 593,
+              "h": 40
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Plataforma e Produtos de Dados",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327715",
+            "type": "Label",
+            "bounds": {
+              "x": 160,
+              "y": 140,
+              "w": 387,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visões de container",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327718",
+            "type": "Label",
+            "bounds": {
+              "x": 180,
+              "y": 213,
+              "w": 327,
+              "h": 60
+            },
+            "refs": {
+              "viewRef": "id-171323"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão Técnica - Sistema de Pagamentos PIX",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          }
+        ],
+        "child_order": [
+          "name",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node"
+        ]
+      },
+      {
+        "id": "id-196480",
+        "type": "Diagram",
+        "name": "Visões técnicas",
+        "nodes": [
+          {
+            "id": "id-414782",
+            "type": "Label",
+            "bounds": {
+              "x": 160,
+              "y": 227,
+              "w": 333,
+              "h": 53
+            },
+            "refs": {
+              "viewRef": "id-194586"
+            },
+            "style": {
+              "fillColor": {
+                "r": 225,
+                "g": 225,
+                "b": 225,
+                "a": 100
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 100
+              },
+              "font": {
+                "name": "arial",
+                "size": 10,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visão Técnica - Sistema de Pagamentos PIX",
+            "child_order": [
+              "label",
+              "style",
+              "viewRef"
+            ]
+          },
+          {
+            "id": "id-1327654",
+            "type": "Label",
+            "bounds": {
+              "x": 17,
+              "y": 40,
+              "w": 620,
+              "h": 80
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "child_order": [
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327652",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 80,
+              "w": 620,
+              "h": 60
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327655",
+            "type": "Label",
+            "bounds": {
+              "x": 153,
+              "y": 40,
+              "w": 627,
+              "h": 40
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 24,
+                "style": "bold",
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Plataforma e Produtos de Dados",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          },
+          {
+            "id": "id-1327651",
+            "type": "Label",
+            "bounds": {
+              "x": 160,
+              "y": 180,
+              "w": 387,
+              "h": 33
+            },
+            "style": {
+              "fillColor": {
+                "r": 255,
+                "g": 255,
+                "b": 255,
+                "a": 0
+              },
+              "lineColor": {
+                "r": 0,
+                "g": 0,
+                "b": 0,
+                "a": 0
+              },
+              "font": {
+                "name": "arial",
+                "size": 16,
+                "color": {
+                  "r": 0,
+                  "g": 0,
+                  "b": 0
+                }
+              }
+            },
+            "label": "Visões técnicas",
+            "child_order": [
+              "label",
+              "style"
+            ]
+          }
+        ],
+        "child_order": [
+          "name",
+          "node",
+          "node",
+          "node",
+          "node",
+          "node"
+        ]
+      }
+    ]
+  },
+  "serialization": {
+    "namespaces": {
+      "a": "http://www.opengroup.org/xsd/archimate/3.0/",
+      "xsi": "http://www.w3.org/2001/XMLSchema-instance"
+    },
+    "notes": [
+      "Modelo derivado do template padrão preenchido com a história de usuário do PIX PF.",
+      "As visões de contexto e container utilizam o nome Sistema de Transferências PIX.",
+      "Elementos, relações e siglas atualizados conforme integrações, restrições e critérios técnicos da jornada."
+    ]
+  }
+}

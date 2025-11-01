@@ -1,0 +1,510 @@
+{
+  "model_identifier": "id-pix-pf-container-model",
+  "model_name": "Plataforma PIX para Pessoa Física",
+  "elements": [
+    {
+      "id": "id-user",
+      "type": "Person",
+      "name": "Cliente Pessoa Física",
+      "documentation": "Cliente do banco que utiliza os canais digitais para realizar transações PIX."
+    },
+    {
+      "id": "id-spa",
+      "type": "SoftwareSystem",
+      "name": "Internet Banking",
+      "documentation": "Aplicação web (Single Page Application) que permite ao cliente acessar os serviços do banco."
+    },
+    {
+      "id": "id-mobile-app",
+      "type": "SoftwareSystem",
+      "name": "Aplicativo Mobile",
+      "documentation": "Aplicativo nativo (iOS/Android) para acesso aos serviços do banco."
+    },
+    {
+      "id": "id-api-gateway",
+      "type": "Container",
+      "name": "API Gateway",
+      "documentation": "Gateway de APIs que centraliza, protege e gerencia o acesso aos microserviços. Tecnologia: Spring Cloud Gateway.",
+      "properties": {
+        "Technology": "Spring Cloud Gateway"
+      }
+    },
+    {
+      "id": "id-pix-orchestrator",
+      "type": "Container",
+      "name": "Microsserviço de Orquestração PIX",
+      "documentation": "Orquestra o fluxo de transferência PIX, coordenando chamadas a outros serviços e sistemas.",
+      "properties": {
+        "Technology": "Java Spring Boot"
+      }
+    },
+    {
+      "id": "id-accounts-facade",
+      "type": "Container",
+      "name": "Microsserviço de Contas (Facade)",
+      "documentation": "Facade que expõe funcionalidades do sistema de Core Banking, como consulta de saldo.",
+      "properties": {
+        "Technology": "Java Spring Boot"
+      }
+    },
+    {
+      "id": "id-fraud-facade",
+      "type": "Container",
+      "name": "Microsserviço Antifraude (Facade)",
+      "documentation": "Realiza a comunicação com o motor de prevenção à fraude para análise de risco em tempo real.",
+      "properties": {
+        "Technology": "Java Spring Boot"
+      }
+    },
+    {
+      "id": "id-notification-service",
+      "type": "Container",
+      "name": "Microsserviço de Notificações",
+      "documentation": "Consome eventos de transação e envia notificações push para os clientes.",
+      "properties": {
+        "Technology": "Java Spring Boot"
+      }
+    },
+    {
+      "id": "id-database",
+      "type": "Container",
+      "name": "Banco de Dados Transacional",
+      "documentation": "Armazena dados das transações PIX e informações de auditoria. Cache de sessão para performance.",
+      "properties": {
+        "Technology": "PostgreSQL, Redis"
+      }
+    },
+    {
+      "id": "id-message-bus",
+      "type": "Container",
+      "name": "Plataforma de Eventos",
+      "documentation": "Utilizado para comunicação assíncrona entre microserviços, como a notificação de transações.",
+      "properties": {
+        "Technology": "Apache Kafka"
+      }
+    },
+    {
+      "id": "id-hsm",
+      "type": "Container",
+      "name": "HSM (Hardware Security Module)",
+      "documentation": "Módulo de segurança de hardware para armazenamento e gerenciamento seguro de chaves criptográficas PIX.",
+      "properties": {
+        "Technology": "HSM"
+      }
+    },
+    {
+      "id": "id-core-banking",
+      "type": "SoftwareSystem",
+      "name": "Sistema Core Banking",
+      "documentation": "Sistema central do banco que gerencia contas e saldos. Tecnologia: Mainframe COBOL."
+    },
+    {
+      "id": "id-spi",
+      "type": "SoftwareSystem",
+      "name": "SPI (Sistema de Pagamentos Instantâneos)",
+      "documentation": "Infraestrutura do BACEN para liquidação de pagamentos instantâneos."
+    },
+    {
+      "id": "id-dict",
+      "type": "SoftwareSystem",
+      "name": "DICT (Diretório de Identificadores)",
+      "documentation": "Serviço do BACEN para consulta e resolução de chaves PIX."
+    },
+    {
+      "id": "id-fraud-system",
+      "type": "SoftwareSystem",
+      "name": "Sistema de Prevenção à Fraude",
+      "documentation": "Motor externo que analisa e autoriza transações com base no risco."
+    },
+    {
+      "id": "id-notification-gateway",
+      "type": "SoftwareSystem",
+      "name": "Gateway de Notificações Push",
+      "documentation": "Plataforma externa para envio de notificações para dispositivos móveis (APNS, FCM)."
+    }
+  ],
+  "relations": [
+    {
+      "id": "rel-1",
+      "source": "id-user",
+      "target": "id-mobile-app",
+      "label": "Realiza transferência PIX"
+    },
+    {
+      "id": "rel-2",
+      "source": "id-user",
+      "target": "id-spa",
+      "label": "Realiza transferência PIX"
+    },
+    {
+      "id": "rel-3",
+      "source": "id-mobile-app",
+      "target": "id-api-gateway",
+      "label": "Requisita transferência PIX",
+      "properties": {
+        "Technology": "HTTPS/JSON"
+      }
+    },
+    {
+      "id": "rel-4",
+      "source": "id-spa",
+      "target": "id-api-gateway",
+      "label": "Requisita transferência PIX",
+      "properties": {
+        "Technology": "HTTPS/JSON"
+      }
+    },
+    {
+      "id": "rel-5",
+      "source": "id-api-gateway",
+      "target": "id-pix-orchestrator",
+      "label": "Encaminha requisição"
+    },
+    {
+      "id": "rel-6",
+      "source": "id-pix-orchestrator",
+      "target": "id-accounts-facade",
+      "label": "Verifica saldo"
+    },
+    {
+      "id": "rel-7",
+      "source": "id-accounts-facade",
+      "target": "id-core-banking",
+      "label": "Consulta saldo",
+      "properties": {
+        "Technology": "Mensageria/RPC"
+      }
+    },
+    {
+      "id": "rel-8",
+      "source": "id-pix-orchestrator",
+      "target": "id-fraud-facade",
+      "label": "Analisa risco da transação"
+    },
+    {
+      "id": "rel-9",
+      "source": "id-fraud-facade",
+      "target": "id-fraud-system",
+      "label": "Solicita análise de fraude",
+      "properties": {
+        "Technology": "API REST"
+      }
+    },
+    {
+      "id": "rel-10",
+      "source": "id-pix-orchestrator",
+      "target": "id-dict",
+      "label": "Consulta dados da chave PIX",
+      "properties": {
+        "Technology": "API REST"
+      }
+    },
+    {
+      "id": "rel-11",
+      "source": "id-pix-orchestrator",
+      "target": "id-spi",
+      "label": "Envia ordem de pagamento",
+      "properties": {
+        "Technology": "Mensageria"
+      }
+    },
+    {
+      "id": "rel-12",
+      "source": "id-pix-orchestrator",
+      "target": "id-database",
+      "label": "Persiste transação e auditoria",
+      "properties": {
+        "Technology": "JDBC"
+      }
+    },
+    {
+      "id": "rel-13",
+      "source": "id-pix-orchestrator",
+      "target": "id-message-bus",
+      "label": "Publica evento 'Transferência Concluída'"
+    },
+    {
+      "id": "rel-14",
+      "source": "id-notification-service",
+      "target": "id-message-bus",
+      "label": "Consome evento 'Transferência Concluída'"
+    },
+    {
+      "id": "rel-15",
+      "source": "id-notification-service",
+      "target": "id-notification-gateway",
+      "label": "Solicita envio de notificação push"
+    },
+    {
+      "id": "rel-16",
+      "source": "id-pix-orchestrator",
+      "target": "id-hsm",
+      "label": "Utiliza chaves criptográficas"
+    }
+  ],
+  "organizations": [],
+  "views": {
+    "diagrams": [
+      {
+        "id": "id-container-view",
+        "key": "Container",
+        "title": "Visão de Container - Plataforma PIX para Pessoa Física",
+        "documentation": "Este diagrama mostra a arquitetura de contêineres para o sistema de pagamentos PIX, destacando os microserviços, bancos de dados, e suas interações com sistemas internos e externos.",
+        "nodes": [
+          {
+            "id": "node-user",
+            "elementRef": "id-user",
+            "label": "Cliente Pessoa Física",
+            "x": 50,
+            "y": 450,
+            "w": 200,
+            "h": 100
+          },
+          {
+            "id": "node-spa",
+            "elementRef": "id-spa",
+            "label": "Internet Banking",
+            "x": 400,
+            "y": 200,
+            "w": 200,
+            "h": 100
+          },
+          {
+            "id": "node-mobile",
+            "elementRef": "id-mobile-app",
+            "label": "Aplicativo Mobile",
+            "x": 400,
+            "y": 700,
+            "w": 200,
+            "h": 100
+          },
+          {
+            "id": "boundary-system",
+            "label": "Sistema: Plataforma PIX para Pessoa Física",
+            "x": 750,
+            "y": 50,
+            "w": 1400,
+            "h": 900,
+            "nodes": [
+              {
+                "id": "node-api-gateway",
+                "elementRef": "id-api-gateway",
+                "label": "API Gateway",
+                "x": 800,
+                "y": 450,
+                "w": 200,
+                "h": 100
+              },
+              {
+                "id": "node-pix-orchestrator",
+                "elementRef": "id-pix-orchestrator",
+                "label": "Microsserviço de Orquestração PIX",
+                "x": 1100,
+                "y": 250,
+                "w": 250,
+                "h": 120
+              },
+              {
+                "id": "node-accounts-facade",
+                "elementRef": "id-accounts-facade",
+                "label": "Microsserviço de Contas (Facade)",
+                "x": 1100,
+                "y": 450,
+                "w": 250,
+                "h": 120
+              },
+              {
+                "id": "node-fraud-facade",
+                "elementRef": "id-fraud-facade",
+                "label": "Microsserviço Antifraude (Facade)",
+                "x": 1100,
+                "y": 650,
+                "w": 250,
+                "h": 120
+              },
+              {
+                "id": "node-notification-service",
+                "elementRef": "id-notification-service",
+                "label": "Microsserviço de Notificações",
+                "x": 1450,
+                "y": 750,
+                "w": 250,
+                "h": 120
+              },
+              {
+                "id": "node-db",
+                "elementRef": "id-database",
+                "label": "Banco de Dados Transacional",
+                "x": 1450,
+                "y": 150,
+                "w": 250,
+                "h": 100
+              },
+              {
+                "id": "node-kafka",
+                "elementRef": "id-message-bus",
+                "label": "Plataforma de Eventos",
+                "x": 1450,
+                "y": 550,
+                "w": 250,
+                "h": 100
+              },
+              {
+                "id": "node-hsm",
+                "elementRef": "id-hsm",
+                "label": "HSM",
+                "x": 1450,
+                "y": 350,
+                "w": 250,
+                "h": 100
+              }
+            ]
+          },
+          {
+            "id": "node-core-banking",
+            "elementRef": "id-core-banking",
+            "label": "Sistema Core Banking",
+            "x": 2300,
+            "y": 450,
+            "w": 200,
+            "h": 100
+          },
+          {
+            "id": "node-spi",
+            "elementRef": "id-spi",
+            "label": "SPI (BACEN)",
+            "x": 2300,
+            "y": 150,
+            "w": 200,
+            "h": 100
+          },
+          {
+            "id": "node-dict",
+            "elementRef": "id-dict",
+            "label": "DICT (BACEN)",
+            "x": 2300,
+            "y": 50,
+            "w": 200,
+            "h": 100
+          },
+          {
+            "id": "node-fraud-system",
+            "elementRef": "id-fraud-system",
+            "label": "Sistema de Prevenção à Fraude",
+            "x": 2300,
+            "y": 650,
+            "w": 200,
+            "h": 100
+          },
+          {
+            "id": "node-notification-gateway",
+            "elementRef": "id-notification-gateway",
+            "label": "Gateway de Notificações Push",
+            "x": 2300,
+            "y": 800,
+            "w": 200,
+            "h": 100
+          }
+        ],
+        "connections": [
+          {
+            "id": "conn-1",
+            "relationshipRef": "rel-1",
+            "source": "node-user",
+            "target": "node-mobile"
+          },
+          {
+            "id": "conn-2",
+            "relationshipRef": "rel-2",
+            "source": "node-user",
+            "target": "node-spa"
+          },
+          {
+            "id": "conn-3",
+            "relationshipRef": "rel-3",
+            "source": "node-mobile",
+            "target": "node-api-gateway"
+          },
+          {
+            "id": "conn-4",
+            "relationshipRef": "rel-4",
+            "source": "node-spa",
+            "target": "node-api-gateway"
+          },
+          {
+            "id": "conn-5",
+            "relationshipRef": "rel-5",
+            "source": "node-api-gateway",
+            "target": "node-pix-orchestrator"
+          },
+          {
+            "id": "conn-6",
+            "relationshipRef": "rel-6",
+            "source": "node-pix-orchestrator",
+            "target": "node-accounts-facade"
+          },
+          {
+            "id": "conn-7",
+            "relationshipRef": "rel-7",
+            "source": "node-accounts-facade",
+            "target": "node-core-banking"
+          },
+          {
+            "id": "conn-8",
+            "relationshipRef": "rel-8",
+            "source": "node-pix-orchestrator",
+            "target": "node-fraud-facade"
+          },
+          {
+            "id": "conn-9",
+            "relationshipRef": "rel-9",
+            "source": "node-fraud-facade",
+            "target": "node-fraud-system"
+          },
+          {
+            "id": "conn-10",
+            "relationshipRef": "rel-10",
+            "source": "node-pix-orchestrator",
+            "target": "node-dict"
+          },
+          {
+            "id": "conn-11",
+            "relationshipRef": "rel-11",
+            "source": "node-pix-orchestrator",
+            "target": "node-spi"
+          },
+          {
+            "id": "conn-12",
+            "relationshipRef": "rel-12",
+            "source": "node-pix-orchestrator",
+            "target": "node-db"
+          },
+          {
+            "id": "conn-13",
+            "relationshipRef": "rel-13",
+            "source": "node-pix-orchestrator",
+            "target": "node-kafka"
+          },
+          {
+            "id": "conn-14",
+            "relationshipRef": "rel-14",
+            "source": "node-notification-service",
+            "target": "node-kafka"
+          },
+          {
+            "id": "conn-15",
+            "relationshipRef": "rel-15",
+            "source": "node-notification-service",
+            "target": "node-notification-gateway"
+          },
+          {
+            "id": "conn-16",
+            "relationshipRef": "rel-16",
+            "source": "node-pix-orchestrator",
+            "target": "node-hsm"
+          }
+        ]
+      }
+    ]
+  }
+}
