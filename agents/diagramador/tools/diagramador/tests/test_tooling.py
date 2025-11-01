@@ -22,6 +22,7 @@ from agents.diagramador.tools.diagramador import (
     list_templates,
     save_datamodel,
 )
+from agents.diagramador.tools.diagramador.templates import load_template_blueprint
 from agents.diagramador.tools.diagramador.session import (
     SESSION_STATE_ROOT,
     clear_fallback_session_state,
@@ -50,6 +51,11 @@ def session_state() -> dict:
     return {}
 
 
+@pytest.fixture()
+def template_blueprint():
+    return load_template_blueprint(SAMPLE_TEMPLATE)
+
+
 def _load_sample_datamodel() -> dict:
     with SAMPLE_DATAMODEL_FILE.open(encoding="utf-8") as handler:
         return json.load(handler)
@@ -61,7 +67,11 @@ def test_list_templates_registers_artifact(session_state):
 
     listing = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_TEMPLATE_LISTING]
     assert listing["count"] > 0
-    assert any(Path(entry["path"]).exists() for entry in listing["templates"])
+    assert any(
+        Path(path).exists()
+        for entry in listing["templates"]
+        if (path := entry.get("absolute_path") or entry.get("path"))
+    )
 
 
 def test_describe_template_caches_guidance(session_state):
@@ -109,10 +119,26 @@ def test_generate_layout_preview_detects_placeholders(session_state):
         )
 
 
+def test_generate_layout_preview_requires_customized_blueprint(
+    session_state, template_blueprint
+):
+    datamodel = json.loads(json.dumps(template_blueprint))
+    datamodel["model_name"] = "Modelo Base Genérico"
+    datamodel.pop("views", None)
+
+    with pytest.raises(ValueError) as exc_info:
+        generate_layout_preview(
+            datamodel=datamodel,
+            template_path=str(SAMPLE_TEMPLATE),
+            session_state=session_state,
+        )
+
+    assert "contexto do usuário" in str(exc_info.value)
+
+
 def test_generate_layout_preview_replaces_template_placeholders(session_state):
     datamodel = _load_sample_datamodel()
     datamodel = json.loads(json.dumps(datamodel))
-    datamodel.pop("views", None)
 
     generate_layout_preview(
         datamodel=datamodel,
