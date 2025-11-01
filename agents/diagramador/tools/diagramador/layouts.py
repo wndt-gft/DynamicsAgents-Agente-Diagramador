@@ -230,6 +230,42 @@ def _resolve_description(
     return None
 
 
+def _normalize_metadata_value(value: Any) -> str | None:
+    if isinstance(value, str):
+        normalized = value.strip()
+        return normalized or None
+    return None
+
+
+def _metadata_matches_blueprint(
+    current: Mapping[str, Any] | None, original: Mapping[str, Any] | None
+) -> bool:
+    for key in ("name", "documentation"):
+        current_value = _normalize_metadata_value(current.get(key) if current else None)
+        original_value = _normalize_metadata_value(original.get(key) if original else None)
+        if current_value == original_value:
+            continue
+        if not current_value and not original_value:
+            continue
+        return False
+    return True
+
+
+def _metadata_is_customized(
+    current: Mapping[str, Any] | None, original: Mapping[str, Any] | None
+) -> bool:
+    if not current:
+        return False
+    has_value = False
+    for key in ("name", "documentation"):
+        current_value = _normalize_metadata_value(current.get(key))
+        if current_value:
+            has_value = True
+    if not has_value:
+        return False
+    return not _metadata_matches_blueprint(current, original)
+
+
 def _apply_layout_customization(
     layout: Mapping[str, Any],
     *,
@@ -238,6 +274,8 @@ def _apply_layout_customization(
     view_description: str | None,
     element_lookup: Mapping[str, Mapping[str, Any]],
     relationship_lookup: Mapping[str, Mapping[str, Any]],
+    blueprint_element_lookup: Mapping[str, Mapping[str, Any]],
+    blueprint_relationship_lookup: Mapping[str, Mapping[str, Any]],
 ) -> None:
     if not view_description and view_name:
         view_description = view_name
@@ -270,7 +308,10 @@ def _apply_layout_customization(
                 continue
             element_ref = node.get("elementRef") or node.get("element_ref")
             lookup = element_lookup.get(str(element_ref)) if element_ref else None
-            if lookup:
+            blueprint_lookup = (
+                blueprint_element_lookup.get(str(element_ref)) if element_ref else None
+            )
+            if lookup and _metadata_is_customized(lookup, blueprint_lookup):
                 element_name = lookup.get("name")
                 if element_name:
                     label = node.get("label")
@@ -297,6 +338,8 @@ def _apply_layout_customization(
                     view_description=view_description,
                     element_lookup=element_lookup,
                     relationship_lookup=relationship_lookup,
+                    blueprint_element_lookup=blueprint_element_lookup,
+                    blueprint_relationship_lookup=blueprint_relationship_lookup,
                 )
 
     # Update connections
@@ -309,7 +352,12 @@ def _apply_layout_customization(
             relation_info = (
                 relationship_lookup.get(str(relationship_ref)) if relationship_ref else None
             )
-            if relation_info:
+            blueprint_relation = (
+                blueprint_relationship_lookup.get(str(relationship_ref))
+                if relationship_ref
+                else None
+            )
+            if relation_info and _metadata_is_customized(relation_info, blueprint_relation):
                 relation_name = relation_info.get("name")
                 if relation_name:
                     label = connection.get("label")
@@ -950,6 +998,8 @@ def _build_view_payload(
     element_lookup: Mapping[str, Mapping[str, Any]],
     relationship_lookup: Mapping[str, Mapping[str, Any]],
     *,
+    blueprint_element_lookup: Mapping[str, Mapping[str, Any]],
+    blueprint_relationship_lookup: Mapping[str, Mapping[str, Any]],
     model_name: str | None,
     datamodel: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
@@ -988,6 +1038,8 @@ def _build_view_payload(
         view_description=view_description,
         element_lookup=element_lookup,
         relationship_lookup=relationship_lookup,
+        blueprint_element_lookup=blueprint_element_lookup,
+        blueprint_relationship_lookup=blueprint_relationship_lookup,
     )
 
     return {
@@ -996,6 +1048,105 @@ def _build_view_payload(
         "layout": layout,
         "raw": base_view,
     }
+
+
+def _validate_view_payloads(
+    view_payloads: Sequence[Mapping[str, Any]],
+    *,
+    element_lookup: Mapping[str, Mapping[str, Any]],
+    relationship_lookup: Mapping[str, Mapping[str, Any]],
+    blueprint_element_lookup: Mapping[str, Mapping[str, Any]],
+    blueprint_relationship_lookup: Mapping[str, Mapping[str, Any]],
+) -> None:
+    missing_references: list[str] = []
+    unchanged_references: list[str] = []
+
+    for payload in view_payloads:
+        if not isinstance(payload, Mapping):
+            continue
+        view_name = str(payload.get("name") or payload.get("identifier") or "<desconhecida>")
+        view_identifier = str(payload.get("identifier") or payload.get("id") or view_name)
+        view_descriptor = f"{view_name} (id='{view_identifier}')"
+
+        layout = payload.get("layout")
+        nodes = layout.get("nodes") if isinstance(layout, Mapping) else None
+        if isinstance(nodes, Sequence):
+            for node in nodes:
+                if not isinstance(node, Mapping):
+                    continue
+                element_ref = node.get("element_ref") or node.get("elementRef")
+                if not element_ref:
+                    continue
+                key = str(element_ref)
+                node_identifier = str(node.get("id") or node.get("identifier") or key)
+                lookup = element_lookup.get(key)
+                if lookup is None:
+                    missing_references.append(
+                        f"visão {view_descriptor} - nó '{node_identifier}' com elementRef='{key}'"
+                    )
+                    continue
+                blueprint_lookup = blueprint_element_lookup.get(key)
+                if not blueprint_lookup:
+                    continue
+                if not any(
+                    _normalize_metadata_value(blueprint_lookup.get(field))
+                    for field in ("name", "documentation")
+                ):
+                    continue
+                if _metadata_matches_blueprint(lookup, blueprint_lookup):
+                    unchanged_references.append(
+                        f"visão {view_descriptor} - elemento '{key}' (nó '{node_identifier}')"
+                    )
+
+        connections = layout.get("connections") if isinstance(layout, Mapping) else None
+        if isinstance(connections, Sequence):
+            for connection in connections:
+                if not isinstance(connection, Mapping):
+                    continue
+                relationship_ref = (
+                    connection.get("relationship_ref")
+                    or connection.get("relationshipRef")
+                )
+                if not relationship_ref:
+                    continue
+                key = str(relationship_ref)
+                conn_identifier = str(
+                    connection.get("id")
+                    or connection.get("identifier")
+                    or key
+                )
+                lookup = relationship_lookup.get(key)
+                if lookup is None:
+                    missing_references.append(
+                        f"visão {view_descriptor} - conexão '{conn_identifier}' com relationshipRef='{key}'"
+                    )
+                    continue
+                blueprint_lookup = blueprint_relationship_lookup.get(key)
+                if not blueprint_lookup:
+                    continue
+                if not any(
+                    _normalize_metadata_value(blueprint_lookup.get(field))
+                    for field in ("name", "documentation")
+                ):
+                    continue
+                if _metadata_matches_blueprint(lookup, blueprint_lookup):
+                    unchanged_references.append(
+                        f"visão {view_descriptor} - relação '{key}' (conexão '{conn_identifier}')"
+                    )
+
+    if missing_references:
+        details = "; ".join(missing_references)
+        raise ValueError(
+            "Existem referências de layout para elementos ou relações ausentes no datamodel final. "
+            f"Revise o datamodel antes de gerar o preview: {details}."
+        )
+
+    if unchanged_references:
+        details = "; ".join(unchanged_references)
+        raise ValueError(
+            "Preencha os componentes herdados do template com os dados do usuário antes de gerar o preview. "
+            f"Itens não personalizados: {details}."
+        )
 
 
 def _build_replacements(
@@ -1136,6 +1287,8 @@ def generate_layout_preview(
     datamodel_views_by_id, datamodel_views_by_name = _index_datamodel_views(datamodel_payload)
     element_lookup = _build_element_lookup(blueprint, datamodel_payload)
     relationship_lookup = _build_relationship_lookup(blueprint, datamodel_payload)
+    blueprint_element_lookup = _build_element_lookup(blueprint, None)
+    blueprint_relationship_lookup = _build_relationship_lookup(blueprint, None)
     model_name = _resolve_model_name(datamodel_payload) if datamodel_payload else None
 
     view_payloads: list[dict[str, Any]] = []
@@ -1157,10 +1310,20 @@ def generate_layout_preview(
                 datamodel_view,
                 element_lookup,
                 relationship_lookup,
+                blueprint_element_lookup=blueprint_element_lookup,
+                blueprint_relationship_lookup=blueprint_relationship_lookup,
                 model_name=model_name,
                 datamodel=datamodel_payload,
             )
         )
+
+    _validate_view_payloads(
+        view_payloads,
+        element_lookup=element_lookup,
+        relationship_lookup=relationship_lookup,
+        blueprint_element_lookup=blueprint_element_lookup,
+        blueprint_relationship_lookup=blueprint_relationship_lookup,
+    )
 
     primary_view = view_payloads[0]
 
