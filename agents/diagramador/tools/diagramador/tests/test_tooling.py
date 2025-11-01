@@ -102,6 +102,37 @@ def test_generate_layout_preview_creates_replacements(session_state):
     assert "data:image/svg+xml" in replacements["layout_preview.svg"]
 
 
+def test_generate_layout_preview_populates_layer_elements(session_state):
+    datamodel = _load_sample_datamodel()
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    layout_nodes = artifact["view"]["layout"]["nodes"]
+
+    element_refs = {
+        node.get("element_ref") or node.get("elementRef")
+        for node in layout_nodes
+        if (node.get("element_ref") or node.get("elementRef"))
+    }
+    expected_refs = {
+        "id-da18b5f4b21a4bdab0c63fa99d95ba91",
+        "id-37401d37c1034a718ab785406022fc9c",
+        "id-7b0c03d4f05a410da57057c7e0b1ad25",
+        "id-89aef989c04f448294e301fac2bb9f67",
+    }
+    assert expected_refs <= element_refs
+
+    layer_labels = {
+        node.get("label") for node in layout_nodes if node.get("type") == "Container"
+    }
+    assert "Layer DATA MANAGEMENT" in layer_labels
+    assert "Layer CHANNELS" in layer_labels
+
+
 def test_generate_layout_preview_requires_datamodel(session_state):
     with pytest.raises(ValueError):
         generate_layout_preview(

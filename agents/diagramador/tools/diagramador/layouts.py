@@ -69,6 +69,142 @@ _WHITESPACE_RE = re.compile(r"\s+")
 _PLACEHOLDER_TOKEN_RE = re.compile(r"\{\{[^{}]+\}\}|\[\[[^\[\]]+\]\]")
 
 
+def _has_meaningful_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    return True
+
+
+def _apply_reference_fields(target: MutableMapping[str, Any], refs: Mapping[str, Any]) -> None:
+    reference_map: dict[str, tuple[str, ...]] = {
+        "elementRef": ("elementRef", "element_ref"),
+        "relationshipRef": ("relationshipRef", "relationship_ref"),
+        "viewRef": ("viewRef", "view_ref"),
+        "source": ("source",),
+        "sourceRef": ("source",),
+        "target": ("target",),
+        "targetRef": ("target",),
+    }
+
+    for key, aliases in reference_map.items():
+        value = refs.get(key)
+        if not _has_meaningful_value(value):
+            continue
+        for alias in aliases:
+            if _has_meaningful_value(target.get(alias)):
+                continue
+            target[alias] = value
+
+
+def _normalize_connection_payload(connection: Mapping[str, Any]) -> dict[str, Any]:
+    payload: MutableMapping[str, Any] = copy.deepcopy(dict(connection))
+    refs = payload.get("refs")
+    if isinstance(refs, Mapping):
+        _apply_reference_fields(payload, refs)
+        payload.pop("refs", None)
+
+    relationship_ref = payload.get("relationshipRef") or payload.get("relationship_ref")
+    if _has_meaningful_value(relationship_ref):
+        payload["relationshipRef"] = relationship_ref
+        payload["relationship_ref"] = relationship_ref
+
+    for endpoint_key in ("source", "target"):
+        endpoint_value = payload.get(endpoint_key)
+        if not _has_meaningful_value(endpoint_value):
+            alt_key = f"{endpoint_key}Ref"
+            alt_value = payload.get(alt_key)
+            if _has_meaningful_value(alt_value):
+                payload[endpoint_key] = alt_value
+
+    return dict(payload)
+
+
+def _normalize_node_payload(node: Mapping[str, Any]) -> dict[str, Any]:
+    payload: MutableMapping[str, Any] = copy.deepcopy(dict(node))
+
+    refs = payload.get("refs")
+    if isinstance(refs, Mapping):
+        _apply_reference_fields(payload, refs)
+        payload.pop("refs", None)
+
+    element_ref = payload.get("elementRef") or payload.get("element_ref")
+    if _has_meaningful_value(element_ref):
+        payload["elementRef"] = element_ref
+        payload["element_ref"] = element_ref
+
+    relationship_ref = payload.get("relationshipRef") or payload.get("relationship_ref")
+    if _has_meaningful_value(relationship_ref):
+        payload["relationshipRef"] = relationship_ref
+        payload["relationship_ref"] = relationship_ref
+
+    child_sequences: list[Sequence[Any]] = []
+    for key in ("nodes", "children"):
+        value = payload.get(key)
+        if isinstance(value, Sequence):
+            child_sequences.append(value)
+    normalized_children: list[dict[str, Any]] = []
+    for sequence in child_sequences:
+        for child in sequence:
+            if isinstance(child, Mapping):
+                normalized_children.append(_normalize_node_payload(child))
+    if normalized_children:
+        payload["nodes"] = normalized_children
+    elif "nodes" in payload:
+        payload["nodes"] = []
+    payload.pop("children", None)
+
+    connections = payload.get("connections")
+    if isinstance(connections, Sequence):
+        normalized_connections = [
+            _normalize_connection_payload(conn)
+            for conn in connections
+            if isinstance(conn, Mapping)
+        ]
+        payload["connections"] = normalized_connections
+    elif "connections" in payload:
+        payload["connections"] = []
+
+    return dict(payload)
+
+
+def _normalize_view_structure(payload: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+
+    view_payload: MutableMapping[str, Any] = copy.deepcopy(dict(payload))
+
+    node_sequences: list[Sequence[Any]] = []
+    for key in ("nodes", "children"):
+        value = view_payload.get(key)
+        if isinstance(value, Sequence):
+            node_sequences.append(value)
+    normalized_nodes: list[dict[str, Any]] = []
+    for sequence in node_sequences:
+        for node in sequence:
+            if isinstance(node, Mapping):
+                normalized_nodes.append(_normalize_node_payload(node))
+    if normalized_nodes:
+        view_payload["nodes"] = normalized_nodes
+    elif "nodes" in view_payload:
+        view_payload["nodes"] = []
+    view_payload.pop("children", None)
+
+    connections = view_payload.get("connections")
+    if isinstance(connections, Sequence):
+        normalized_connections = [
+            _normalize_connection_payload(conn)
+            for conn in connections
+            if isinstance(conn, Mapping)
+        ]
+        view_payload["connections"] = normalized_connections
+    elif "connections" in view_payload:
+        view_payload["connections"] = []
+
+    return dict(view_payload)
+
+
 def _resolve_template_path(template_path: str | None) -> Path:
     return resolve_template_path(template_path)
 
@@ -1208,24 +1344,36 @@ def _merge_view_structures(
     template_view: Mapping[str, Any] | None,
     user_view: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    if not template_view and not user_view:
+    if template_view is None and user_view is None:
         return {}
 
-    base_view: dict[str, Any] = copy.deepcopy(dict(template_view)) if isinstance(template_view, Mapping) else {}
-    if not isinstance(user_view, Mapping):
-        return base_view or (copy.deepcopy(dict(user_view)) if isinstance(user_view, Mapping) else {})
+    template_payload = (
+        copy.deepcopy(dict(template_view)) if isinstance(template_view, Mapping) else None
+    )
+    user_payload = copy.deepcopy(dict(user_view)) if isinstance(user_view, Mapping) else None
 
-    for key, value in user_view.items():
+    if template_payload is None and user_payload is not None:
+        return user_payload
+
+    base_view: dict[str, Any] = template_payload or {}
+    if user_payload is None:
+        return base_view
+
+    for key, value in user_payload.items():
         if key in {"nodes", "connections"}:
             continue
         base_view[key] = copy.deepcopy(value)
 
-    template_nodes = template_view.get("nodes") if isinstance(template_view, Mapping) else None
-    user_nodes = user_view.get("nodes")
+    template_nodes = template_payload.get("nodes") if isinstance(template_payload, Mapping) else None
+    user_nodes = user_payload.get("nodes") if isinstance(user_payload, Mapping) else None
     base_view["nodes"] = _merge_nodes(template_nodes, user_nodes)
 
-    template_connections = template_view.get("connections") if isinstance(template_view, Mapping) else None
-    user_connections = user_view.get("connections")
+    template_connections = (
+        template_payload.get("connections") if isinstance(template_payload, Mapping) else None
+    )
+    user_connections = (
+        user_payload.get("connections") if isinstance(user_payload, Mapping) else None
+    )
     base_view["connections"] = _merge_connections(template_connections, user_connections)
 
     return base_view
@@ -1346,7 +1494,13 @@ def _build_view_payload(
     model_name: str | None,
     datamodel: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    base_view: dict[str, Any] = _merge_view_structures(blueprint_view, datamodel_view)
+    normalized_blueprint_view = _normalize_view_structure(blueprint_view)
+    normalized_datamodel_view = _normalize_view_structure(datamodel_view)
+
+    base_view: dict[str, Any] = _merge_view_structures(
+        normalized_blueprint_view,
+        normalized_datamodel_view,
+    )
     _autolayout_nodes(base_view)
 
     def build_layout(source: Mapping[str, Any]) -> dict[str, Any]:
@@ -1356,8 +1510,8 @@ def _build_view_payload(
         }
 
     layout = build_layout(base_view)
-    if not layout["nodes"] and blueprint_view:
-        fallback_view = copy.deepcopy(blueprint_view)
+    if not layout["nodes"] and normalized_blueprint_view:
+        fallback_view = copy.deepcopy(normalized_blueprint_view)
         fallback_layout = build_layout(fallback_view)
         if fallback_layout["nodes"]:
             layout = fallback_layout
