@@ -19,7 +19,7 @@ from .artifacts import (
     SESSION_ARTIFACT_LAYOUT_PREVIEW,
 )
 from .constants import OUTPUT_DIR
-from .rendering import render_view_layout
+from .rendering import DEFAULT_MARGIN, render_view_layout
 from .session import (
     get_cached_artifact,
     get_session_bucket,
@@ -711,30 +711,325 @@ def _build_relationship_lookup(
     return lookup
 
 
-def _collect_nodes(nodes: Sequence[Any] | None, store: list[dict[str, Any]]) -> None:
+def _generate_identifier(existing: set[str], prefix: str) -> str:
+    index = len(existing) + 1
+    candidate = f"{prefix}-{index}"
+    while candidate in existing:
+        index += 1
+        candidate = f"{prefix}-{index}"
+    existing.add(candidate)
+    return candidate
+
+
+def _ensure_node_identity(
+    node: MutableMapping[str, Any],
+    *,
+    existing_ids: set[str],
+    existing_aliases: set[str],
+) -> tuple[str, str]:
+    identifier = node.get("id") or node.get("identifier") or node.get("elementRef")
+    identifier_str = str(identifier) if identifier else ""
+    if not identifier_str or identifier_str in existing_ids:
+        identifier_str = _generate_identifier(existing_ids, "auto-node")
+        node["id"] = identifier_str
+    else:
+        existing_ids.add(identifier_str)
+    node.setdefault("identifier", identifier_str)
+
+    alias = node.get("alias")
+    alias_str = str(alias) if alias else ""
+    if not alias_str or alias_str in existing_aliases:
+        if identifier_str and identifier_str not in existing_aliases:
+            alias_str = identifier_str
+            existing_aliases.add(alias_str)
+        else:
+            alias_str = _generate_identifier(existing_aliases, "auto-node-alias")
+        node["alias"] = alias_str
+    else:
+        existing_aliases.add(alias_str)
+    node.setdefault("alias", alias_str)
+
+    return identifier_str, alias_str
+
+
+def _ensure_connection_identity(
+    connection: MutableMapping[str, Any],
+    *,
+    existing_ids: set[str],
+    existing_aliases: set[str],
+) -> tuple[str, str]:
+    identifier = connection.get("id") or connection.get("identifier")
+    identifier_str = str(identifier) if identifier else ""
+    if not identifier_str or identifier_str in existing_ids:
+        identifier_str = _generate_identifier(existing_ids, "auto-connection")
+        connection["id"] = identifier_str
+    else:
+        existing_ids.add(identifier_str)
+    connection.setdefault("identifier", identifier_str)
+
+    alias = connection.get("alias")
+    alias_str = str(alias) if alias else ""
+    if not alias_str or alias_str in existing_aliases:
+        if identifier_str and identifier_str not in existing_aliases:
+            alias_str = identifier_str
+            existing_aliases.add(alias_str)
+        else:
+            alias_str = _generate_identifier(existing_aliases, "auto-connection-alias")
+        connection["alias"] = alias_str
+    else:
+        existing_aliases.add(alias_str)
+    connection.setdefault("alias", alias_str)
+
+    return identifier_str, alias_str
+
+
+def _collect_nodes(
+    nodes: Sequence[Any] | None,
+    store: list[dict[str, Any]],
+    *,
+    existing_ids: set[str] | None = None,
+    existing_aliases: set[str] | None = None,
+) -> None:
+    if existing_ids is None:
+        existing_ids = set()
+    if existing_aliases is None:
+        existing_aliases = set()
     if not isinstance(nodes, Sequence):
         return
     for node in nodes:
-        if not isinstance(node, Mapping):
+        if not isinstance(node, MutableMapping):
             continue
-        store.append(copy.deepcopy(dict(node)))
-        _collect_nodes(node.get("nodes"), store)
+        node_copy: MutableMapping[str, Any] = copy.deepcopy(dict(node))
+        _ensure_node_identity(
+            node_copy, existing_ids=existing_ids, existing_aliases=existing_aliases
+        )
+        store.append(node_copy)  # type: ignore[arg-type]
+        _collect_nodes(
+            node_copy.get("nodes"),
+            store,
+            existing_ids=existing_ids,
+            existing_aliases=existing_aliases,
+        )
 
 
 def _collect_connections(
-    container: Mapping[str, Any] | None, store: list[dict[str, Any]]
+    container: Mapping[str, Any] | None,
+    store: list[dict[str, Any]],
+    *,
+    existing_ids: set[str] | None = None,
+    existing_aliases: set[str] | None = None,
 ) -> None:
+    if existing_ids is None:
+        existing_ids = set()
+    if existing_aliases is None:
+        existing_aliases = set()
     if not isinstance(container, Mapping):
         return
     connections = container.get("connections")
     if isinstance(connections, Sequence):
         for connection in connections:
-            if isinstance(connection, Mapping):
-                store.append(copy.deepcopy(dict(connection)))
+            if not isinstance(connection, MutableMapping):
+                continue
+            connection_copy: MutableMapping[str, Any] = copy.deepcopy(dict(connection))
+            _ensure_connection_identity(
+                connection_copy,
+                existing_ids=existing_ids,
+                existing_aliases=existing_aliases,
+            )
+            store.append(connection_copy)  # type: ignore[arg-type]
     nodes = container.get("nodes")
     if isinstance(nodes, Sequence):
         for node in nodes:
-            _collect_connections(node, store)
+            _collect_connections(
+                node,
+                store,
+                existing_ids=existing_ids,
+                existing_aliases=existing_aliases,
+            )
+
+
+def _extract_bounds(payload: Mapping[str, Any] | None) -> dict[str, float] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    bounds = payload.get("bounds")
+    if not isinstance(bounds, Mapping):
+        return None
+    try:
+        x = float(bounds["x"])
+        y = float(bounds["y"])
+        w = float(bounds["w"])
+        h = float(bounds["h"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if w <= 0 or h <= 0:
+        return None
+    return {"x": x, "y": y, "w": w, "h": h}
+
+
+def _bounds_box(bounds_list: Sequence[Mapping[str, float]]) -> dict[str, float]:
+    min_x = min(bound["x"] for bound in bounds_list)
+    min_y = min(bound["y"] for bound in bounds_list)
+    max_x = max(bound["x"] + bound["w"] for bound in bounds_list)
+    max_y = max(bound["y"] + bound["h"] for bound in bounds_list)
+    return {"min_x": min_x, "min_y": min_y, "max_x": max_x, "max_y": max_y}
+
+
+def _infer_orientation(
+    container: Mapping[str, Any],
+    existing_bounds: Sequence[Mapping[str, float]] | None,
+) -> str:
+    documentation = str(container.get("documentation") or "").lower()
+    child_order = container.get("child_order")
+    child_tokens = ""
+    if isinstance(child_order, Sequence):
+        child_tokens = " ".join(str(token).lower() for token in child_order if token is not None)
+
+    if any(token in documentation for token in ("vertical", "coluna", "column")) or any(
+        token in child_tokens for token in ("vertical", "coluna", "column")
+    ):
+        return "vertical"
+    if any(token in documentation for token in ("horizontal", "linha", "row")) or any(
+        token in child_tokens for token in ("horizontal", "linha", "row")
+    ):
+        return "horizontal"
+
+    if existing_bounds:
+        box = _bounds_box(existing_bounds)
+        span_x = box["max_x"] - box["min_x"]
+        span_y = box["max_y"] - box["min_y"]
+        if span_y > span_x:
+            return "vertical"
+    return "horizontal"
+
+
+def _derive_slot_size(
+    existing_bounds: Sequence[Mapping[str, float]] | None,
+    container_bounds: Mapping[str, float] | None,
+    count: int,
+) -> tuple[float, float]:
+    widths = [bound["w"] for bound in existing_bounds or [] if bound["w"] > 0]
+    heights = [bound["h"] for bound in existing_bounds or [] if bound["h"] > 0]
+    width = sum(widths) / len(widths) if widths else 0.0
+    height = sum(heights) / len(heights) if heights else 0.0
+
+    if container_bounds:
+        available_width = max(container_bounds["w"] - 2 * DEFAULT_MARGIN, DEFAULT_MARGIN * 4)
+        available_height = max(container_bounds["h"] - 2 * DEFAULT_MARGIN, DEFAULT_MARGIN * 4)
+    else:
+        available_width = DEFAULT_MARGIN * 10
+        available_height = DEFAULT_MARGIN * 6
+
+    if width <= 0:
+        divisor = max(count, 1)
+        width = available_width / divisor
+    if height <= 0:
+        height = available_height / max(min(count, 3), 1)
+
+    return max(width, DEFAULT_MARGIN * 3), max(height, DEFAULT_MARGIN * 2)
+
+
+def _autolayout_nodes(view_payload: MutableMapping[str, Any] | None) -> None:
+    if not isinstance(view_payload, MutableMapping):
+        return
+
+    existing_ids: set[str] = set()
+    existing_aliases: set[str] = set()
+
+    def gather(node: Mapping[str, Any] | None) -> None:
+        if not isinstance(node, Mapping):
+            return
+        identifier = node.get("id") or node.get("identifier") or node.get("elementRef")
+        if identifier:
+            existing_ids.add(str(identifier))
+        alias = node.get("alias")
+        if alias:
+            existing_aliases.add(str(alias))
+        children = node.get("nodes")
+        if isinstance(children, Sequence):
+            for child in children:
+                gather(child)
+
+    gather(view_payload)
+
+    def walk(
+        container: MutableMapping[str, Any], parent_bounds: Mapping[str, float] | None
+    ) -> None:
+        nodes = container.get("nodes")
+        if not isinstance(nodes, Sequence):
+            nodes_sequence: list[MutableMapping[str, Any]] = []
+        else:
+            nodes_sequence = [node for node in nodes if isinstance(node, MutableMapping)]
+
+        for node in nodes_sequence:
+            _ensure_node_identity(
+                node, existing_ids=existing_ids, existing_aliases=existing_aliases
+            )
+
+        existing_bounds = [
+            bound
+            for bound in (_extract_bounds(node) for node in nodes_sequence)
+            if bound is not None
+        ]
+        missing_nodes = [
+            node for node in nodes_sequence if _extract_bounds(node) is None
+        ]
+
+        container_bounds = _extract_bounds(container) or parent_bounds
+        if not container_bounds and existing_bounds:
+            box = _bounds_box(existing_bounds)
+            container_bounds = {
+                "x": box["min_x"] - DEFAULT_MARGIN,
+                "y": box["min_y"] - DEFAULT_MARGIN,
+                "w": (box["max_x"] - box["min_x"]) + 2 * DEFAULT_MARGIN,
+                "h": (box["max_y"] - box["min_y"]) + 2 * DEFAULT_MARGIN,
+            }
+        if not container_bounds:
+            container_bounds = {
+                "x": 0.0,
+                "y": 0.0,
+                "w": DEFAULT_MARGIN * 12,
+                "h": DEFAULT_MARGIN * 8,
+            }
+
+        if missing_nodes:
+            orientation = _infer_orientation(container, existing_bounds)
+            slot_width, slot_height = _derive_slot_size(
+                existing_bounds, container_bounds, len(missing_nodes)
+            )
+            if existing_bounds:
+                box = _bounds_box(existing_bounds)
+                base_x = box["max_x"] + DEFAULT_MARGIN
+                base_y = box["min_y"]
+            else:
+                base_x = container_bounds["x"] + DEFAULT_MARGIN
+                base_y = container_bounds["y"] + DEFAULT_MARGIN
+
+            if orientation == "vertical":
+                if existing_bounds:
+                    box = _bounds_box(existing_bounds)
+                    base_x = box["min_x"]
+                    base_y = box["max_y"] + DEFAULT_MARGIN
+                step_x, step_y = 0.0, slot_height + DEFAULT_MARGIN
+            else:
+                step_x, step_y = slot_width + DEFAULT_MARGIN, 0.0
+
+            current_x = base_x
+            current_y = base_y
+            for node in missing_nodes:
+                node["bounds"] = {
+                    "x": float(current_x),
+                    "y": float(current_y),
+                    "w": float(slot_width),
+                    "h": float(slot_height),
+                }
+                current_x += step_x
+                current_y += step_y
+
+        for node in nodes_sequence:
+            node_bounds = _extract_bounds(node) or container_bounds
+            walk(node, node_bounds)
+
+    walk(view_payload, parent_bounds=None)
 
 
 def _find_matching_node(
@@ -1004,6 +1299,7 @@ def _build_view_payload(
     datamodel: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     base_view: dict[str, Any] = _merge_view_structures(blueprint_view, datamodel_view)
+    _autolayout_nodes(base_view)
 
     def build_layout(source: Mapping[str, Any]) -> dict[str, Any]:
         return {

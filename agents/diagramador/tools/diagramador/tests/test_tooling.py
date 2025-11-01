@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -158,6 +159,52 @@ def test_generate_layout_preview_replaces_template_placeholders(session_state):
     connection_labels = {conn.get("label") for conn in connections if conn.get("relationship_ref")}
     assert "Roteamento autenticado" in connection_labels
     assert "Portal web envia requisições PIX" in connection_labels
+
+
+def test_generate_layout_preview_autolayouts_missing_nodes(session_state):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+
+    new_element_id = "id-auto-layout-test"
+    datamodel["elements"].append(
+        {
+            "id": new_element_id,
+            "type": "ApplicationComponent",
+            "name": "Orquestrador de Antifraude",
+            "documentation": "Elemento adicional para verificar autolayout automático.",
+        }
+    )
+
+    view = datamodel["views"]["diagrams"][0]
+    view.setdefault("child_order", []).append("node")
+    view["nodes"].append(
+        {
+            "type": "ApplicationComponent",
+            "elementRef": new_element_id,
+            "label": "Orquestrador de Antifraude",
+            "documentation": "Elemento adicional para verificar autolayout automático.",
+        }
+    )
+
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    layout_nodes = artifact["view"]["layout"]["nodes"]
+    added = next(node for node in layout_nodes if node.get("element_ref") == new_element_id)
+    bounds = added["bounds"]
+    assert bounds["w"] > 0
+    assert bounds["h"] > 0
+    assert bounds["x"] != 0 or bounds["y"] != 0
+
+    svg_data = artifact["render"]["svg_data_uri"]
+    assert svg_data.startswith("data:image/svg+xml;base64,")
+    svg_payload = svg_data.split(",", 1)[1]
+    svg_text = base64.b64decode(svg_payload).decode("utf-8")
+    assert "Orquestrador de Antifraude" in svg_text
 
 
 def test_finalize_and_save_datamodel(session_state):
