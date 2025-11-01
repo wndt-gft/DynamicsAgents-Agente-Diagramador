@@ -34,7 +34,29 @@ from .templates import (
 )
 from ...utils.logging_config import get_logger
 
-__all__ = ["generate_layout_preview"]
+__all__ = ["generate_layout_preview", "LayoutValidationError"]
+
+
+class LayoutValidationError(ValueError):
+    """Erro de validação de layout com metadados estruturados."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        reason: str,
+        issues: Iterable[str] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.issues = tuple(issues or ())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "reason": self.reason,
+            "message": str(self),
+            "issues": list(self.issues),
+        }
 
 logger = get_logger(__name__)
 
@@ -718,22 +740,35 @@ def _ensure_node_identity(
     existing_aliases: set[str],
 ) -> tuple[str, str]:
     identifier = node.get("id") or node.get("identifier") or node.get("elementRef")
-    identifier_str = str(identifier) if identifier else ""
+    original_identifier = str(identifier) if identifier else ""
+    identifier_str = original_identifier
     if not identifier_str or identifier_str in existing_ids:
         identifier_str = _generate_identifier(existing_ids, "auto-node")
+        if original_identifier and original_identifier != identifier_str:
+            node.setdefault("original_identifier", original_identifier)
         node["id"] = identifier_str
     else:
+        node["id"] = identifier_str
         existing_ids.add(identifier_str)
     node.setdefault("identifier", identifier_str)
+    if (
+        original_identifier
+        and original_identifier != identifier_str
+        and "original_identifier" not in node
+    ):
+        node["original_identifier"] = original_identifier
 
     alias = node.get("alias")
     alias_str = str(alias) if alias else ""
+    original_alias = alias_str
     if not alias_str or alias_str in existing_aliases:
         if identifier_str and identifier_str not in existing_aliases:
             alias_str = identifier_str
             existing_aliases.add(alias_str)
         else:
             alias_str = _generate_identifier(existing_aliases, "auto-node-alias")
+        if original_alias and original_alias != alias_str:
+            node.setdefault("original_alias", original_alias)
         node["alias"] = alias_str
     else:
         existing_aliases.add(alias_str)
@@ -749,22 +784,35 @@ def _ensure_connection_identity(
     existing_aliases: set[str],
 ) -> tuple[str, str]:
     identifier = connection.get("id") or connection.get("identifier")
-    identifier_str = str(identifier) if identifier else ""
+    original_identifier = str(identifier) if identifier else ""
+    identifier_str = original_identifier
     if not identifier_str or identifier_str in existing_ids:
         identifier_str = _generate_identifier(existing_ids, "auto-connection")
+        if original_identifier and original_identifier != identifier_str:
+            connection.setdefault("original_identifier", original_identifier)
         connection["id"] = identifier_str
     else:
+        connection["id"] = identifier_str
         existing_ids.add(identifier_str)
     connection.setdefault("identifier", identifier_str)
+    if (
+        original_identifier
+        and original_identifier != identifier_str
+        and "original_identifier" not in connection
+    ):
+        connection["original_identifier"] = original_identifier
 
     alias = connection.get("alias")
     alias_str = str(alias) if alias else ""
+    original_alias = alias_str
     if not alias_str or alias_str in existing_aliases:
         if identifier_str and identifier_str not in existing_aliases:
             alias_str = identifier_str
             existing_aliases.add(alias_str)
         else:
             alias_str = _generate_identifier(existing_aliases, "auto-connection-alias")
+        if original_alias and original_alias != alias_str:
+            connection.setdefault("original_alias", original_alias)
         connection["alias"] = alias_str
     else:
         existing_aliases.add(alias_str)
@@ -1209,6 +1257,10 @@ def _build_layout_nodes(
         element_ref = node.get("elementRef")
         lookup = element_lookup.get(str(element_ref)) if element_ref else None
 
+        original_identifier = node.get("original_identifier")
+        if original_identifier is not None:
+            original_identifier = str(original_identifier)
+
         title = (
             node.get("title")
             or node.get("label")
@@ -1231,6 +1283,7 @@ def _build_layout_nodes(
                 "type": node.get("type"),
                 "title": title,
                 "label": node.get("label"),
+                "original_identifier": original_identifier,
             }
         )
 
@@ -1261,6 +1314,10 @@ def _build_layout_connections(
             or (relation_info.get("name") if relation_info else None)
         )
 
+        original_identifier = connection.get("original_identifier")
+        if original_identifier is not None:
+            original_identifier = str(original_identifier)
+
         layout_connections.append(
             {
                 "id": identifier,
@@ -1270,6 +1327,7 @@ def _build_layout_connections(
                 "relationship_ref": relationship_ref,
                 "label": label,
                 "style": connection.get("style"),
+                "original_identifier": original_identifier,
             }
         )
 
@@ -1360,10 +1418,18 @@ def _validate_view_payloads(
         node_identifier: str | None,
         label: str | None,
         suffix: str | None = None,
+        original_identifier: str | None = None,
     ) -> str:
         details: list[str] = []
         if node_identifier:
-            details.append(f"nó '{node_identifier}'")
+            if original_identifier and original_identifier != node_identifier:
+                details.append(
+                    f"nó '{node_identifier}' (id original '{original_identifier}')"
+                )
+            else:
+                details.append(f"nó '{node_identifier}'")
+        elif original_identifier:
+            details.append(f"id original '{original_identifier}'")
         if label:
             details.append(f"nome='{label}'")
         if suffix:
@@ -1378,10 +1444,18 @@ def _validate_view_payloads(
         connection_identifier: str | None,
         label: str | None,
         suffix: str | None = None,
+        original_identifier: str | None = None,
     ) -> str:
         details: list[str] = []
         if connection_identifier:
-            details.append(f"conexão '{connection_identifier}'")
+            if original_identifier and original_identifier != connection_identifier:
+                details.append(
+                    f"conexão '{connection_identifier}' (id original '{original_identifier}')"
+                )
+            else:
+                details.append(f"conexão '{connection_identifier}'")
+        elif original_identifier:
+            details.append(f"id original '{original_identifier}'")
         if label:
             details.append(f"nome='{label}'")
         if suffix:
@@ -1407,6 +1481,11 @@ def _validate_view_payloads(
                     continue
                 key = str(element_ref)
                 node_identifier = str(node.get("id") or node.get("identifier") or key)
+                original_identifier = node.get("original_identifier")
+                if isinstance(original_identifier, str) and original_identifier.strip():
+                    original_identifier = original_identifier.strip()
+                else:
+                    original_identifier = None
                 node_label = _clean(
                     node.get("label") or node.get("title") or node.get("name")
                 )
@@ -1417,7 +1496,8 @@ def _validate_view_payloads(
                         view_descriptor,
                         key,
                         node_identifier=node_identifier,
-                        label=node_label
+                        label=node_label,
+                        original_identifier=original_identifier,
                     )
                     missing_references.append(
                         f"{reference} ausente no datamodel"
@@ -1441,6 +1521,7 @@ def _validate_view_payloads(
                             key,
                             node_identifier=node_identifier,
                             label=node_label,
+                            original_identifier=original_identifier,
                         )
                     )
 
@@ -1461,6 +1542,11 @@ def _validate_view_payloads(
                     or connection.get("identifier")
                     or key
                 )
+                original_identifier = connection.get("original_identifier")
+                if isinstance(original_identifier, str) and original_identifier.strip():
+                    original_identifier = original_identifier.strip()
+                else:
+                    original_identifier = None
                 relation_label = _clean(
                     connection.get("label")
                     or connection.get("name")
@@ -1473,6 +1559,7 @@ def _validate_view_payloads(
                         key,
                         connection_identifier=conn_identifier,
                         label=relation_label,
+                        original_identifier=original_identifier,
                     )
                     missing_references.append(
                         f"{reference} ausente no datamodel"
@@ -1502,21 +1589,26 @@ def _validate_view_payloads(
                             key,
                             connection_identifier=conn_identifier,
                             label=relation_label,
+                            original_identifier=original_identifier,
                         )
                     )
 
     if missing_references:
         details = "; ".join(missing_references)
-        raise ValueError(
+        raise LayoutValidationError(
             "Existem referências de layout para elementos ou relações ausentes no datamodel final. "
-            f"Revise o datamodel antes de gerar o preview: {details}."
+            f"Revise o datamodel antes de gerar o preview: {details}.",
+            reason="missing_layout_references",
+            issues=missing_references,
         )
 
     if unchanged_references:
         details = "; ".join(unchanged_references)
-        raise ValueError(
+        raise LayoutValidationError(
             "Preencha os componentes herdados do template com os dados do usuário antes de gerar o preview. "
-            f"Itens não personalizados: {details}."
+            f"Itens não personalizados: {details}.",
+            reason="template_content_not_customized",
+            issues=unchanged_references,
         )
 
 

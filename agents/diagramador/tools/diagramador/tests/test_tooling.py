@@ -16,6 +16,7 @@ from agents.diagramador.tools.diagramador import (
     SESSION_ARTIFACT_SAVED_DATAMODEL,
     SESSION_ARTIFACT_TEMPLATE_GUIDANCE,
     SESSION_ARTIFACT_TEMPLATE_LISTING,
+    LayoutValidationError,
     describe_template,
     finalize_datamodel,
     generate_archimate_diagram,
@@ -27,6 +28,9 @@ from agents.diagramador.tools.diagramador.templates import load_template_bluepri
 from agents.diagramador.tools.diagramador.session import (
     SESSION_STATE_ROOT,
     clear_fallback_session_state,
+)
+from agents.diagramador.tools.generate_layout_preview.tool import (
+    generate_layout_preview as tool_generate_layout_preview,
 )
 
 SAMPLE_DATAMODEL_FILE = (
@@ -156,7 +160,7 @@ def test_generate_layout_preview_reports_non_customized_element_names(
     if blueprint_element.get("documentation"):
         datamodel_element["documentation"] = blueprint_element.get("documentation")
 
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(LayoutValidationError) as exc_info:
         generate_layout_preview(
             datamodel=datamodel,
             template_path=str(SAMPLE_TEMPLATE),
@@ -166,6 +170,40 @@ def test_generate_layout_preview_reports_non_customized_element_names(
     message = str(exc_info.value)
     assert "Itens não personalizados" in message
     assert "nome='Data Application Component'" in message
+    assert exc_info.value.reason == "template_content_not_customized"
+
+
+def test_generate_layout_preview_tool_returns_structured_error(
+    session_state, template_blueprint
+):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+
+    target_id = "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+    blueprint_element = next(
+        element
+        for element in template_blueprint["elements"]
+        if element.get("id") == target_id or element.get("identifier") == target_id
+    )
+    datamodel_element = next(
+        element for element in datamodel["elements"] if element.get("id") == target_id
+    )
+    datamodel_element["name"] = blueprint_element.get("name")
+    if blueprint_element.get("documentation"):
+        datamodel_element["documentation"] = blueprint_element.get("documentation")
+
+    response = tool_generate_layout_preview(
+        datamodel=json.dumps(datamodel),
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    assert response["status"] == "error"
+    assert response["error"]["type"] == "layout_validation"
+    assert response["error"]["reason"] == "template_content_not_customized"
+    assert any(
+        "Data Application Component" in issue for issue in response["error"]["issues"]
+    )
 
 
 def test_generate_layout_preview_overrides_blueprint_metadata(session_state):

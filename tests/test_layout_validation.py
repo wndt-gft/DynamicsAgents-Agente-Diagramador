@@ -2,7 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from agents.diagramador.tools.diagramador.layouts import generate_layout_preview
+from agents.diagramador.tools.diagramador.layouts import (
+    LayoutValidationError,
+    generate_layout_preview,
+)
 from agents.diagramador.tools.diagramador.templates import TemplateMetadata, ViewMetadata
 
 
@@ -67,10 +70,11 @@ def test_generate_layout_preview_errors_on_missing_element_ref(monkeypatch):
         ],
     }
 
-    with pytest.raises(ValueError, match="custom-node") as exc:
+    with pytest.raises(LayoutValidationError, match="custom-node") as exc:
         generate_layout_preview(datamodel, "template.xml")
 
     assert "missing-element" in str(exc.value)
+    assert any("custom-node" in issue for issue in exc.value.issues)
 
 
 def test_generate_layout_preview_errors_on_blueprint_metadata(monkeypatch):
@@ -131,10 +135,12 @@ def test_generate_layout_preview_errors_on_blueprint_metadata(monkeypatch):
         ],
     }
 
-    with pytest.raises(ValueError, match="placeholder") as exc:
+    with pytest.raises(LayoutValidationError, match="placeholder") as exc:
         generate_layout_preview(datamodel, "template.xml")
 
     message = str(exc.value)
     assert "Visão 1" in message or "Visão" in message
     assert "Preencha os componentes" in message
+    assert exc.value.reason == "template_content_not_customized"
+    assert any("node-placeholder" in issue for issue in exc.value.issues)
 

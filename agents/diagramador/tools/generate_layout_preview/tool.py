@@ -6,6 +6,7 @@ from typing import Any
 
 from ..diagramador import (
     SESSION_ARTIFACT_LAYOUT_PREVIEW,
+    LayoutValidationError,
     generate_layout_preview as _generate_layout_preview,
 )
 from ...utils import (
@@ -71,6 +72,27 @@ def generate_layout_preview(
             session_state=coerced_state,
             view_filter=filter_payload,
         )
+    except LayoutValidationError as exc:
+        logger.warning(
+            "generate_layout_preview falhou por erro de validação de layout: %s",
+            exc,
+            exc_info=exc,
+        )
+        error_payload = exc.to_dict()
+        error_payload["type"] = "layout_validation"
+        return {
+            "status": "error",
+            "error": error_payload,
+        }
     except ValueError as exc:
-        logger.exception("generate_layout_preview falhou com datamodel fornecido.", exc_info=exc)
-        raise
+        logger.exception(
+            "generate_layout_preview falhou com datamodel fornecido.",
+            exc_info=exc,
+        )
+        return {
+            "status": "error",
+            "error": {
+                "type": "runtime",
+                "message": str(exc),
+            },
+        }

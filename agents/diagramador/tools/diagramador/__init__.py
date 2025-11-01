@@ -23,7 +23,7 @@ from .constants import (
     XSI_ATTR,
 )
 from .datamodel import finalize_datamodel, generate_archimate_diagram, save_datamodel
-from .layouts import generate_layout_preview
+from .layouts import LayoutValidationError, generate_layout_preview
 from .session import (
     ARTIFACTS_CACHE_KEY,
     BLUEPRINT_CACHE_KEY,
@@ -57,6 +57,7 @@ __all__ = [
     "finalize_datamodel",
     "generate_archimate_diagram",
     "generate_layout_preview",
+    "LayoutValidationError",
     "list_templates",
     "save_datamodel",
     "BLUEPRINT_CACHE_KEY",
