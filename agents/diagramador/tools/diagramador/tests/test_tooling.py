@@ -27,6 +27,14 @@ from agents.diagramador.tools.diagramador.session import (
     clear_fallback_session_state,
 )
 
+SAMPLE_DATAMODEL_FILE = (
+    Path(__file__).resolve().parents[2]
+    / "archimate_exchange"
+    / "samples"
+    / "pix_solution_case"
+    / "pix_container_datamodel.json"
+)
+
 SAMPLE_TEMPLATE = DEFAULT_TEMPLATE
 
 
@@ -40,6 +48,11 @@ def reset_session_state():
 @pytest.fixture()
 def session_state() -> dict:
     return {}
+
+
+def _load_sample_datamodel() -> dict:
+    with SAMPLE_DATAMODEL_FILE.open(encoding="utf-8") as handler:
+        return json.load(handler)
 
 
 def test_list_templates_registers_artifact(session_state):
@@ -61,8 +74,9 @@ def test_describe_template_caches_guidance(session_state):
 
 
 def test_generate_layout_preview_creates_replacements(session_state):
+    datamodel = _load_sample_datamodel()
     generate_layout_preview(
-        datamodel=None,
+        datamodel=datamodel,
         template_path=str(SAMPLE_TEMPLATE),
         session_state=session_state,
     )
@@ -71,6 +85,45 @@ def test_generate_layout_preview_creates_replacements(session_state):
     replacements = artifact["replacements"]
     assert "layout_preview.inline" in replacements
     assert "data:image/svg+xml" in replacements["layout_preview.svg"]
+
+
+def test_generate_layout_preview_requires_datamodel(session_state):
+    with pytest.raises(ValueError):
+        generate_layout_preview(
+            datamodel=None,
+            template_path=str(SAMPLE_TEMPLATE),
+            session_state=session_state,
+        )
+
+
+def test_generate_layout_preview_detects_placeholders(session_state):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))  # deep copy
+    datamodel["views"]["diagrams"][0]["nodes"][2]["label"] = "[[Nome da Solução Do Usuário]]"
+
+    with pytest.raises(ValueError):
+        generate_layout_preview(
+            datamodel=datamodel,
+            template_path=str(SAMPLE_TEMPLATE),
+            session_state=session_state,
+        )
+
+
+def test_generate_layout_preview_replaces_template_placeholders(session_state):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+    datamodel.pop("views", None)
+
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    layout_snapshot = json.dumps(artifact["view"]["layout"])
+    assert "[[" not in layout_snapshot
+    assert "{{" not in layout_snapshot
 
 
 def test_finalize_and_save_datamodel(session_state):
@@ -121,7 +174,7 @@ def test_generate_archimate_diagram_uses_session_state(session_state):
 
 def test_after_model_callback_replaces_placeholders(session_state):
     generate_layout_preview(
-        datamodel=None,
+        datamodel=_load_sample_datamodel(),
         template_path=str(SAMPLE_TEMPLATE),
         session_state=session_state,
     )

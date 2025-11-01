@@ -44,6 +44,7 @@ _CODE_FENCE_RE = re.compile(
 )
 _PLACEHOLDER_RE = re.compile(r"\s*[-–]?\s*\{[^}]+\}")
 _WHITESPACE_RE = re.compile(r"\s+")
+_PLACEHOLDER_TOKEN_RE = re.compile(r"\{\{[^{}]+\}\}|\[\[[^\[\]]+\]\]")
 
 
 def _resolve_template_path(template_path: str | None) -> Path:
@@ -93,6 +94,235 @@ def _normalize_tokens(view_filter: Iterable[str] | str | None) -> set[str]:
     return {token for token in tokens if token}
 
 
+def _find_placeholders(
+    value: Any,
+    *,
+    root: str,
+    limit: int = 5,
+) -> list[str]:
+    findings: list[str] = []
+
+    def walk(current: Any, path: str) -> None:
+        if len(findings) >= limit:
+            return
+        if isinstance(current, str):
+            match = _PLACEHOLDER_TOKEN_RE.search(current)
+            if match:
+                snippet = current.strip()
+                if len(snippet) > 80:
+                    snippet = f"{snippet[:77]}..."
+                findings.append(f"{path}: {snippet}")
+            return
+        if isinstance(current, Mapping):
+            for key, item in current.items():
+                walk(item, f"{path}.{key}" if path else str(key))
+                if len(findings) >= limit:
+                    break
+            return
+        if isinstance(current, Sequence) and not isinstance(current, (str, bytes, bytearray)):
+            for index, item in enumerate(current):
+                walk(item, f"{path}[{index}]")
+                if len(findings) >= limit:
+                    break
+
+    walk(value, root)
+    return findings
+
+
+def _replace_placeholder_tokens(value: str, replacements: Mapping[str, str]) -> str:
+    def _replacement(match: re.Match[str]) -> str:
+        token = match.group(0)
+        normalized = token.strip("{}[] ").strip()
+        normalized_lower = normalized.casefold()
+        return (
+            replacements.get(token)
+            or replacements.get(normalized)
+            or replacements.get(normalized_lower)
+            or token
+        )
+
+    return _PLACEHOLDER_TOKEN_RE.sub(_replacement, value)
+
+
+def _resolve_model_name(datamodel: Mapping[str, Any]) -> str | None:
+    model_name = datamodel.get("model_name")
+    if isinstance(model_name, Mapping):
+        candidate = (
+            model_name.get("text")
+            or model_name.get("value")
+            or model_name.get("name")
+            or model_name.get("label")
+        )
+        if isinstance(candidate, str):
+            return candidate.strip() or None
+    elif isinstance(model_name, str):
+        normalized = model_name.strip()
+        if normalized:
+            return normalized
+    return None
+
+
+def _sanitize_datamodel(payload: Mapping[str, Any], *, context: str = "datamodel") -> dict[str, Any]:
+    if not isinstance(payload, Mapping):
+        raise ValueError("O datamodel fornecido deve ser um objeto JSON com chaves e valores.")
+
+    elements = payload.get("elements")
+    if not isinstance(elements, Sequence) or not elements:
+        raise ValueError(
+            "O datamodel precisa conter a lista de elementos mapeados a partir da história do usuário."
+        )
+
+    model_name = _resolve_model_name(payload)
+    if not model_name:
+        raise ValueError(
+            "Defina 'model_name' com o nome canônico da solução antes de gerar a pré-visualização."
+        )
+    if _PLACEHOLDER_TOKEN_RE.search(model_name):
+        raise ValueError(
+            "Substitua o placeholder do nome da solução no datamodel por um valor final coerente com a narrativa."
+        )
+
+    placeholder_hits = _find_placeholders(payload, root=context)
+    if placeholder_hits:
+        details = "; ".join(placeholder_hits[:3])
+        if len(placeholder_hits) > 3:
+            details = f"{details}..."
+        raise ValueError(
+            "O datamodel ainda contém placeholders do template que devem ser preenchidos com os dados do usuário "
+            f"antes de gerar o preview: {details}"
+        )
+
+    return copy.deepcopy(dict(payload))
+
+
+def _normalize_view_key(value: str | None) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = _WHITESPACE_RE.sub(" ", value.strip()).casefold()
+    return normalized or None
+
+
+def _resolve_description(
+    datamodel_view: Mapping[str, Any] | None,
+    datamodel: Mapping[str, Any] | None,
+    default: str | None,
+) -> str | None:
+    candidates: list[str | None] = []
+    if isinstance(datamodel_view, Mapping):
+        candidates.extend(
+            [
+                datamodel_view.get("description"),
+                datamodel_view.get("documentation"),
+                datamodel_view.get("label"),
+            ]
+        )
+    if isinstance(datamodel, Mapping):
+        candidates.extend(
+            [
+                datamodel.get("description"),
+                datamodel.get("documentation"),
+            ]
+        )
+    candidates.append(default)
+    for item in candidates:
+        if isinstance(item, str) and item.strip():
+            return item.strip()
+    return None
+
+
+def _apply_layout_customization(
+    layout: Mapping[str, Any],
+    *,
+    model_name: str | None,
+    view_name: str | None,
+    view_description: str | None,
+    element_lookup: Mapping[str, Mapping[str, Any]],
+    relationship_lookup: Mapping[str, Mapping[str, Any]],
+) -> None:
+    if not view_description and view_name:
+        view_description = view_name
+
+    replacements: dict[str, str] = {}
+    if model_name:
+        replacements["[[Nome da Solução Do Usuário]]"] = model_name
+        replacements["nome da solução do usuário"] = model_name
+    if view_name:
+        replacements["{{Título}}"] = view_name
+        replacements["titulo"] = view_name
+    if view_description:
+        replacements["{{Descrição}}"] = view_description
+        replacements["descrição"] = view_description
+
+    def update_text_fields(payload: dict[str, Any], fields: Iterable[str]) -> None:
+        for field in fields:
+            text = payload.get(field)
+            if not isinstance(text, str):
+                continue
+            new_text = _replace_placeholder_tokens(text, replacements) if replacements else text
+            if new_text != text:
+                payload[field] = new_text
+
+    # Update nodes
+    nodes = layout.get("nodes")
+    if isinstance(nodes, list):
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            element_ref = node.get("elementRef") or node.get("element_ref")
+            lookup = element_lookup.get(str(element_ref)) if element_ref else None
+            if lookup:
+                element_name = lookup.get("name")
+                if element_name:
+                    label = node.get("label")
+                    if not isinstance(label, str) or _PLACEHOLDER_TOKEN_RE.search(label):
+                        node["label"] = str(element_name)
+                    title = node.get("title")
+                    if not isinstance(title, str) or _PLACEHOLDER_TOKEN_RE.search(title):
+                        node["title"] = str(element_name)
+                element_doc = lookup.get("documentation")
+                if element_doc:
+                    doc = node.get("documentation")
+                    if not isinstance(doc, str) or _PLACEHOLDER_TOKEN_RE.search(doc):
+                        node["documentation"] = str(element_doc)
+            update_text_fields(node, ("label", "title", "documentation"))
+
+            # Recurse for nested nodes (groups / containers)
+            inner_nodes = node.get("nodes")
+            if isinstance(inner_nodes, list):
+                inner_layout = {"nodes": inner_nodes, "connections": []}
+                _apply_layout_customization(
+                    inner_layout,
+                    model_name=model_name,
+                    view_name=view_name,
+                    view_description=view_description,
+                    element_lookup=element_lookup,
+                    relationship_lookup=relationship_lookup,
+                )
+
+    # Update connections
+    connections = layout.get("connections")
+    if isinstance(connections, list):
+        for connection in connections:
+            if not isinstance(connection, dict):
+                continue
+            relationship_ref = connection.get("relationshipRef") or connection.get("relationship_ref")
+            relation_info = (
+                relationship_lookup.get(str(relationship_ref)) if relationship_ref else None
+            )
+            if relation_info:
+                relation_name = relation_info.get("name")
+                if relation_name:
+                    label = connection.get("label")
+                    if not isinstance(label, str) or _PLACEHOLDER_TOKEN_RE.search(label):
+                        connection["label"] = str(relation_name)
+                relation_doc = relation_info.get("documentation")
+                if relation_doc:
+                    doc = connection.get("documentation")
+                    if not isinstance(doc, str) or _PLACEHOLDER_TOKEN_RE.search(doc):
+                        connection["documentation"] = str(relation_doc)
+            update_text_fields(connection, ("label", "documentation"))
+
+
 def _select_views(
     metadata: TemplateMetadata, view_filter: Iterable[str] | str | None
 ) -> list[ViewMetadata]:
@@ -126,32 +356,43 @@ def _load_datamodel(
     session_state: MutableMapping[str, object] | None,
 ) -> dict[str, Any] | None:
     if isinstance(datamodel, Mapping):
-        return copy.deepcopy(dict(datamodel))
+        return _sanitize_datamodel(datamodel)
     if isinstance(datamodel, str):
         stripped = _strip_code_fences(datamodel)
         if not stripped.strip():
-            return None
+            raise ValueError(
+                "Forneça um datamodel em JSON com os elementos da narrativa para gerar o preview."
+            )
         try:
-            return json.loads(stripped)
+            parsed = json.loads(stripped)
         except json.JSONDecodeError as exc:  # pragma: no cover - feedback explícito
             raise ValueError("O conteúdo enviado não é um JSON válido.") from exc
+        if not isinstance(parsed, Mapping):
+            raise ValueError("O datamodel fornecido deve ser um objeto JSON.")
+        return _sanitize_datamodel(parsed)
 
     if session_state is not None:
         artifact = get_cached_artifact(session_state, SESSION_ARTIFACT_FINAL_DATAMODEL)
         if isinstance(artifact, Mapping):
             cached = artifact.get("datamodel")
             if isinstance(cached, Mapping):
-                return copy.deepcopy(dict(cached))
+                return _sanitize_datamodel(cached, context="session.datamodel")
             cached_json = artifact.get("json")
             if isinstance(cached_json, str):
                 try:
-                    return json.loads(cached_json)
+                    parsed = json.loads(cached_json)
                 except json.JSONDecodeError:
                     logger.debug(
                         "Datamodel armazenado na sessão está inválido.",
                         exc_info=True,
                     )
-    return None
+                else:
+                    if isinstance(parsed, Mapping):
+                        return _sanitize_datamodel(parsed, context="session.datamodel")
+
+    raise ValueError(
+        "Não há datamodel consolidado disponível. Finalize o datamodel com os elementos da história antes de gerar a pré-visualização."
+    )
 
 
 def _build_element_lookup(
@@ -169,10 +410,13 @@ def _build_element_lookup(
             return
         name = element.get("name") or element.get("label")
         elem_type = element.get("type") or element.get("kind")
+        documentation = element.get("documentation") or element.get("description")
         if name:
             target["name"] = name
         if elem_type:
             target["type"] = elem_type
+        if documentation:
+            target["documentation"] = documentation
 
     def walk(elements: Sequence[Any] | None, *, prefer_existing: bool = False) -> None:
         if not isinstance(elements, Sequence):
@@ -211,6 +455,9 @@ def _build_relationship_lookup(
         label = relation.get("label") or relation.get("name")
         if label:
             target["name"] = label
+        documentation = relation.get("documentation") or relation.get("description")
+        if documentation:
+            target["documentation"] = documentation
 
     relations = blueprint.get("relations")
     if isinstance(relations, Sequence):
@@ -364,6 +611,9 @@ def _build_view_payload(
     datamodel_view: Mapping[str, Any] | None,
     element_lookup: Mapping[str, Mapping[str, Any]],
     relationship_lookup: Mapping[str, Mapping[str, Any]],
+    *,
+    model_name: str | None,
+    datamodel: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     base_view: dict[str, Any] = copy.deepcopy(blueprint_view) if blueprint_view else {}
     if isinstance(datamodel_view, Mapping):
@@ -384,7 +634,24 @@ def _build_view_payload(
             base_view.setdefault("nodes", fallback_view.get("nodes"))
             base_view.setdefault("connections", fallback_view.get("connections"))
 
-    name = str(base_view.get("name") or metadata.name)
+    view_name = (
+        base_view.get("name")
+        or (datamodel_view.get("name") if isinstance(datamodel_view, Mapping) else None)
+        or metadata.name
+    )
+    name = str(view_name)
+
+    view_description = _resolve_description(datamodel_view, datamodel, metadata.documentation)
+
+    _apply_layout_customization(
+        layout,
+        model_name=model_name,
+        view_name=name,
+        view_description=view_description,
+        element_lookup=element_lookup,
+        relationship_lookup=relationship_lookup,
+    )
+
     return {
         "identifier": metadata.identifier,
         "name": name,
@@ -456,9 +723,11 @@ def _build_replacements(
     return replacements
 
 
-def _index_datamodel_views(datamodel: Mapping[str, Any] | None) -> dict[str, Mapping[str, Any]]:
+def _index_datamodel_views(
+    datamodel: Mapping[str, Any] | None,
+) -> tuple[dict[str, Mapping[str, Any]], dict[str, Mapping[str, Any]]]:
     if not isinstance(datamodel, Mapping):
-        return {}
+        return {}, {}
 
     views = datamodel.get("views")
     diagrams: Sequence[Any] | None
@@ -467,15 +736,20 @@ def _index_datamodel_views(datamodel: Mapping[str, Any] | None) -> dict[str, Map
     else:
         diagrams = views
 
-    lookup: dict[str, Mapping[str, Any]] = {}
+    id_lookup: dict[str, Mapping[str, Any]] = {}
+    name_lookup: dict[str, Mapping[str, Any]] = {}
     if isinstance(diagrams, Sequence):
         for view in diagrams:
             if not isinstance(view, Mapping):
                 continue
             identifier = view.get("id") or view.get("identifier")
             if identifier:
-                lookup[str(identifier)] = view
-    return lookup
+                id_lookup[str(identifier)] = view
+            name = view.get("name") or view.get("title")
+            normalized = _normalize_view_key(name if isinstance(name, str) else None)
+            if normalized and normalized not in name_lookup:
+                name_lookup[normalized] = view
+    return id_lookup, name_lookup
 
 
 def _match_blueprint_view(
@@ -520,14 +794,23 @@ def generate_layout_preview(
         "fornecido" if datamodel_payload else "template-base",
     )
 
-    datamodel_views = _index_datamodel_views(datamodel_payload)
+    datamodel_views_by_id, datamodel_views_by_name = _index_datamodel_views(datamodel_payload)
     element_lookup = _build_element_lookup(blueprint, datamodel_payload)
     relationship_lookup = _build_relationship_lookup(blueprint, datamodel_payload)
+    model_name = _resolve_model_name(datamodel_payload) if datamodel_payload else None
 
     view_payloads: list[dict[str, Any]] = []
     for meta in available_views:
         blueprint_view = _match_blueprint_view(blueprint, meta.identifier)
-        datamodel_view = datamodel_views.get(meta.identifier)
+        datamodel_view = datamodel_views_by_id.get(meta.identifier)
+        if datamodel_view is None:
+            normalized_name = _normalize_view_key(meta.name)
+            if normalized_name:
+                datamodel_view = datamodel_views_by_name.get(normalized_name)
+        if datamodel_view is None and datamodel_views_by_id:
+            # Fallback: utiliza a única visão disponível no datamodel quando não há correspondência explícita.
+            if len(datamodel_views_by_id) == 1:
+                datamodel_view = next(iter(datamodel_views_by_id.values()))
         view_payloads.append(
             _build_view_payload(
                 meta,
@@ -535,6 +818,8 @@ def generate_layout_preview(
                 datamodel_view,
                 element_lookup,
                 relationship_lookup,
+                model_name=model_name,
+                datamodel=datamodel_payload,
             )
         )
 
@@ -542,6 +827,17 @@ def generate_layout_preview(
 
     if not primary_view["layout"]["nodes"]:
         raise ValueError("A visão selecionada não possui elementos para renderização.")
+
+    layout_placeholder_hits = _find_placeholders(primary_view["layout"], root="layout")
+    if layout_placeholder_hits:
+        details = "; ".join(layout_placeholder_hits[:3])
+        if len(layout_placeholder_hits) > 3:
+            details = f"{details}..."
+        raise ValueError(
+            "A visão selecionada ainda contém placeholders do template. "
+            "Atualize as labels, containers e relacionamentos com o conteúdo da história do usuário antes de gerar o preview: "
+            f"{details}"
+        )
 
     node_count = len(primary_view["layout"]["nodes"])
     conn_count = len(primary_view["layout"].get("connections", []))

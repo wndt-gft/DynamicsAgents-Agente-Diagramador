@@ -72,16 +72,5 @@ def generate_layout_preview(
             view_filter=filter_payload,
         )
     except ValueError as exc:
-        if datamodel_payload is None:
-            logger.exception("generate_layout_preview falhou sem datamodel.", exc_info=exc)
-            raise
-        logger.debug(
-            "generate_layout_preview: tentativa de fallback sem datamodel após erro: %s",
-            exc,
-        )
-        return _generate_layout_preview(
-            None,
-            template_path=template_payload,
-            session_state=coerced_state,
-            view_filter=filter_payload,
-        )
+        logger.exception("generate_layout_preview falhou com datamodel fornecido.", exc_info=exc)
+        raise
