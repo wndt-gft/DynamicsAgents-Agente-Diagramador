@@ -1748,6 +1748,7 @@ def generate_layout_preview(
     )
 
     datamodel_views_by_id, datamodel_views_by_name = _index_datamodel_views(datamodel_payload)
+    has_datamodel_views = bool(datamodel_views_by_id or datamodel_views_by_name)
     element_lookup = _build_element_lookup(blueprint, datamodel_payload)
     relationship_lookup = _build_relationship_lookup(blueprint, datamodel_payload)
     blueprint_element_lookup = _build_element_lookup(blueprint, None)
@@ -1762,10 +1763,31 @@ def generate_layout_preview(
             normalized_name = _normalize_view_key(meta.name)
             if normalized_name:
                 datamodel_view = datamodel_views_by_name.get(normalized_name)
-        if datamodel_view is None and datamodel_views_by_id:
-            # Fallback: utiliza a única visão disponível no datamodel quando não há correspondência explícita.
-            if len(datamodel_views_by_id) == 1:
-                datamodel_view = next(iter(datamodel_views_by_id.values()))
+        if datamodel_view is None and has_datamodel_views:
+            available_identifiers = sorted(datamodel_views_by_id.keys())
+            available_names = sorted(
+                {
+                    payload.get("name")
+                    for payload in datamodel_views_by_id.values()
+                    if isinstance(payload, Mapping)
+                    and isinstance(payload.get("name"), str)
+                }
+                | {
+                    payload.get("name")
+                    for payload in datamodel_views_by_name.values()
+                    if isinstance(payload, Mapping)
+                    and isinstance(payload.get("name"), str)
+                }
+            )
+            identifier_hint = ", ".join(available_identifiers) or "<nenhum>"
+            name_hint = ", ".join(available_names) or "<nenhum>"
+            raise ValueError(
+                "Não foi possível localizar a visão selecionada no datamodel. "
+                "Replique a estrutura retornada por `describe_template` em `views.diagrams` "
+                "utilizando o mesmo `id`/`name` da visão escolhida antes de gerar o preview. "
+                f"Visão esperada: id='{meta.identifier}', nome='{meta.name}'. "
+                f"Visões encontradas no datamodel: ids=({identifier_hint}); nomes=({name_hint})."
+            )
         view_payloads.append(
             _build_view_payload(
                 meta,
