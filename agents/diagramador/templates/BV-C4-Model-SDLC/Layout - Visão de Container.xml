@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd" identifier="id-65a4951d-6114-409d-9562-9a80710d5866">
-  <name xml:lang="pt">25.3T.JT-XXXX.TE-XXXX-{{Nome da Solução}}</name>
+  <name xml:lang="pt">25.3T.JT-XXXX.TE-XXXX-[[Nome da Solução Do Usuário]]</name>
   <elements>
     <element identifier="id-9a9b5d551e904bfcbfce12a6197943a2" xsi:type="ApplicationComponent">
       <name xml:lang="pt">Application Component</name>
@@ -238,7 +238,7 @@
           </style>
         </node>
         <node identifier="id-1328082" xsi:type="Label" x="127" y="47" w="1540" h="40">
-          <label xml:lang="pt">{{Nome da Solução}}</label>
+          <label xml:lang="pt">[[Nome da Solução Do Usuário]]</label>
           <style>
             <fillColor r="255" g="255" b="255" a="0" />
             <lineColor r="0" g="0" b="0" a="0" />
