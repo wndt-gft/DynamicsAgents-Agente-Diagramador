@@ -1,7 +1,0 @@
-name: scenario_tester
-label: "Executor de suítes"
-description: "Aplica comparadores determinísticos para validar asserções declarativas durante a sessão."
-maintainer: "example-team@example.com"
-methods:
-  - run_suite:
-      description: "Executa uma suíte de testes declarativa, retornando totais e resultados detalhados."
