@@ -356,7 +356,13 @@ def _sanitize_datamodel(payload: Mapping[str, Any], *, context: str = "datamodel
 def _normalize_view_key(value: str | None) -> str | None:
     if not isinstance(value, str):
         return None
-    normalized = _WHITESPACE_RE.sub(" ", value.strip()).casefold()
+
+    # Remover diacríticos e normalizar espaços/pontuação para permitir matching
+    # resiliente entre nomes de visões informados pelo usuário e o template.
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    normalized = normalized.replace("-", " ").replace("_", " ")
+    normalized = _WHITESPACE_RE.sub(" ", normalized.strip()).casefold()
     return normalized or None
 
 
@@ -1910,6 +1916,7 @@ def generate_layout_preview(
     model_name = _resolve_model_name(datamodel_payload) if datamodel_payload else None
 
     view_payloads: list[dict[str, Any]] = []
+    single_view_selection = len(available_views) == 1
     for meta in available_views:
         blueprint_view = _match_blueprint_view(blueprint, meta.identifier)
         datamodel_view = datamodel_views_by_id.get(meta.identifier)
@@ -1917,6 +1924,29 @@ def generate_layout_preview(
             normalized_name = _normalize_view_key(meta.name)
             if normalized_name:
                 datamodel_view = datamodel_views_by_name.get(normalized_name)
+                if datamodel_view is None:
+                    for candidate_key, candidate_view in datamodel_views_by_name.items():
+                        if not candidate_key or not isinstance(candidate_view, Mapping):
+                            continue
+                        if candidate_key.startswith(normalized_name) or normalized_name.startswith(candidate_key):
+                            datamodel_view = candidate_view
+                            break
+        if datamodel_view is None and has_datamodel_views and single_view_selection:
+            unique_candidates: list[Mapping[str, Any]] = []
+            seen_ids: set[int] = set()
+            for payload in list(datamodel_views_by_id.values()) + list(
+                datamodel_views_by_name.values()
+            ):
+                if not isinstance(payload, Mapping):
+                    continue
+                payload_id = id(payload)
+                if payload_id in seen_ids:
+                    continue
+                seen_ids.add(payload_id)
+                unique_candidates.append(payload)
+            if len(unique_candidates) == 1:
+                datamodel_view = unique_candidates[0]
+
         if datamodel_view is None and has_datamodel_views:
             available_identifiers = sorted(datamodel_views_by_id.keys())
             available_names = sorted(

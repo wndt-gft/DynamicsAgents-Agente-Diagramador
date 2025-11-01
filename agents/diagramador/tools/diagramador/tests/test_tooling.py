@@ -133,6 +133,28 @@ def test_generate_layout_preview_populates_layer_elements(session_state):
     assert "Layer CHANNELS" in layer_labels
 
 
+def test_generate_layout_preview_matches_view_without_accents(session_state):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+
+    diagrams = datamodel.setdefault("views", {}).get("diagrams") or []
+    assert diagrams, "Sample datamodel must contain at least one diagram"
+    diagrams[0].pop("id", None)
+    diagrams[0].pop("identifier", None)
+    diagrams[0]["name"] = "Visao de Container - Sistema de Transferencias PIX"
+
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    assert artifact["view"]["identifier"]
+    assert artifact["view"]["name"].startswith("Visao de Container")
+    assert artifact["view"]["layout"]["nodes"]
+
+
 def test_generate_layout_preview_requires_datamodel(session_state):
     with pytest.raises(ValueError):
         generate_layout_preview(
