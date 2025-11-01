@@ -137,6 +137,77 @@ def test_generate_layout_preview_requires_customized_blueprint(
     assert "contexto do usuário" in str(exc_info.value)
 
 
+def test_generate_layout_preview_reports_non_customized_element_names(
+    session_state, template_blueprint
+):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+
+    target_id = "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+    blueprint_element = next(
+        element
+        for element in template_blueprint["elements"]
+        if element.get("id") == target_id or element.get("identifier") == target_id
+    )
+    datamodel_element = next(
+        element for element in datamodel["elements"] if element.get("id") == target_id
+    )
+    datamodel_element["name"] = blueprint_element.get("name")
+    if blueprint_element.get("documentation"):
+        datamodel_element["documentation"] = blueprint_element.get("documentation")
+
+    with pytest.raises(ValueError) as exc_info:
+        generate_layout_preview(
+            datamodel=datamodel,
+            template_path=str(SAMPLE_TEMPLATE),
+            session_state=session_state,
+        )
+
+    message = str(exc_info.value)
+    assert "Itens não personalizados" in message
+    assert "nome='Data Application Component'" in message
+
+
+def test_generate_layout_preview_overrides_blueprint_metadata(session_state):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+
+    element_id = "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+    relation_id = "rel-transfer-postgres"
+
+    element = next(item for item in datamodel["elements"] if item["id"] == element_id)
+    element["name"] = "Repositório Transacional PIX"
+    element["documentation"] = (
+        "Armazena com segurança as transferências concluídas para fins de auditoria."
+    )
+
+    relation = next(item for item in datamodel["relations"] if item["id"] == relation_id)
+    relation["name"] = "Fluxo de persistência transacional"
+    relation["documentation"] = (
+        "Garante que cada transferência PIX seja gravada de forma consistente no banco."
+    )
+
+    generate_layout_preview(
+        datamodel=datamodel,
+        template_path=str(SAMPLE_TEMPLATE),
+        session_state=session_state,
+    )
+
+    artifact = session_state[SESSION_STATE_ROOT]["artifacts"][SESSION_ARTIFACT_LAYOUT_PREVIEW]
+    layout_nodes = artifact["view"]["layout"]["nodes"]
+    node = next(item for item in layout_nodes if item.get("element_ref") == element_id)
+    assert node["label"] == element["name"]
+    assert node["title"] == element["name"]
+    assert node["documentation"] == element["documentation"]
+
+    connections = artifact["view"]["layout"]["connections"]
+    connection = next(
+        item for item in connections if item.get("relationship_ref") == relation_id
+    )
+    assert connection["label"] == relation["name"]
+    assert connection["documentation"] == relation["documentation"]
+
+
 def test_generate_layout_preview_replaces_template_placeholders(session_state):
     datamodel = _load_sample_datamodel()
     datamodel = json.loads(json.dumps(datamodel))

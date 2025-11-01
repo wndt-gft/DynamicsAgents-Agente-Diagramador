@@ -314,17 +314,11 @@ def _apply_layout_customization(
             if lookup and _metadata_is_customized(lookup, blueprint_lookup):
                 element_name = lookup.get("name")
                 if element_name:
-                    label = node.get("label")
-                    if not isinstance(label, str) or _PLACEHOLDER_TOKEN_RE.search(label):
-                        node["label"] = str(element_name)
-                    title = node.get("title")
-                    if not isinstance(title, str) or _PLACEHOLDER_TOKEN_RE.search(title):
-                        node["title"] = str(element_name)
+                    node["label"] = str(element_name)
+                    node["title"] = str(element_name)
                 element_doc = lookup.get("documentation")
                 if element_doc:
-                    doc = node.get("documentation")
-                    if not isinstance(doc, str) or _PLACEHOLDER_TOKEN_RE.search(doc):
-                        node["documentation"] = str(element_doc)
+                    node["documentation"] = str(element_doc)
             update_text_fields(node, ("label", "title", "documentation"))
 
             # Recurse for nested nodes (groups / containers)
@@ -360,14 +354,10 @@ def _apply_layout_customization(
             if relation_info and _metadata_is_customized(relation_info, blueprint_relation):
                 relation_name = relation_info.get("name")
                 if relation_name:
-                    label = connection.get("label")
-                    if not isinstance(label, str) or _PLACEHOLDER_TOKEN_RE.search(label):
-                        connection["label"] = str(relation_name)
+                    connection["label"] = str(relation_name)
                 relation_doc = relation_info.get("documentation")
                 if relation_doc:
-                    doc = connection.get("documentation")
-                    if not isinstance(doc, str) or _PLACEHOLDER_TOKEN_RE.search(doc):
-                        connection["documentation"] = str(relation_doc)
+                    connection["documentation"] = str(relation_doc)
             update_text_fields(connection, ("label", "documentation"))
 
 
@@ -1357,6 +1347,48 @@ def _validate_view_payloads(
     missing_references: list[str] = []
     unchanged_references: list[str] = []
 
+    def _clean(value: Any) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
+
+    def _format_element_reference(
+        view_descriptor: str,
+        element_id: str,
+        *,
+        node_identifier: str | None,
+        label: str | None,
+        suffix: str | None = None,
+    ) -> str:
+        details: list[str] = []
+        if node_identifier:
+            details.append(f"nó '{node_identifier}'")
+        if label:
+            details.append(f"nome='{label}'")
+        if suffix:
+            details.append(suffix)
+        extra = f" ({', '.join(details)})" if details else ""
+        return f"visão {view_descriptor} - elemento '{element_id}'{extra}"
+
+    def _format_connection_reference(
+        view_descriptor: str,
+        relation_id: str,
+        *,
+        connection_identifier: str | None,
+        label: str | None,
+        suffix: str | None = None,
+    ) -> str:
+        details: list[str] = []
+        if connection_identifier:
+            details.append(f"conexão '{connection_identifier}'")
+        if label:
+            details.append(f"nome='{label}'")
+        if suffix:
+            details.append(suffix)
+        extra = f" ({', '.join(details)})" if details else ""
+        return f"visão {view_descriptor} - relação '{relation_id}'{extra}"
+
     for payload in view_payloads:
         if not isinstance(payload, Mapping):
             continue
@@ -1375,13 +1407,26 @@ def _validate_view_payloads(
                     continue
                 key = str(element_ref)
                 node_identifier = str(node.get("id") or node.get("identifier") or key)
+                node_label = _clean(
+                    node.get("label") or node.get("title") or node.get("name")
+                )
+                blueprint_lookup = blueprint_element_lookup.get(key)
                 lookup = element_lookup.get(key)
                 if lookup is None:
+                    reference = _format_element_reference(
+                        view_descriptor,
+                        key,
+                        node_identifier=node_identifier,
+                        label=node_label
+                    )
                     missing_references.append(
-                        f"visão {view_descriptor} - nó '{node_identifier}' com elementRef='{key}'"
+                        f"{reference} ausente no datamodel"
                     )
                     continue
-                blueprint_lookup = blueprint_element_lookup.get(key)
+                if node_label is None and lookup:
+                    node_label = _clean(lookup.get("name"))
+                if node_label is None and blueprint_lookup:
+                    node_label = _clean(blueprint_lookup.get("name"))
                 if not blueprint_lookup:
                     continue
                 if not any(
@@ -1391,7 +1436,12 @@ def _validate_view_payloads(
                     continue
                 if _metadata_matches_blueprint(lookup, blueprint_lookup):
                     unchanged_references.append(
-                        f"visão {view_descriptor} - elemento '{key}' (nó '{node_identifier}')"
+                        _format_element_reference(
+                            view_descriptor,
+                            key,
+                            node_identifier=node_identifier,
+                            label=node_label,
+                        )
                     )
 
         connections = layout.get("connections") if isinstance(layout, Mapping) else None
@@ -1411,13 +1461,33 @@ def _validate_view_payloads(
                     or connection.get("identifier")
                     or key
                 )
+                relation_label = _clean(
+                    connection.get("label")
+                    or connection.get("name")
+                    or connection.get("documentation")
+                )
                 lookup = relationship_lookup.get(key)
                 if lookup is None:
+                    reference = _format_connection_reference(
+                        view_descriptor,
+                        key,
+                        connection_identifier=conn_identifier,
+                        label=relation_label,
+                    )
                     missing_references.append(
-                        f"visão {view_descriptor} - conexão '{conn_identifier}' com relationshipRef='{key}'"
+                        f"{reference} ausente no datamodel"
                     )
                     continue
                 blueprint_lookup = blueprint_relationship_lookup.get(key)
+                if relation_label is None and lookup:
+                    relation_label = _clean(
+                        lookup.get("name") or lookup.get("documentation")
+                    )
+                if relation_label is None and blueprint_lookup:
+                    relation_label = _clean(
+                        blueprint_lookup.get("name")
+                        or blueprint_lookup.get("documentation")
+                    )
                 if not blueprint_lookup:
                     continue
                 if not any(
@@ -1427,7 +1497,12 @@ def _validate_view_payloads(
                     continue
                 if _metadata_matches_blueprint(lookup, blueprint_lookup):
                     unchanged_references.append(
-                        f"visão {view_descriptor} - relação '{key}' (conexão '{conn_identifier}')"
+                        _format_connection_reference(
+                            view_descriptor,
+                            key,
+                            connection_identifier=conn_identifier,
+                            label=relation_label,
+                        )
                     )
 
     if missing_references:
