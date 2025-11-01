@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from ..diagramador import (
     SESSION_ARTIFACT_LAYOUT_PREVIEW,
     generate_layout_preview as _generate_layout_preview,
 )
-from ..diagramador.session import get_session_bucket
-from ...utils import coerce_session_state, empty_string_to_none
+from ...utils import (
+    empty_string_to_none,
+    get_fallback_session_state,
+    resolve_tool_session_state,
+)
+from ...utils.logging_config import get_logger
 
 __all__ = ["SESSION_ARTIFACT_LAYOUT_PREVIEW", "generate_layout_preview"]
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def generate_layout_preview(
@@ -22,14 +25,25 @@ def generate_layout_preview(
     template_path: str = "",
     view_filter: str = "",
     session_state: str = "",
+    tool_context: Any | None = None,
+    **kwargs,
 ):
-    coerced_state = coerce_session_state(session_state)
+    if "tool_context" in kwargs and tool_context is None:
+        tool_context = kwargs["tool_context"]
+    if "session_state" in kwargs and not session_state:
+        session_state = kwargs["session_state"]
+
+    coerced_state = resolve_tool_session_state(session_state, tool_context)
     if coerced_state is None:
         logger.debug(
-            "generate_layout_preview: nenhum session_state recebido; utilizando cache em memória."
+            "generate_layout_preview: nenhuma session_state compartilhada; utilizando cache isolado."
         )
-        coerced_state = {}
-        get_session_bucket(coerced_state)
+        coerced_state = get_fallback_session_state()
+    else:
+        logger.debug(
+            "generate_layout_preview: utilizando session_state (id=%s).",
+            hex(id(coerced_state)),
+        )
 
     datamodel_payload: Any | None = datamodel
     if isinstance(datamodel, str):

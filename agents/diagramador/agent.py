@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import logging
-import os
 import warnings
 from typing import Callable
 
@@ -21,17 +19,11 @@ from .tools import (
     list_templates,
     save_datamodel,
 )
+from .utils.logging_config import get_logger
 
 warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
 
-_DEFAULT_LOG_LEVEL = os.getenv("DIAGRAMADOR_LOG_LEVEL", "INFO").upper()
-root_logger = logging.getLogger()
-if not root_logger.handlers:
-    logging.basicConfig(level=_DEFAULT_LOG_LEVEL)
-else:
-    root_logger.setLevel(_DEFAULT_LOG_LEVEL)
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 diagramador_description = (

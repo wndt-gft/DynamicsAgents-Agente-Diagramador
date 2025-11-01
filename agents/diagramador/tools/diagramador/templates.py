@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +15,7 @@ from .artifacts import (
 )
 from .constants import ARCHIMATE_NS, DEFAULT_TEMPLATE, DEFAULT_TEMPLATES_DIR, XSI_ATTR
 from .session import get_cached_blueprint, store_artifact, store_blueprint
+from ...utils.logging_config import get_logger
 
 __all__ = [
     "TemplateMetadata",
@@ -51,7 +51,7 @@ class TemplateMetadata:
         return self.path.resolve()
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 _NS = {"a": ARCHIMATE_NS}
@@ -422,11 +422,32 @@ def resolve_template_path(template_path: str | Path | None) -> Path:
                 (DEFAULT_TEMPLATE.parent / path).resolve(),
             ]
         )
-    candidates.append(DEFAULT_TEMPLATE)
-
     for candidate in candidates:
         if candidate.exists():
             return candidate
+
+    lookup_key = str(template_path).strip().casefold()
+    if lookup_key:
+        for xml_file in DEFAULT_TEMPLATES_DIR.rglob("*.xml"):
+            try:
+                metadata = load_template_metadata(xml_file)
+            except ET.ParseError:
+                continue
+            names = {
+                xml_file.name.casefold(),
+                xml_file.stem.casefold(),
+            }
+            if metadata.model_name:
+                names.add(metadata.model_name.casefold())
+            if metadata.model_identifier:
+                names.add(metadata.model_identifier.casefold())
+            if lookup_key in names:
+                return xml_file.resolve()
+        logger.warning(
+            "resolve_template_path: template '%s' não encontrado; utilizando template padrão '%s'.",
+            template_path,
+            DEFAULT_TEMPLATE,
+        )
 
     logger.warning(
         "Template informado '%s' não encontrado; retornando template padrão '%s'.",
@@ -445,45 +466,66 @@ def list_templates(
     if not templates_dir.exists():
         raise FileNotFoundError(f"Diretório de templates não encontrado: {templates_dir}")
 
-    metadata: list[dict[str, object]] = []
+    logger.info("list_templates: procurando layouts em '%s'.", templates_dir)
+
+    templates: list[dict[str, Any]] = []
     for xml_file in sorted(templates_dir.rglob("*.xml")):
         try:
             template_meta = load_template_metadata(xml_file)
         except ET.ParseError:
+            logger.warning("list_templates: arquivo inválido ignorado: %s", xml_file)
             continue
 
-        metadata.append(
+        layout_name = xml_file.stem
+        template_name = template_meta.model_name or layout_name
+        relative_path = str(xml_file.relative_to(templates_dir))
+
+        view_entries = [
             {
-                "path": str(template_meta.absolute_path),
-                "relative_path": str(xml_file.relative_to(templates_dir)),
-                "model_identifier": template_meta.model_identifier,
-                "model_name": template_meta.model_name,
-                "documentation": template_meta.documentation,
-                "views": [
-                    {
-                        "identifier": view.identifier,
-                        "name": view.name,
-                        "documentation": view.documentation,
-                        "viewpoint": view.viewpoint,
-                        "index": view.index,
-                    }
-                    for view in template_meta.views
-                ],
+                "view_identifier": view.identifier,
+                "view_name": view.name,
+                "view_description": view.documentation,
+                "view_documentation": view.documentation,
+                "view_index": view.index,
+                "selector": view.name,
+            }
+            for view in template_meta.views
+        ]
+
+        templates.append(
+            {
+                "template_key": relative_path,
+                "template_name": template_name,
+                "template_identifier": template_meta.model_identifier,
+                "template_description": template_meta.documentation,
+                "template_selector": template_name,
+                "layout_name": layout_name,
+                "layout_description": template_meta.documentation,
+                "layout_file": f"{relative_path}",
+                "absolute_path": str(xml_file.resolve()),
+                "layout_selector": relative_path,
+                "views": view_entries,
             }
         )
 
     payload = {
         "directory": str(templates_dir),
-        "count": len(metadata),
-        "templates": metadata,
+        "count": len(templates),
+        "templates": templates,
     }
 
     if session_state is not None:
         store_artifact(session_state, SESSION_ARTIFACT_TEMPLATE_LISTING, payload)
+        logger.debug(
+            "list_templates: artefato '%s' com %d template(s) armazenado na sessão.",
+            SESSION_ARTIFACT_TEMPLATE_LISTING,
+            len(templates),
+        )
         return {
             "status": "ok",
             "artifact": SESSION_ARTIFACT_TEMPLATE_LISTING,
-            "count": len(metadata),
+            "count": len(templates),
+            "templates": templates,
         }
 
     return payload
@@ -536,9 +578,14 @@ def _filter_views(views: Iterable[ViewMetadata], filter_tokens: set[str]) -> lis
             candidates.update(_expand_token_variants(view.viewpoint))
         if candidates & filter_tokens:
             filtered.append(view)
-    if not filtered:
-        raise ValueError("Nenhuma visão corresponde ao filtro informado.")
-    return filtered
+    if filtered:
+        return filtered
+
+    logger.warning(
+        "describe_template: nenhum match para filtro '%s'; retornando todas as visões.",
+        ", ".join(sorted(filter_tokens)),
+    )
+    return list(views)
 
 
 def describe_template(

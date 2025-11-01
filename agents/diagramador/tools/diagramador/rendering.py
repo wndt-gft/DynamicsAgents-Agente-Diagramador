@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import base64
 import html
-import logging
 import math
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
 
@@ -15,12 +15,9 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - ambiente mínimo
     svgwrite = None
 
-try:  # pragma: no cover - fallback caso CairoSVG não esteja disponível
-    import cairosvg  # type: ignore
-except Exception:  # pragma: no cover
-    cairosvg = None  # type: ignore[assignment]
+from ...utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DEFAULT_MARGIN = 32
 DEFAULT_FONT_FAMILY = "Segoe UI"
@@ -34,8 +31,11 @@ ARROW_MARKER_SIZE = (10, 10)
 def _slugify_identifier(value: Optional[str]) -> str:
     if not value:
         return "view"
-    normalized = re.sub(r"\s+", "_", value)
-    cleaned = re.sub(r"[^0-9A-Za-z_.-]", "_", normalized)
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    ascii_value = re.sub(r"\s+", "_", ascii_value.strip())
+    cleaned = re.sub(r"[^0-9A-Za-z_.-]", "_", ascii_value)
+    cleaned = re.sub(r"_+", "_", cleaned)
     cleaned = cleaned.strip("._")
     return cleaned or "view"
 
@@ -214,7 +214,7 @@ def _finalize_svg_payload(
     view_alias: str,
     output_dir: Path,
 ) -> Dict[str, Any]:
-    svg_path = output_dir / f"{slug}_layout.svg"
+    svg_path = output_dir / f"{slug}.svg"
     svg_path.write_bytes(svg_bytes)
 
     svg_uri = svg_path.resolve().as_uri()
@@ -258,11 +258,11 @@ def _render_without_svgwrite(
     *,
     bounds: Tuple[float, float, float, float],
     output_dir: Path,
+    slug: str,
 ) -> Dict[str, Any]:
     min_x, min_y, max_x, max_y = bounds
     width = max_x - min_x + 2 * DEFAULT_MARGIN
     height = max_y - min_y + 2 * DEFAULT_MARGIN
-    slug = _slugify_identifier(view_alias or view_name)
 
     svg_parts = [
         "<svg xmlns=\"http://www.w3.org/2000/svg\"",
@@ -412,6 +412,7 @@ def render_view_layout(
     layout: Optional[Dict[str, Any]],
     *,
     output_dir: Path,
+    output_slug: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """Renderiza uma visão utilizando as coordenadas originais do template."""
 
@@ -427,6 +428,8 @@ def render_view_layout(
         conn for conn in layout.get("connections", []) if isinstance(conn, dict)
     ]
 
+    slug = output_slug or _slugify_identifier(view_alias or view_name)
+
     if svgwrite is None:
         return _render_without_svgwrite(
             view_name,
@@ -435,6 +438,7 @@ def render_view_layout(
             connections,
             bounds=bounds,
             output_dir=output_dir,
+            slug=slug,
         )
 
     min_x, min_y, max_x, max_y = bounds
@@ -583,7 +587,6 @@ def render_view_layout(
 
     svg_markup = drawing.tostring()
     svg_bytes = svg_markup.encode("utf-8")
-    slug = _slugify_identifier(view_alias or view_name)
     payload = _finalize_svg_payload(
         svg_bytes,
         slug=slug,
@@ -593,46 +596,6 @@ def render_view_layout(
         view_alias=view_alias,
         output_dir=output_dir,
     )
-
-    if cairosvg is not None:  # pragma: no cover - depende de lib externa
-        try:
-            png_bytes = cairosvg.svg2png(bytestring=svg_bytes)
-        except Exception:
-            png_bytes = None
-        if png_bytes:
-            png_path = output_dir / f"{slug}_layout.png"
-            png_path.write_bytes(png_bytes)
-            png_uri = png_path.resolve().as_uri()
-            png_download = f"[Baixar PNG]({png_uri})"
-            png_inline = (
-                f"![{_escape_markdown_alt(view_name or view_alias)}]({png_uri})"
-            )
-            payload["png"] = {
-                "format": "png",
-                "local_path": str(png_path.resolve()),
-                "uri": png_uri,
-                "download_uri": png_uri,
-                "download_markdown": png_download,
-                "inline_markdown": png_inline,
-                "inline_uri": png_uri,
-                "download_filename": png_path.name,
-                "artifact": {
-                    "type": "image",
-                    "mime_type": "image/png",
-                    "encoding": "file",
-                    "path": str(png_path.resolve()),
-                    "uri": png_uri,
-                    "filename": png_path.name,
-                },
-            }
-            payload["artifacts"].append(payload["png"]["artifact"])
-            payload["inline_markdown"] = png_inline
-            payload["inline_uri"] = png_uri
-            payload["inline_format"] = "png"
-
-            png_data_uri = _build_data_uri(png_path)
-            if png_data_uri:
-                payload["png"]["data_uri"] = png_data_uri
 
     return payload
 

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import base64
 import copy
+import html
 import json
-import logging
+import random
 import re
+import unicodedata
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +22,7 @@ from .constants import OUTPUT_DIR
 from .rendering import render_view_layout
 from .session import (
     get_cached_artifact,
+    get_session_bucket,
     store_artifact,
 )
 from .templates import (
@@ -28,11 +32,11 @@ from .templates import (
     load_template_metadata,
     resolve_template_path,
 )
+from ...utils.logging_config import get_logger
 
 __all__ = ["generate_layout_preview"]
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _CODE_FENCE_RE = re.compile(
     r"^\s*(?:```|~~~)(?:json)?\s*(?P<body>.*?)(?:```|~~~)\s*$",
@@ -44,6 +48,16 @@ _WHITESPACE_RE = re.compile(r"\s+")
 
 def _resolve_template_path(template_path: str | None) -> Path:
     return resolve_template_path(template_path)
+
+
+def _slugify_filename_component(value: str | None) -> str:
+    if not value:
+        return "item"
+    normalized = unicodedata.normalize("NFKD", str(value))
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii")
+    cleaned = re.sub(r"[^0-9A-Za-z]+", "_", ascii_value.lower())
+    cleaned = cleaned.strip("_")
+    return cleaned or "item"
 
 
 def _expand_token_variants(value: Any) -> set[str]:
@@ -379,10 +393,16 @@ def _build_view_payload(
     }
 
 
-def _build_replacements(render_payload: Mapping[str, Any], view_name: str) -> dict[str, Any]:
+def _build_replacements(
+    render_payload: Mapping[str, Any],
+    *,
+    template_label: str,
+    layout_label: str,
+    view_label: str,
+) -> dict[str, Any]:
     label = "Abrir diagrama em SVG"
-    data_uri = render_payload.get("svg_data_uri") or ""
-    if not data_uri:
+    svg_data_uri = render_payload.get("svg_data_uri") or ""
+    if not svg_data_uri:
         local_path = render_payload.get("local_path")
         if isinstance(local_path, str):
             try:
@@ -390,23 +410,48 @@ def _build_replacements(render_payload: Mapping[str, Any], view_name: str) -> di
             except OSError:
                 encoded = ""
             if encoded:
-                data_uri = f"data:image/svg+xml;base64,{encoded}"
+                svg_data_uri = f"data:image/svg+xml;base64,{encoded}"
 
-    inline_markdown = render_payload.get("inline_markdown")
-    if data_uri:
-        inline_value = f"![Pré-visualização]({data_uri})"
-    else:
-        inline_value = str(inline_markdown or "")
+    alt_text = f"{template_label} - {layout_label} - {view_label}"
+    alt_attr = html.escape(alt_text, quote=True)
+
+    inline_value = ""
+    if svg_data_uri:
+        inline_value = (
+            f'<img src="{svg_data_uri}" alt="{alt_attr}" title="{alt_attr}" width="100%" />'
+        )
+    elif render_payload.get("inline_markdown"):
+        inline_value = str(render_payload.get("inline_markdown") or "")
+
+    download_url = (
+        str(render_payload.get("download_uri") or "")
+        or str(render_payload.get("uri") or "")
+        or str(render_payload.get("inline_uri") or "")
+    )
+    if not download_url:
+        local_path = render_payload.get("local_path")
+        if isinstance(local_path, str):
+            download_url = Path(local_path).resolve().as_uri()
+
+    download_markdown = str(render_payload.get("download_markdown") or "")
+    if download_url:
+        download_markdown = f"[{label}]({download_url})"
 
     replacements = {
         "layout_preview.inline": inline_value,
-        "layout_preview.svg": data_uri,
-        "layout_preview.view_name": view_name,
-        "layout_preview.download.url": data_uri,
+        "layout_preview.view_name": view_label,
+        "layout_preview.layout_name": layout_label,
+        "layout_preview.template_name": template_label,
+        "layout_preview.download.url": download_url,
         "layout_preview.download.label": label,
-        "layout_preview.download.markdown": f"[{label}]({data_uri})" if data_uri else str(render_payload.get("download_markdown") or ""),
+        "layout_preview.download.markdown": download_markdown,
+        "layout_preview.download": download_markdown,
+        "layout_preview.svg": svg_data_uri,
+        "layout_preview.svg.url": svg_data_uri,
+        "layout_preview.svg.markdown": download_markdown,
+        "layout_preview.image.alt": alt_text,
+        "layout_preview.image.title": alt_text,
     }
-    replacements["layout_preview.download"] = replacements["layout_preview.download.markdown"]
 
     return replacements
 
@@ -507,17 +552,59 @@ def generate_layout_preview(
         conn_count,
     )
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.utcnow().strftime("%Y-%m-%d-%H%M%S")
+    run_dir = OUTPUT_DIR / f"{timestamp}-{random.randint(0, 999999):06d}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    layout_label = Path(target_template).stem
+    template_label = metadata.model_name or metadata.model_identifier or layout_label
+    view_label = primary_view["name"]
+    alias_label = f"{template_label}-{layout_label}-{view_label}"
+
+    template_slug = _slugify_filename_component(template_label)
+    layout_slug = _slugify_filename_component(layout_label)
+    view_slug = _slugify_filename_component(view_label)
+    preview_slug = f"preview_{template_slug}_{layout_slug}_{view_slug}"
+    datamodel_filename = f"preview_datamodel_{template_slug}_{layout_slug}_{view_slug}.json"
+
     render_payload = render_view_layout(
         primary_view["name"],
-        primary_view["identifier"],
+        alias_label,
         layout=primary_view["layout"],
-        output_dir=OUTPUT_DIR,
+        output_dir=run_dir,
+        output_slug=preview_slug,
     )
     if not isinstance(render_payload, Mapping):
         raise ValueError("Não foi possível renderizar a pré-visualização solicitada.")
 
-    replacements = _build_replacements(render_payload, primary_view["name"])
+    replacements = _build_replacements(
+        render_payload,
+        template_label=template_label,
+        layout_label=layout_label,
+        view_label=view_label,
+    )
+    placeholders = {
+        "inline": "{{session.state.layout_preview.inline}}",
+        "download_markdown": "{{session.state.layout_preview.download.markdown}}",
+        "download_link": "[[session.state.layout_preview.download.url]]",
+        "svg_data_uri": "[[session.state.layout_preview.svg]]",
+        "image_alt": "[[session.state.layout_preview.image.alt]]",
+        "image_title": "[[session.state.layout_preview.image.title]]",
+    }
+
+    svg_local_path = render_payload.get("local_path")
+    datamodel_file_path: Path | None = None
+    datamodel_snapshot: dict[str, Any] | None = None
+    if isinstance(datamodel_payload, Mapping):
+        datamodel_snapshot = datamodel_payload
+    elif isinstance(blueprint, Mapping):
+        datamodel_snapshot = copy.deepcopy(blueprint)
+    if datamodel_snapshot is not None:
+        datamodel_file_path = run_dir / datamodel_filename
+        datamodel_file_path.write_text(
+            json.dumps(datamodel_snapshot, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
 
     artifact = {
         "template": str(target_template),
@@ -525,6 +612,7 @@ def generate_layout_preview(
             "identifier": primary_view["identifier"],
             "name": primary_view["name"],
             "layout": primary_view["layout"],
+            "alias": alias_label,
         },
         "views": [
             {
@@ -536,31 +624,73 @@ def generate_layout_preview(
         ],
         "render": dict(render_payload),
         "replacements": replacements,
+        "output_directory": str(run_dir),
         "links": {
             "layout_svg": {
                 "label": replacements.get("layout_preview.download.label"),
                 "url": replacements.get("layout_preview.download.url"),
                 "format": "svg",
+                "path": svg_local_path,
+                "data_uri": replacements.get("layout_preview.svg"),
+                "filename": f"{preview_slug}.svg",
+                "alt": replacements.get("layout_preview.image.alt"),
+                "title": replacements.get("layout_preview.image.title"),
             }
         },
+        "placeholders": placeholders,
     }
 
-    if datamodel_payload is not None:
-        artifact["datamodel_snapshot"] = datamodel_payload
+    if datamodel_snapshot is not None:
+        artifact["datamodel_snapshot"] = datamodel_snapshot
+    if datamodel_file_path is not None:
+        artifact.setdefault("links", {})["datamodel_json"] = {
+            "label": "Datamodel utilizado",
+            "format": "json",
+            "path": str(datamodel_file_path.resolve()),
+            "filename": datamodel_file_path.name,
+        }
+
+    session_snapshot = {
+        "template_name": template_label,
+        "layout_name": layout_label,
+        "view_name": replacements.get("layout_preview.view_name"),
+        "inline": replacements.get("layout_preview.inline"),
+        "download": {
+            "label": replacements.get("layout_preview.download.label"),
+            "markdown": replacements.get("layout_preview.download.markdown"),
+            "url": replacements.get("layout_preview.download.url"),
+        },
+        "svg": replacements.get("layout_preview.svg"),
+        "image": {
+            "alt": replacements.get("layout_preview.image.alt"),
+            "title": replacements.get("layout_preview.image.title"),
+            "path": svg_local_path,
+        },
+        "files": {
+            "svg": str(Path(svg_local_path).resolve()) if isinstance(svg_local_path, str) else None,
+            "datamodel": str(datamodel_file_path.resolve()) if datamodel_file_path else None,
+        },
+    }
+    artifact["session_snapshot"] = session_snapshot
 
     if session_state is not None:
         store_artifact(session_state, SESSION_ARTIFACT_LAYOUT_PREVIEW, artifact)
+        bucket = get_session_bucket(session_state)
+        bucket["layout_preview"] = session_snapshot
         logger.debug(
             "generate_layout_preview: artefato '%s' armazenado no estado de sessão.",
             SESSION_ARTIFACT_LAYOUT_PREVIEW,
         )
+        logger.info("generate_layout_preview: arquivos disponíveis em '%s'.", run_dir)
         return {
             "status": "ok",
             "artifact": SESSION_ARTIFACT_LAYOUT_PREVIEW,
             "view_name": primary_view["name"],
+            "placeholders": placeholders,
         }
 
     logger.debug(
         "generate_layout_preview: retornando artefato sem sessão explícita (modo fallback)."
     )
+    logger.info("generate_layout_preview: arquivos disponíveis em '%s'.", run_dir)
     return artifact

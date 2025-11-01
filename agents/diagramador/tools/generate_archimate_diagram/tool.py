@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-import logging
-
 from ..diagramador import (
     DEFAULT_DIAGRAM_FILENAME,
     SESSION_ARTIFACT_ARCHIMATE_XML,
     generate_archimate_diagram as _generate_archimate_diagram,
 )
-from ..diagramador.session import get_session_bucket
-from ...utils import coerce_session_state, empty_string_to_none, normalize_bool_flag
+from ...utils import (
+    empty_string_to_none,
+    get_fallback_session_state,
+    normalize_bool_flag,
+    resolve_tool_session_state,
+)
+from ...utils.logging_config import get_logger
 
 __all__ = ["SESSION_ARTIFACT_ARCHIMATE_XML", "generate_archimate_diagram"]
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def generate_archimate_diagram(
@@ -24,15 +27,26 @@ def generate_archimate_diagram(
     validate: str = "",
     xsd_dir: str = "",
     session_state: str = "",
+    tool_context: object | None = None,
+    **kwargs,
 ):
+    if "tool_context" in kwargs and tool_context is None:
+        tool_context = kwargs["tool_context"]
+    if "session_state" in kwargs and not session_state:
+        session_state = kwargs["session_state"]
+
     target_output = empty_string_to_none(output_filename) or DEFAULT_DIAGRAM_FILENAME
-    coerced_state = coerce_session_state(session_state)
+    coerced_state = resolve_tool_session_state(session_state, tool_context)
     if coerced_state is None:
         logger.debug(
-            "generate_archimate_diagram: nenhum session_state recebido; utilizando cache em memória."
+            "generate_archimate_diagram: nenhuma session_state compartilhada; utilizando cache isolado."
         )
-        coerced_state = {}
-        get_session_bucket(coerced_state)
+        coerced_state = get_fallback_session_state()
+    else:
+        logger.debug(
+            "generate_archimate_diagram: utilizando session_state (id=%s).",
+            hex(id(coerced_state)),
+        )
 
     validate_flag = normalize_bool_flag(validate)
     if validate_flag is None:

@@ -152,4 +152,5 @@ def test_after_model_callback_replaces_placeholders(session_state):
     rendered = llm_response["candidates"][0]["content"]["parts"][0]["text"]
     assert "{{state.layout_preview.inline}}" not in rendered
     assert "data:image/svg+xml" in rendered
-    assert "![Pré-visualização" in rendered
+    assert "<img " in rendered
+    assert 'width="100%"' in rendered

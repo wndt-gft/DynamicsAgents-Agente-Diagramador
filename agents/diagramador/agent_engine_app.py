@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from vertexai.agent_engines.templates.adk import AdkApp
 
 from .agent import root_agent
+from .utils.logging_config import get_logger
 
 
 class DiagramadorAgentEngineApp(AdkApp):
@@ -15,7 +15,7 @@ class DiagramadorAgentEngineApp(AdkApp):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(agent=root_agent, **kwargs)
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = get_logger(self.__class__.__name__)
 
     def register_operations(self) -> dict[str, list[str]]:
         """Registra operações padrão e permite extensões futuras."""

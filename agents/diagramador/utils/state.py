@@ -7,6 +7,11 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
+from ..tools.diagramador.session import (
+    _FALLBACK_SESSION_STATE,  # type: ignore[attr-defined]
+    get_session_bucket,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,6 +48,49 @@ def coerce_session_state(session_state: Any) -> MutableMapping[str, Any] | None:
     return None
 
 
+def resolve_tool_session_state(
+    session_state: Any,
+    tool_context: Any,
+) -> MutableMapping[str, Any] | None:
+    """Resolve o estado de sessão a partir dos argumentos ou do ``tool_context``.
+
+    Prioriza o estado explícito recebido; caso ausente tenta utilizar o contexto
+    do ADK, que expõe ``session_state`` para tools.
+    """
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(
+            "resolve_tool_session_state: raw session_state type=%s; tool_context=%s",
+            type(session_state).__name__,
+            type(tool_context).__name__ if tool_context is not None else None,
+        )
+
+    state = coerce_session_state(session_state)
+    if state is not None:
+        return state
+
+    if tool_context is None:
+        return None
+
+    candidate = getattr(tool_context, "session_state", None)
+    if isinstance(candidate, MutableMapping):
+        return candidate
+
+    if candidate is not None:
+        logger.debug(
+            "resolve_tool_session_state: session_state no tool_context não é mapeamento (%s).",
+            type(candidate).__name__,
+        )
+    return None
+
+
+def get_fallback_session_state() -> MutableMapping[str, Any]:
+    """Retorna o estado de sessão global utilizado como fallback."""
+
+    get_session_bucket(None)
+    return _FALLBACK_SESSION_STATE  # type: ignore[return-value]
+
+
 def empty_string_to_none(value: Any) -> Any | None:
     """Converte strings vazias em ``None`` mantendo outros valores inalterados."""
 
@@ -76,3 +124,4 @@ def normalize_bool_flag(value: Any) -> bool | None:
 
 
 __all__ = ["coerce_session_state", "empty_string_to_none", "normalize_bool_flag"]
+__all__ += ["resolve_tool_session_state", "get_fallback_session_state"]

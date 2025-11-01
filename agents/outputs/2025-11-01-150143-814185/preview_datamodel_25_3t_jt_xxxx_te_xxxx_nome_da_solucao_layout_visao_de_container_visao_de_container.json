@@ -1,0 +1,208 @@
+{
+  "model_identifier": "pix-transfer-model",
+  "elements": [
+    {
+      "identifier": "id-cliente",
+      "name": "Cliente",
+      "type": "Person",
+      "description": "Cliente pessoa física do banco."
+    },
+    {
+      "identifier": "id-frontend",
+      "name": "Frontend",
+      "type": "Software System",
+      "description": "Aplicação Mobile ou Internet Banking utilizada pelo cliente."
+    },
+    {
+      "identifier-boundary": "id-sistema-pix",
+      "name": "Sistema de Transferências PIX",
+      "type": "Software System"
+    },
+    {
+      "identifier": "id-api-gateway",
+      "name": "API Gateway",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Ponto de entrada único para as requisições do frontend."
+    },
+    {
+      "identifier": "id-ms-auth",
+      "name": "Microsserviço de Autenticação",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Gerencia autenticação (OAuth 2.0/JWT) e autorização."
+    },
+    {
+      "identifier": "id-ms-pix",
+      "name": "Microsserviço de Transferências PIX",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Orquestra a lógica de negócio da transferência PIX."
+    },
+    {
+      "identifier": "id-ms-contas",
+      "name": "Microsserviço de Contas",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Gerencia informações de saldo e contas."
+    },
+    {
+      "identifier": "id-ms-notificacoes",
+      "name": "Microsserviço de Notificações",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Envia notificações para os clientes."
+    },
+    {
+      "identifier": "id-db",
+      "name": "Banco de Dados Transacional",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "PostgreSQL para dados transacionais."
+    },
+    {
+      "identifier": "id-cache",
+      "name": "Cache",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Redis para dados de sessão e cache."
+    },
+    {
+      "identifier": "id-kafka",
+      "name": "Tópico de Eventos",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Apache Kafka para eventos assíncronos de auditoria."
+    },
+    {
+      "identifier": "id-hsm",
+      "name": "HSM",
+      "type": "Container",
+      "parent": "id-sistema-pix",
+      "description": "Armazenamento seguro de chaves criptográficas."
+    },
+    {
+      "identifier": "id-core-banking",
+      "name": "Sistema de Core Banking",
+      "type": "Software System",
+      "description": "Mainframe COBOL com dados mestres de contas."
+    },
+    {
+      "identifier": "id-spi",
+      "name": "SPI",
+      "type": "Software System",
+      "description": "Sistema de Pagamentos Instantâneos do BACEN."
+    },
+    {
+      "identifier": "id-dict",
+      "name": "DICT",
+      "type": "Software System",
+      "description": "Diretório de Identificadores de Contas Transacionais do BACEN."
+    },
+    {
+      "identifier": "id-fraude",
+      "name": "Sistema de Prevenção à Fraude",
+      "type": "Software System",
+      "description": "Motor de análise de risco em tempo real."
+    },
+    {
+      "identifier": "id-push-gateway",
+      "name": "Gateway de Notificações Push",
+      "type": "Software System",
+      "description": "Serviço externo para envio de notificações push."
+    },
+    {
+      "identifier": "id-auditoria",
+      "name": "Sistema de Auditoria",
+      "type": "Software System",
+      "description": "Sistema que consome eventos para fins de compliance e auditoria."
+    }
+  ],
+  "relations": [
+    {
+      "source": "id-cliente",
+      "target": "id-frontend",
+      "description": "Usa"
+    },
+    {
+      "source": "id-frontend",
+      "target": "id-api-gateway",
+      "description": "Realiza chamada de API"
+    },
+    {
+      "source": "id-api-gateway",
+      "target": "id-ms-auth",
+      "description": "Delega autenticação"
+    },
+    {
+      "source": "id-api-gateway",
+      "target": "id-ms-pix",
+      "description": "Encaminha requisição"
+    },
+    {
+      "source": "id-ms-pix",
+      "target": "id-ms-contas",
+      "description": "Consulta saldo e efetua débito"
+    },
+    {
+      "source": "id-ms-pix",
+      "target": "id-db",
+      "description": "Registra transação"
+    },
+    {
+      "source": "id-ms-pix",
+      "target": "id-kafka",
+      "description": "Publica evento de transação"
+    },
+    {
+      "source": "id-ms-pix",
+      "target": "id-ms-notificacoes",
+      "description": "Solicita envio de notificação"
+    },
+    {
+      "source": "id-ms-pix",
+      "target": "id-fraude",
+      "description": "Valida risco da transação"
+    },
+    {
+      "source": "id-ms-pix",
+      "target": "id-dict",
+      "description": "Consulta dados da chave PIX"
+    },
+    {
+      "source": "id-ms-pix",
+      "target": "id-spi",
+      "description": "Liquida pagamento"
+    },
+    {
+      "source": "id-ms-contas",
+      "target": "id-core-banking",
+      "description": "Consulta e atualiza dados da conta"
+    },
+    {
+      "source": "id-ms-contas",
+      "target": "id-cache",
+      "description": "Usa para cache de dados da conta"
+    },
+    {
+      "source": "id-ms-notificacoes",
+      "target": "id-push-gateway",
+      "description": "Envia notificação"
+    },
+    {
+      "source": "id-kafka",
+      "target": "id-auditoria",
+      "description": "Consome eventos para auditoria"
+    },
+    {
+      "source": "id-ms-auth",
+      "target": "id-hsm",
+      "description": "Gerencia chaves e tokens"
+    }
+  ],
+  "views": [
+    {
+      "view_identifier": "id-171323"
+    }
+  ]
+}
