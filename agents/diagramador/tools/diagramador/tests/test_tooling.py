@@ -137,6 +137,37 @@ def test_generate_layout_preview_requires_customized_blueprint(
     assert "contexto do usuário" in str(exc_info.value)
 
 
+def test_generate_layout_preview_reports_non_customized_element_names(
+    session_state, template_blueprint
+):
+    datamodel = _load_sample_datamodel()
+    datamodel = json.loads(json.dumps(datamodel))
+
+    target_id = "id-da18b5f4b21a4bdab0c63fa99d95ba91"
+    blueprint_element = next(
+        element
+        for element in template_blueprint["elements"]
+        if element.get("id") == target_id or element.get("identifier") == target_id
+    )
+    datamodel_element = next(
+        element for element in datamodel["elements"] if element.get("id") == target_id
+    )
+    datamodel_element["name"] = blueprint_element.get("name")
+    if blueprint_element.get("documentation"):
+        datamodel_element["documentation"] = blueprint_element.get("documentation")
+
+    with pytest.raises(ValueError) as exc_info:
+        generate_layout_preview(
+            datamodel=datamodel,
+            template_path=str(SAMPLE_TEMPLATE),
+            session_state=session_state,
+        )
+
+    message = str(exc_info.value)
+    assert "Itens não personalizados" in message
+    assert "nome='Data Application Component'" in message
+
+
 def test_generate_layout_preview_replaces_template_placeholders(session_state):
     datamodel = _load_sample_datamodel()
     datamodel = json.loads(json.dumps(datamodel))
