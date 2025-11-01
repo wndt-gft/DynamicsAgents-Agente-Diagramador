@@ -395,6 +395,194 @@ def _load_datamodel(
     )
 
 
+def _resolve_text_field(payload: Mapping[str, Any], keys: Sequence[str]) -> str | None:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, str):
+            normalized = value.strip()
+            if normalized:
+                return normalized
+    return None
+
+
+def _assert_datamodel_customized(
+    datamodel: Mapping[str, Any], blueprint: Mapping[str, Any]
+) -> None:
+    if not isinstance(datamodel, Mapping):
+        return
+
+    element_keys = {"id", "identifier"}
+    blueprint_elements: dict[str, Mapping[str, Any]] = {}
+    for element in blueprint.get("elements", []) or []:
+        if isinstance(element, Mapping):
+            identifier = next(
+                (element.get(key) for key in element_keys if element.get(key)),
+                None,
+            )
+            if identifier is not None:
+                blueprint_elements[str(identifier)] = element
+
+    relation_keys = {"id", "identifier"}
+    blueprint_relations: dict[str, Mapping[str, Any]] = {}
+    for relation in blueprint.get("relations", []) or []:
+        if isinstance(relation, Mapping):
+            identifier = next(
+                (relation.get(key) for key in relation_keys if relation.get(key)),
+                None,
+            )
+            if identifier is not None:
+                blueprint_relations[str(identifier)] = relation
+
+    blueprint_views: dict[str, Mapping[str, Any]] = {}
+    views = blueprint.get("views")
+    diagrams: Sequence[Any] | None
+    if isinstance(views, Mapping):
+        diagrams = views.get("diagrams")  # type: ignore[assignment]
+    else:
+        diagrams = views  # type: ignore[assignment]
+    if isinstance(diagrams, Sequence):
+        for view in diagrams:
+            if not isinstance(view, Mapping):
+                continue
+            identifier = view.get("id") or view.get("identifier")
+            if identifier is not None:
+                blueprint_views[str(identifier)] = view
+
+    non_customized_elements: list[str] = []
+    non_customized_relations: list[str] = []
+    non_customized_views: list[str] = []
+
+    checked_count = 0
+    customized = False
+
+    datamodel_elements = datamodel.get("elements")
+    if isinstance(datamodel_elements, Sequence):
+        for element in datamodel_elements:
+            if not isinstance(element, Mapping):
+                continue
+            identifier = element.get("id") or element.get("identifier")
+            if identifier is None:
+                customized = True
+                continue
+            key = str(identifier)
+            template_element = blueprint_elements.get(key)
+            if template_element is None:
+                customized = True
+                continue
+            checked_count += 1
+            template_name = _resolve_text_field(
+                template_element, ("name", "label", "title")
+            )
+            datamodel_name = _resolve_text_field(element, ("name", "label", "title"))
+            template_doc = _resolve_text_field(
+                template_element, ("documentation", "description")
+            )
+            datamodel_doc = _resolve_text_field(
+                element, ("documentation", "description")
+            )
+            if (datamodel_name and datamodel_name != template_name) or (
+                datamodel_doc and datamodel_doc != template_doc
+            ):
+                customized = True
+            else:
+                non_customized_elements.append(key)
+
+    datamodel_relations = datamodel.get("relations")
+    if isinstance(datamodel_relations, Sequence):
+        for relation in datamodel_relations:
+            if not isinstance(relation, Mapping):
+                continue
+            identifier = relation.get("id") or relation.get("identifier")
+            if identifier is None:
+                customized = True
+                continue
+            key = str(identifier)
+            template_relation = blueprint_relations.get(key)
+            if template_relation is None:
+                customized = True
+                continue
+            checked_count += 1
+            template_name = _resolve_text_field(
+                template_relation, ("name", "label", "title")
+            )
+            datamodel_name = _resolve_text_field(
+                relation, ("name", "label", "title")
+            )
+            template_doc = _resolve_text_field(
+                template_relation, ("documentation", "description")
+            )
+            datamodel_doc = _resolve_text_field(
+                relation, ("documentation", "description")
+            )
+            if (datamodel_name and datamodel_name != template_name) or (
+                datamodel_doc and datamodel_doc != template_doc
+            ):
+                customized = True
+            else:
+                non_customized_relations.append(key)
+
+    datamodel_views = datamodel.get("views")
+    diagrams = None
+    if isinstance(datamodel_views, Mapping):
+        diagrams = datamodel_views.get("diagrams")
+    elif isinstance(datamodel_views, Sequence):
+        diagrams = datamodel_views
+
+    if isinstance(diagrams, Sequence):
+        for view in diagrams:
+            if not isinstance(view, Mapping):
+                continue
+            identifier = view.get("id") or view.get("identifier")
+            if identifier is None:
+                customized = True
+                continue
+            key = str(identifier)
+            template_view = blueprint_views.get(key)
+            if template_view is None:
+                customized = True
+                continue
+            checked_count += 1
+            template_name = _resolve_text_field(template_view, ("name", "title"))
+            datamodel_name = _resolve_text_field(view, ("name", "title"))
+            template_doc = _resolve_text_field(
+                template_view, ("documentation", "description")
+            )
+            datamodel_doc = _resolve_text_field(
+                view, ("documentation", "description")
+            )
+            if (datamodel_name and datamodel_name != template_name) or (
+                datamodel_doc and datamodel_doc != template_doc
+            ):
+                customized = True
+            else:
+                non_customized_views.append(key)
+
+    if checked_count and not customized:
+        segments: list[str] = []
+
+        def _format_segment(label: str, entries: list[str]) -> None:
+            if not entries:
+                return
+            unique_sorted = sorted(dict.fromkeys(entries))
+            preview = ", ".join(unique_sorted[:5])
+            if len(unique_sorted) > 5:
+                preview = f"{preview}, ..."
+            segments.append(f"{label}={preview}")
+
+        _format_segment("elementos", non_customized_elements)
+        _format_segment("relações", non_customized_relations)
+        _format_segment("visões", non_customized_views)
+
+        details = "; ".join(segments)
+        message = (
+            "O datamodel ainda corresponde ao blueprint padrão do template. "
+            "Preencha o contexto do usuário antes de gerar a pré-visualização."
+        )
+        if details:
+            message = f"{message} Itens não customizados: {details}."
+        raise ValueError(message)
+
+
 def _build_element_lookup(
     blueprint: Mapping[str, Any], datamodel: Mapping[str, Any] | None
 ) -> dict[str, dict[str, Any]]:
@@ -937,6 +1125,7 @@ def generate_layout_preview(
 
     blueprint = load_template_blueprint(target_template, session_state)
     datamodel_payload = _load_datamodel(datamodel, session_state)
+    _assert_datamodel_customized(datamodel_payload, blueprint)
     logger.info(
         "generate_layout_preview: template='%s', filtro='%s', datamodel=%s",
         target_template,
