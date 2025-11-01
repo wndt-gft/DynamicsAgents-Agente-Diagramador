@@ -1,0 +1,6 @@
+name: state_notebook
+label: "Caderno de estado"
+description: "Ferramenta para registrar checkpoints e notas persistentes durante a sessão de teste."
+methods:
+  - record_entry:
+      description: "Adiciona uma entrada estruturada ao caderno compartilhado, organizando por escopo."

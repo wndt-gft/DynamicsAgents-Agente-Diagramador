@@ -1,0 +1,193 @@
+version: 1
+metadata:
+  name: "Web Travel Search"
+  label: "Busca Web de Viagens"
+  description: >
+    Multi-provider search tool backed by an offline synthetic catalogue that
+    emulates hotel, flight and experience options for a requested destination.
+  owner: "travel_planner"
+  maintainer: "travel-team@example.com"
+events:
+  - search_completed:
+      description: "Emitted whenever a search request finishes successfully."
+      output_schema:
+        type: OBJECT
+        properties:
+          - items_found:
+              type: NUMBER
+              description: "Total number of travel options returned by the provider."
+          - provider:
+              type: STRING
+              description: "Name of the provider that produced the result."
+          - filters_applied:
+              type: OBJECT
+              description: "Filters that were applied to the remote query."
+methods:
+  - search_hotels:
+      description: "Search for hotels at a destination city using the synthetic catalogue."
+      input_schema:
+        type: OBJECT
+        properties:
+          - destination:
+              type: STRING
+              description: "City or location where the traveler wants to stay."
+              required: true
+          - check_in:
+              type: STRING
+              description: "Check-in date in ISO format."
+              required: false
+          - check_out:
+              type: STRING
+              description: "Check-out date in ISO format."
+              required: false
+          - guests:
+              type: INTEGER
+              description: "How many guests will stay in the selected room."
+              required: false
+          - max_budget:
+              type: NUMBER
+              description: "Optional upper bound filter in the local currency."
+              required: false
+      output_schema:
+        type: OBJECT
+        properties:
+          - options:
+              type: ARRAY
+              description: "List of available hotel options."
+          - source:
+              type: STRING
+              description: "Provider used to collect the information."
+    ref_events:
+      - search_completed:
+          description: "Published after the hotel search is completed."
+    usage:
+      instructions: >
+        Provide the destination city and optional filters. The tool will
+        consult the synthetic travel catalogue and return structured hotel
+        suggestions deterministically.
+      samples:
+        - call:
+            args:
+              destination: "Lisbon"
+              max_budget: 180
+            result:
+              options:
+                - name: "Urban Lisbon Hotel"
+                  price: 150
+                  currency: "EUR"
+                  rating: 4.5
+                  url: "https://example.com/urban-lisbon"
+              source: "synthetic_catalog"
+        - exception:
+            name: "SyntheticDatasetEmpty"
+            data:
+              message: "No results for destination"
+              code: 404
+  - search_flights:
+      description: "Retrieve flight options between two airports."
+      input_schema:
+        type: OBJECT
+        properties:
+          - origin:
+              type: STRING
+              description: "IATA code or city name of the departure location."
+              required: true
+          - destination:
+              type: STRING
+              description: "IATA code or city name of the arrival location."
+              required: true
+          - departure_date:
+              type: STRING
+              description: "Departure date in ISO format."
+              required: false
+          - return_date:
+              type: STRING
+              description: "Return date in ISO format."
+              required: false
+          - passengers:
+              type: INTEGER
+              description: "Number of travelers to include in the search context."
+              required: false
+      output_schema:
+        type: OBJECT
+        properties:
+          - itineraries:
+              type: ARRAY
+              description: "List of flight options ranked by score."
+          - source:
+              type: STRING
+              description: "Provider used to collect the information."
+    ref_events:
+      - search_completed:
+          description: "Published after the flight search is completed."
+    usage:
+      instructions: >
+        Provide origin and destination with optional dates. The tool will
+        query the offline catalogue and return summarized flight options.
+      samples:
+        - call:
+            args:
+              origin: "GRU"
+              destination: "JFK"
+              departure_date: "2025-10-24"
+            result:
+              itineraries:
+                - airline: "Azul"
+                  price: 3210.55
+                  currency: "BRL"
+                  duration: "9h45m"
+                  url: "https://example.com/azul-gru-jfk"
+              source: "synthetic_catalog"
+        - exception:
+            name: "SyntheticDatasetEmpty"
+            data:
+              message: "No flights returned by the provider"
+              code: 404
+  - search_experiences:
+      description: "Discover attractions, tours, and local experiences in the destination."
+      input_schema:
+        type: OBJECT
+        properties:
+          - destination:
+              type: STRING
+              description: "City or location that the traveler will visit."
+              required: true
+          - interests:
+              type: ARRAY
+              description: "Optional list of interests (e.g. food, history, adventure)."
+              required: false
+      output_schema:
+        type: OBJECT
+        properties:
+          - activities:
+              type: ARRAY
+              description: "Curated list of activities and tours."
+          - source:
+              type: STRING
+              description: "Provider used to collect the information."
+    ref_events:
+      - search_completed:
+          description: "Published after the experience search is completed."
+    usage:
+      instructions: >
+        Use after the traveler confirms the destination or shares interests.
+        The tool will aggregate the synthetic recommendations and return ranked
+        experiences with contextual notes.
+      samples:
+        - call:
+            args:
+              destination: "Lisbon"
+              interests: ["food", "history"]
+            result:
+              activities:
+                - title: "Electric tram and gastronomy tour"
+                  duration: "4h"
+                  price: 95
+                  currency: "EUR"
+                  url: "https://example.com/tram-food"
+              source: "synthetic_catalog"
+        - exception:
+            name: "SyntheticDatasetEmpty"
+            data:
+              message: "Unable to retrieve experiences"
+              code: 503

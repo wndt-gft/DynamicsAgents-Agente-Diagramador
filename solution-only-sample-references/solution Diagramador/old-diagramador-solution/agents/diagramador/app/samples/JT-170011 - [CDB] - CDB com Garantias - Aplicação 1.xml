@@ -1,0 +1,3513 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.0/archimate3_Diagram.xsd http://purl.org/dc/elements/1.1/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dc.xsd" identifier="id-494e5850-46c6-4c95-8c17-0b307b9212a8">
+	<name xml:lang="pt-br">JT-170011 - [CDB] - CDB com Garantias - Aplicação</name>
+	<elements>
+		<element identifier="id-883208" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">business-iprc-base-credit-card-contract-event-cdb-echo-sub</name>
+		</element>
+		<element identifier="id-435126" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">sboot-gcoc-base-orch-ativacao-credito</name>
+		</element>
+		<element identifier="id-435218" xsi:type="Artifact">
+			<name xml:lang="pt-br">gcpmysql-gcoc-base-ativacao-credito</name>
+		</element>
+		<element identifier="id-1382804" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">kafkaschema-gcoc-base-cartao-credito-cdb-status-atualizado</name>
+		</element>
+		<element identifier="id-883167" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">gcoc-base-cartao-credito-cdb-status-atualizado</name>
+		</element>
+		<element identifier="id-435147" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">sboot-gcoc-base-atom-ativacao-credito</name>
+		</element>
+		<element identifier="id-435145" xsi:type="ApplicationService">
+			<name xml:lang="pt-br">GET /v1/data-vencimento-fatura/{emissor}/{filial}/{produto}/{contaCartao}</name>
+		</element>
+		<element identifier="id-435216" xsi:type="ApplicationService">
+			<name xml:lang="pt-br">POST /v1/data-vencimento-fatura</name>
+		</element>
+		<element identifier="id-1382809" xsi:type="Artifact">
+			<name xml:lang="pt-br">kafkaschema-gcoc-base-cartao-credito-cdb-status-atualizado</name>
+		</element>
+		<element identifier="id-404234" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">API Gateway Conta in</name>
+		</element>
+		<element identifier="id-404238" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">orch identity provider</name>
+		</element>
+		<element identifier="id-404256" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">orch contrato de credito</name>
+			<documentation xml:lang="pt-br">Comunica quaisquer tipos de eventos com o middleware de processamento (bankly). Prove a comunicação, atualiza nas bases de controle de comunicação e publica em tópicos internos o resultado das operações.
+
+Deve ser indicado o tipo de serviço de processamento (i.e. "alteração de data de vencimento", "alteração de limite", "segunda via de cartão", etc).Deve ter o mapeamento de qual endepoint deve chamar para cada tipo de serviço.</documentation>
+		</element>
+		<element identifier="id-427231" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">ORCH QUINA</name>
+		</element>
+		<element identifier="id-1125000" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">orch Manutenção de Conta Cartão</name>
+			<documentation xml:lang="pt-br">Objetivo.Fazer a orquestração da implantação, incremento e decremento de limites de cartão.</documentation>
+		</element>
+		<element identifier="id-1145857" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">orch Limite Cartão CDB</name>
+		</element>
+		<element identifier="id-1145862" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">atom eventos cartao</name>
+		</element>
+		<element identifier="id-1145864" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">API Gateway Fatura out</name>
+		</element>
+		<element identifier="id-1145865" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">orch comunicação fatura</name>
+		</element>
+		<element identifier="id-1145884" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">orch Gestão de vencimento Fatura</name>
+		</element>
+		<element identifier="id-1145867" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">API Gteway  Fatura in</name>
+		</element>
+		<element identifier="id-1145899" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">Atom Situação conta Catão</name>
+		</element>
+		<element identifier="id-1145871" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">Calculo Limite</name>
+		</element>
+		<element identifier="id-1145868" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">Application component</name>
+		</element>
+		<element identifier="id-1145892" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">orch eventos de contrato de credito</name>
+		</element>
+		<element identifier="id-1145897" xsi:type="ApplicationComponent">
+			<name xml:lang="pt-br">atom eventos fatura</name>
+		</element>
+		<element identifier="id-1145926" xsi:type="DataObject">
+			<name xml:lang="pt-br">Rep Dados Eventos Cartão</name>
+			<documentation xml:lang="pt-br">cloud-firestore-bv-iprc-credit</documentation>
+		</element>
+		<element identifier="id-1145923" xsi:type="DataObject">
+			<name xml:lang="pt-br">Rep de Dados de Conta Cartão</name>
+		</element>
+		<element identifier="id-1145909" xsi:type="DataObject">
+			<name xml:lang="pt-br">Rep Dados eventos Fatura</name>
+		</element>
+		<element identifier="id-1145858" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">Limite implantado</name>
+		</element>
+		<element identifier="id-1145860" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">Evento Lim Crédito</name>
+		</element>
+		<element identifier="id-1145882" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">Topico Vencimento Cartão</name>
+		</element>
+		<element identifier="id-1145907" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">Fila situação Conta Cartão</name>
+		</element>
+		<element identifier="id-1145894" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">Evento Lim  Credito echo</name>
+		</element>
+		<element identifier="id-1145890" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">events contrato de credito echo</name>
+		</element>
+		<element identifier="id-1145872" xsi:type="ApplicationEvent">
+			<name xml:lang="pt-br">Atualização Lim Disponível</name>
+		</element>
+		<element identifier="id-435154" xsi:type="ApplicationService">
+			<name xml:lang="pt-br">PUT/v1/quina/contrato-credito</name>
+		</element>
+		<element identifier="id-883163" xsi:type="ApplicationService">
+			<name xml:lang="pt-br">POST/v1/banco-digital/cartao/limite/cdb</name>
+		</element>
+		<element identifier="id-1274921" xsi:type="WorkPackage">
+			<name xml:lang="pt-br">JT-170011</name>
+		</element>
+		<element identifier="id-1274927" xsi:type="WorkPackage">
+			<name xml:lang="pt-br">JT-170011</name>
+		</element>
+	</elements>
+	<relationships>
+		<relationship identifier="id-883153" source="id-883208" target="id-435126" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-883188" source="id-435126" target="id-883167" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1382807" source="id-1382804" target="id-883167" xsi:type="Realization">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-435122" source="id-435216" target="id-435126" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-435210" source="id-435145" target="id-435126" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-435231" source="id-435147" target="id-435218" xsi:type="Access" accessType="ReadWrite">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1378585" source="id-435147" target="id-435216" xsi:type="Realization">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1378587" source="id-435147" target="id-435145" xsi:type="Realization">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1382808" source="id-1382809" target="id-883167" xsi:type="Realization">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-435117" source="id-435154" target="id-435126" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-404206" source="id-404234" target="id-404256" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-883134" source="id-883163" target="id-435126" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145856" source="id-1145857" target="id-1145858" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145859" source="id-404256" target="id-1145860" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145863" source="id-1145864" target="id-1145865" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145866" source="id-1145867" target="id-1145868" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145903" source="id-1145867" target="id-1145865" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145883" source="id-1145865" target="id-1145884" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145900" source="id-1125000" target="id-1145872" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145893" source="id-1145862" target="id-1145894" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145921" source="id-1145862" target="id-404256" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145922" source="id-1145899" target="id-1145923" xsi:type="Access" accessType="ReadWrite">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145870" source="id-1145871" target="id-1145872" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145901" source="id-1145860" target="id-1145862" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145902" source="id-404238" target="id-404256" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145924" source="id-404256" target="id-1125000" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145927" source="id-1145884" target="id-1145907" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145895" source="id-1145892" target="id-1145890" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145896" source="id-1145897" target="id-1145865" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145898" source="id-1145899" target="id-1145884" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145904" source="id-1145865" target="id-1125000" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145905" source="id-1125000" target="id-1145890" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145906" source="id-1125000" target="id-1145907" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145908" source="id-1145897" target="id-1145909" xsi:type="Access" accessType="ReadWrite">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145878" source="id-1145864" target="id-1145868" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145912" source="id-1145894" target="id-1125000" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145913" source="id-1145899" target="id-1145907" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145914" source="id-1145899" target="id-1125000" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145918" source="id-404238" target="id-1145865" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145925" source="id-1145862" target="id-1145926" xsi:type="Access">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145891" source="id-1145892" target="id-404256" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145928" source="id-1125000" target="id-1145858" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145929" source="id-404234" target="id-1145868" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145930" source="id-1145884" target="id-1125000" xsi:type="Serving">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145881" source="id-1145882" target="id-1125000" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1145889" source="id-1145857" target="id-1145890" xsi:type="Triggering">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274945" source="id-1274921" target="id-1125000" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274956" source="id-1274921" target="id-1145897" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274938" source="id-1274921" target="id-1145890" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274937" source="id-1274921" target="id-1145864" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274939" source="id-1274921" target="id-1145892" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274953" source="id-1274921" target="id-1145894" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274951" source="id-1274921" target="id-1145923" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274950" source="id-1274921" target="id-1145865" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274954" source="id-1274921" target="id-1145884" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274946" source="id-1274927" target="id-435126" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274948" source="id-1274921" target="id-1145862" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274952" source="id-1274921" target="id-1145889" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274942" source="id-1274921" target="id-1145860" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274949" source="id-1274921" target="id-1145926" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274933" source="id-1274921" target="id-1145900" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274922" source="id-1274921" target="id-1145867" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274923" source="id-1274921" target="id-1145881" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274924" source="id-1274921" target="id-1145899" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274928" source="id-1274921" target="id-404256" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274925" source="id-1274921" target="id-427231" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274932" source="id-1274921" target="id-404238" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274934" source="id-1274921" target="id-404234" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274935" source="id-1274921" target="id-1145909" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+		<relationship identifier="id-1274920" source="id-1274921" target="id-1145907" xsi:type="Association">
+			<name xml:lang="pt-br"></name>
+		</relationship>
+	</relationships>
+	<organizations>
+		<item>
+			<label>Componentes</label>
+			<item>
+				<label>IPRC</label>
+				<item>
+					<label xml:lang="pt-br">pubsub-iprc-base-credit-event-echo</label>
+					<item identifierRef="id-883208"/>
+					<item identifierRef="id-883153"/>
+					<item/>
+					<item/>
+				</item>
+			</item>
+			<item>
+				<label>FATC</label>
+			</item>
+			<item>
+				<label>GCOC</label>
+				<item>
+					<label xml:lang="pt-br">sboot-gcoc-base-orch-ativacao-credito</label>
+					<item identifierRef="id-435126"/>
+					<item/>
+					<item/>
+					<item/>
+					<item/>
+					<item identifierRef="id-883188"/>
+					<item/>
+					<item/>
+				</item>
+				<item>
+					<label xml:lang="pt-br">gcpmysql-gcoc-base-ativacao-credito</label>
+					<item identifierRef="id-435218"/>
+					<item/>
+					<item/>
+				</item>
+				<item>
+					<label xml:lang="pt-br">firestore-gcoc-base-ativacao-credito</label>
+				</item>
+				<item>
+					<label xml:lang="pt-br">kafkaschema-gcoc-base-cartao-credito-cdb-status-atualizado</label>
+					<item identifierRef="id-1382804"/>
+					<item identifierRef="id-883167"/>
+					<item/>
+					<item/>
+					<item identifierRef="id-1382807"/>
+				</item>
+				<item>
+					<label xml:lang="pt-br">sboot-gcoc-base-atom-ativacao-credito</label>
+					<item identifierRef="id-435147"/>
+					<item identifierRef="id-435122"/>
+					<item identifierRef="id-435210"/>
+					<item identifierRef="id-435231"/>
+					<item/>
+					<item/>
+					<item identifierRef="id-1378585"/>
+					<item/>
+					<item identifierRef="id-1378587"/>
+					<item/>
+					<item identifierRef="id-435145"/>
+					<item identifierRef="id-435216"/>
+				</item>
+				<item>
+					<label xml:lang="pt-br">kafkaschema-gcoc-base-cartao-credito-cdb-status-atualizado</label>
+					<item identifierRef="id-1382809"/>
+					<item/>
+					<item identifierRef="id-1382808"/>
+				</item>
+			</item>
+		</item>
+		<item>
+			<label>Views</label>
+			<item>
+				<label>VT</label>
+				<item identifierRef="id-165570"/>
+				<item identifierRef="id-201710"/>
+			</item>
+			<item identifierRef="id-182006"/>
+			<item identifierRef="id-218486"/>
+		</item>
+		<item/>
+		<item/>
+		<item/>
+		<item/>
+		<item/>
+		<item/>
+		<item/>
+		<item>
+			<label xml:lang="pt-br">Business layer</label>
+		</item>
+		<item>
+			<label xml:lang="pt-br">Application layer</label>
+			<item identifierRef="id-404234"/>
+			<item identifierRef="id-404238"/>
+			<item identifierRef="id-404256"/>
+			<item identifierRef="id-427231"/>
+			<item identifierRef="id-1125000"/>
+			<item identifierRef="id-1145857"/>
+			<item identifierRef="id-1145862"/>
+			<item identifierRef="id-1145864"/>
+			<item identifierRef="id-1145865"/>
+			<item identifierRef="id-1145884"/>
+			<item identifierRef="id-1145867"/>
+			<item identifierRef="id-1145899"/>
+			<item identifierRef="id-1145871"/>
+			<item identifierRef="id-1145868"/>
+			<item identifierRef="id-1145892"/>
+			<item identifierRef="id-1145897"/>
+			<item identifierRef="id-1145926"/>
+			<item identifierRef="id-1145923"/>
+			<item identifierRef="id-1145909"/>
+			<item identifierRef="id-1145858"/>
+			<item identifierRef="id-1145860"/>
+			<item identifierRef="id-1145882"/>
+			<item identifierRef="id-1145907"/>
+			<item identifierRef="id-1145894"/>
+			<item identifierRef="id-1145890"/>
+			<item identifierRef="id-1145872"/>
+			<item/>
+			<item/>
+			<item identifierRef="id-435117"/>
+			<item/>
+			<item/>
+			<item/>
+			<item/>
+			<item/>
+			<item identifierRef="id-404206"/>
+			<item/>
+			<item/>
+			<item identifierRef="id-883134"/>
+			<item/>
+			<item/>
+			<item/>
+			<item identifierRef="id-1145856"/>
+			<item identifierRef="id-1145859"/>
+			<item/>
+			<item identifierRef="id-1145863"/>
+			<item identifierRef="id-1145866"/>
+			<item identifierRef="id-1145903"/>
+			<item/>
+			<item identifierRef="id-1145883"/>
+			<item identifierRef="id-1145900"/>
+			<item/>
+			<item identifierRef="id-1145893"/>
+			<item/>
+			<item identifierRef="id-1145921"/>
+			<item identifierRef="id-1145922"/>
+			<item/>
+			<item identifierRef="id-1145870"/>
+			<item identifierRef="id-1145901"/>
+			<item identifierRef="id-1145902"/>
+			<item identifierRef="id-1145924"/>
+			<item identifierRef="id-1145927"/>
+			<item/>
+			<item identifierRef="id-1145895"/>
+			<item/>
+			<item identifierRef="id-1145896"/>
+			<item identifierRef="id-1145898"/>
+			<item/>
+			<item identifierRef="id-1145904"/>
+			<item identifierRef="id-1145905"/>
+			<item identifierRef="id-1145906"/>
+			<item identifierRef="id-1145908"/>
+			<item identifierRef="id-1145878"/>
+			<item identifierRef="id-1145912"/>
+			<item identifierRef="id-1145913"/>
+			<item identifierRef="id-1145914"/>
+			<item/>
+			<item/>
+			<item identifierRef="id-1145918"/>
+			<item identifierRef="id-1145925"/>
+			<item identifierRef="id-1145891"/>
+			<item identifierRef="id-1145928"/>
+			<item identifierRef="id-1145929"/>
+			<item identifierRef="id-1145930"/>
+			<item/>
+			<item/>
+			<item identifierRef="id-1145881"/>
+			<item identifierRef="id-1145889"/>
+			<item identifierRef="id-435154"/>
+			<item identifierRef="id-883163"/>
+		</item>
+		<item>
+			<label xml:lang="pt-br">Composite elements</label>
+		</item>
+		<item>
+			<label xml:lang="pt-br">Strategy elements</label>
+		</item>
+		<item>
+			<label xml:lang="pt-br">Implementation and migration elements</label>
+			<item/>
+			<item/>
+			<item identifierRef="id-1274945"/>
+			<item identifierRef="id-1274956"/>
+			<item identifierRef="id-1274938"/>
+			<item identifierRef="id-1274937"/>
+			<item/>
+			<item identifierRef="id-1274939"/>
+			<item/>
+			<item identifierRef="id-1274953"/>
+			<item identifierRef="id-1274951"/>
+			<item identifierRef="id-1274950"/>
+			<item identifierRef="id-1274954"/>
+			<item identifierRef="id-1274946"/>
+			<item/>
+			<item identifierRef="id-1274948"/>
+			<item identifierRef="id-1274952"/>
+			<item identifierRef="id-1274942"/>
+			<item/>
+			<item identifierRef="id-1274949"/>
+			<item identifierRef="id-1274933"/>
+			<item/>
+			<item identifierRef="id-1274922"/>
+			<item identifierRef="id-1274923"/>
+			<item/>
+			<item/>
+			<item identifierRef="id-1274924"/>
+			<item identifierRef="id-1274928"/>
+			<item identifierRef="id-1274925"/>
+			<item/>
+			<item identifierRef="id-1274932"/>
+			<item identifierRef="id-1274934"/>
+			<item identifierRef="id-1274935"/>
+			<item identifierRef="id-1274920"/>
+			<item/>
+			<item identifierRef="id-1274921"/>
+			<item identifierRef="id-1274927"/>
+		</item>
+		<item>
+			<label xml:lang="pt-br">Technology layer</label>
+		</item>
+		<item>
+			<label xml:lang="pt-br">Physical elements</label>
+		</item>
+		<item>
+			<label xml:lang="pt-br">Motivation elements</label>
+		</item>
+	</organizations>
+	<views>
+		<diagrams>
+			<view identifier="id-165570" viewpoint="Introductory">
+				<name xml:lang="pt-br">1-Solicitar Contrato Crédito Bankly</name>
+				<node identifier="id-1378126" xsi:type="Container" x="360" y="360" w="2227" h="1260">
+					<label xml:lang="pt-br">Execution Logic</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1378437" xsi:type="Container" x="373" y="387" w="2200" h="1207">
+						<label xml:lang="pt-br">Google Cloud Platform</label>
+						<style lineWidth="1">
+							<fillColor r="215" g="245" b="255" a="20"/>
+							<lineColor r="128" g="128" b="128" a="100"/>
+							<font name="arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-883228" xsi:type="Label" x="745" y="1380" w="247" h="53">
+							<label xml:lang="pt-br">sboot-iprc-base-orch-evento-contrato-credito</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883253" xsi:type="Label" x="745" y="1407" w="247" h="20">
+							<label xml:lang="pt-br">POST /v1/credit-card-limit-approved</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883227" xsi:type="Label" x="2238" y="907" w="273" h="53">
+							<label xml:lang="pt-br">sboot-iprc-base-orch-credit-card-contract-event</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883234" xsi:type="Label" x="2238" y="933" w="273" h="20">
+							<label xml:lang="pt-br">POST /v1/bsp/credits-card-contract</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883244" xsi:type="Label" x="2232" y="1500" w="220" h="53">
+							<label xml:lang="pt-br">sboot-iprc-base-atom-credit-event</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883182" xsi:type="Label" x="2238" y="1527" w="167" h="27">
+							<label xml:lang="pt-br">POST /v1/credit</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883217" xsi:type="Label" x="1078" y="1353" w="360" h="27">
+							<label xml:lang="pt-br">kafkaschema-iprc-base-contrato-credito-aprovado</label>
+							<style lineWidth="1">
+								<fillColor r="214" g="248" b="184" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883168" xsi:type="Label" x="2358" y="1040" w="73" h="53">
+							<label xml:lang="pt-br">business-iprc-base-credit-event</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883142" xsi:type="Label" x="2358" y="1193" w="73" h="53">
+							<label xml:lang="pt-br">business-iprc-base-credit-event-sub</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883211" xsi:type="Label" x="2018" y="1513" w="60" h="40">
+							<label xml:lang="pt-br">business-iprc-base-credit-event-echo</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883210" xsi:type="Label" x="2272" y="733" w="187" h="53">
+							<label xml:lang="pt-br">sboot-iprc-base-identity-provider</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883246" xsi:type="Label" x="2278" y="767" w="180" h="20">
+							<label xml:lang="pt-br">POST /v1/oauth2/token</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883193" xsi:type="Label" x="2138" y="823" w="67" h="40">
+							<label xml:lang="pt-br">business-iprc-base-credit-card-contract-retry-sub</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883148" xsi:type="Label" x="2138" y="740" w="67" h="40">
+							<label xml:lang="pt-br">business-iprc-base-credit-card-contract-retry</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883146" xsi:type="Label" x="1085" y="1400" w="260" h="33">
+							<label xml:lang="pt-br">iprc-base-contrato-credito-aprovado</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883237" xsi:type="Label" x="799" y="967" w="240" h="67">
+							<label xml:lang="pt-br">springboot-cart-base-quina</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883190" xsi:type="Label" x="799" y="1120" w="240" h="53">
+							<label xml:lang="pt-br">sboot-gcoc-base-atom-conta</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883215" xsi:type="Label" x="629" y="1190" w="580" h="27">
+							<label xml:lang="pt-br">GET /v1/conta/status/nuContaCartao/{nuContaCartao}/cdProdutoCartao/{cdProdutoCartao}</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883220" xsi:type="Label" x="985" y="823" w="240" h="27">
+							<label xml:lang="pt-br">glit-base-limite-calculado-cartao-cdb</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883248" elementRef="id-883208" xsi:type="Element" x="1585" y="1513" w="60" h="40">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883199" xsi:type="Label" x="487" y="767" w="207" h="53">
+							<label xml:lang="pt-br">sboot-invg-base-orch-operacoes</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883224" elementRef="id-435126" xsi:type="Element" x="1393" y="900" w="287" h="67">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883197" elementRef="id-435147" xsi:type="Element" x="2032" y="560" w="513" h="80">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+							<node identifier="id-883174" elementRef="id-435145" xsi:type="Element" x="2038" y="603" w="460" h="20">
+								<style lineWidth="1">
+									<fillColor r="184" g="231" b="252" a="100"/>
+									<lineColor r="0" g="0" b="0" a="100"/>
+									<font name="Arial" size="12" style="plain">
+										<color r="0" g="0" b="0" a="100"/>
+									</font>
+								</style>
+							</node>
+							<node identifier="id-883173" elementRef="id-435216" xsi:type="Element" x="2038" y="580" w="240" h="20">
+								<style lineWidth="1">
+									<fillColor r="184" g="231" b="252" a="100"/>
+									<lineColor r="0" g="0" b="0" a="100"/>
+									<font name="Arial" size="12" style="plain">
+										<color r="0" g="0" b="0" a="100"/>
+									</font>
+								</style>
+							</node>
+						</node>
+						<node identifier="id-883251" xsi:type="Label" x="885" y="873" w="340" h="27">
+							<label xml:lang="pt-br">business-binv-base-envio-data-vencimento-cartao</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883147" xsi:type="Label" x="1825" y="1020" w="353" h="53">
+							<label xml:lang="pt-br">sboot-cart-base-orch-fatura-cartao</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883145" xsi:type="Label" x="1815" y="1107" w="373" h="27">
+							<label xml:lang="pt-br">POST/v1/varejo/cartoes/fatura/altera/data/vencimento</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883166" elementRef="id-883167" xsi:type="Element" x="893" y="780" w="340" h="27">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883207" elementRef="id-883208" xsi:type="Element" x="1645" y="1170" w="60" h="40">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378534" xsi:type="Label" x="1085" y="1027" w="27" h="27">
+							<label xml:lang="pt-br">2</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378108" xsi:type="Label" x="1978" y="577" w="27" h="27">
+							<label xml:lang="pt-br">3</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378378" xsi:type="Label" x="1198" y="940" w="27" h="27">
+							<label xml:lang="pt-br">1</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378530" xsi:type="Label" x="1233" y="913" w="27" h="27">
+							<label xml:lang="pt-br">4</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378435" xsi:type="Label" x="1278" y="670" w="27" h="27">
+							<label xml:lang="pt-br">7</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378475" xsi:type="Label" x="1467" y="1093" w="27" h="27">
+							<label xml:lang="pt-br">6</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378535" xsi:type="Label" x="1120" y="1027" w="27" h="27">
+							<label xml:lang="pt-br">5</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378377" xsi:type="Label" x="1285" y="543" w="27" h="27">
+							<label xml:lang="pt-br">8</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378242" xsi:type="Label" x="2205" y="933" w="27" h="27">
+							<label xml:lang="pt-br">10</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378482" xsi:type="Label" x="2307" y="1327" w="27" h="27">
+							<label xml:lang="pt-br">11</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378383" xsi:type="Label" x="2412" y="977" w="27" h="27">
+							<label xml:lang="pt-br">12</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883241" xsi:type="Label" x="772" y="1053" w="293" h="27">
+							<label xml:lang="pt-br">GET /v1/quina/{numeroCpf}</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883223" xsi:type="Label" x="1672" y="507" w="333" h="47">
+							<label xml:lang="pt-br">sboot-cdsp-xpca-orch-consulta-clientes-varejo</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883137" xsi:type="Label" x="1785" y="427" w="247" h="40">
+							<label xml:lang="pt-br">Consulta Clientes Varejo</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883242" xsi:type="Label" x="487" y="497" w="207" h="73">
+							<label xml:lang="pt-br">sboot-gcoc-base-atom-convivencia-processadoras</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883139" xsi:type="Label" x="487" y="627" w="207" h="60">
+							<label xml:lang="pt-br">sboot-cart-svhp-orch-lista-cartoes</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883205" xsi:type="Label" x="772" y="520" w="513" h="27">
+							<label xml:lang="pt-br">GET  /v1/convivencia/cartao/produto/{produto}/tipo/{tipoCartao}/programas</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883231" xsi:type="Label" x="1078" y="643" w="200" h="27">
+							<label xml:lang="pt-br">/v2/cartoes</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883206" xsi:type="Label" x="1467" y="653" w="300" h="33">
+							<label xml:lang="pt-br">GET /v1/clientes/varejo/dados-cadastrais</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378398" xsi:type="Label" x="1625" y="697" w="27" h="27">
+							<label xml:lang="pt-br">9</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378532" xsi:type="Label" x="2405" y="1327" w="27" h="27">
+							<label xml:lang="pt-br">13</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378484" xsi:type="Label" x="1027" y="1380" w="27" h="27">
+							<label xml:lang="pt-br">14</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378477" xsi:type="Label" x="2458" y="977" w="27" h="27">
+							<label xml:lang="pt-br">15</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378275" xsi:type="Label" x="1847" y="1500" w="27" h="27">
+							<label xml:lang="pt-br">16</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378316" xsi:type="Label" x="1608" y="1153" w="27" h="27">
+							<label xml:lang="pt-br">17</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378421" xsi:type="Label" x="1153" y="1027" w="27" h="27">
+							<label xml:lang="pt-br">18</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378479" xsi:type="Label" x="1978" y="613" w="27" h="27">
+							<label xml:lang="pt-br">19</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378536" xsi:type="Label" x="1653" y="1080" w="27" h="27">
+							<label xml:lang="pt-br">20</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378394" xsi:type="Label" x="1278" y="887" w="27" h="27">
+							<label xml:lang="pt-br">21</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883189" elementRef="id-435154" xsi:type="Element" x="1077" y="990" w="213" h="20">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883135" xsi:type="Label" x="793" y="1247" w="233" h="67">
+							<label xml:lang="pt-br">sboot-cart-base-atom-limite-cartao</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-883162" elementRef="id-883163" xsi:type="Element" x="1077" y="1267" w="227" h="27">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378074" xsi:type="Label" x="1333" y="983" w="27" h="27">
+							<label xml:lang="pt-br">22</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1378070" xsi:type="Label" x="1467" y="1267" w="27" h="27">
+							<label xml:lang="pt-br">23</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="12" style="bold">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+				</node>
+				<node identifier="id-1378263" xsi:type="Label" x="13" y="53" w="620" h="80">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="24" style="bold">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1378300" xsi:type="Label" x="140" y="91" w="613" h="55">
+					<label xml:lang="pt-br">Aplicação CDB para conceder limite de Cartão</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="18" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1378232" xsi:type="Label" x="140" y="53" w="480" h="40">
+					<label xml:lang="pt-br">CDB</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="24" style="bold">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1378190" xsi:type="Container" x="360" y="1627" w="2227" h="147">
+					<label xml:lang="pt-br">Data Management</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-883194" xsi:type="Label" x="2342" y="1683" w="80" h="53">
+						<label xml:lang="pt-br">cloud-firestore-bv-iprc-credit</label>
+						<style lineWidth="1">
+							<fillColor r="214" g="248" b="184" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-883132" xsi:type="Label" x="457" y="1677" w="93" h="47">
+						<label xml:lang="pt-br">DBCART1.CARTQuina</label>
+						<style lineWidth="1">
+							<fillColor r="214" g="248" b="184" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-883222" xsi:type="Label" x="693" y="1677" w="87" h="47">
+						<label xml:lang="pt-br">DBCART1.CARTCadastro</label>
+						<style lineWidth="1">
+							<fillColor r="214" g="248" b="184" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1378514" xsi:type="Container" x="27" y="187" w="327" h="767">
+					<label xml:lang="pt-br">Channels</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-883235" xsi:type="Label" x="110" y="830" w="180" h="53">
+						<label xml:lang="pt-br">Bankly</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1378145" xsi:type="Container" x="27" y="960" w="327" h="813">
+					<label xml:lang="pt-br">Gateway Inbound</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-883176" xsi:type="Label" x="97" y="1387" w="240" h="53">
+						<label xml:lang="pt-br">apigee-iprc-base-conta-in-v1</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-883249" xsi:type="Label" x="97" y="1414" w="233" h="20">
+						<label xml:lang="pt-br">POST /v1/credit-card-limit-approved</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1378500" xsi:type="Container" x="2600" y="200" w="300" h="287">
+					<label xml:lang="pt-br">Gateway Outbound</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-883136" xsi:type="Label" x="2623" y="360" w="253" h="53">
+						<label xml:lang="pt-br">apigee-iprc-base-conta-out-v1</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-883181" xsi:type="Label" x="2623" y="387" w="247" h="20">
+						<label xml:lang="pt-br">POST /v1/bsp/credits-card-contract</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1378504" xsi:type="Container" x="2913" y="200" w="253" h="293">
+					<label xml:lang="pt-br">External Integration Layer</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-883204" xsi:type="Label" x="2947" y="360" w="133" h="53">
+						<label xml:lang="pt-br">Bankly</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1378472" xsi:type="Container" x="360" y="193" w="2213" h="160">
+					<label xml:lang="pt-br">Data Management</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-883144" elementRef="id-435218" xsi:type="Element" x="2082" y="253" w="87" h="60">
+						<style lineWidth="1">
+							<fillColor r="214" g="248" b="184" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1378425" xsi:type="Container" x="2600" y="500" w="567" h="1273">
+					<label xml:lang="pt-br">Etapas</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1378465" xsi:type="Label" x="2613" y="587" w="540" h="987">
+						<label xml:lang="pt-br">1. Orch ativação de crédito recebe evento do BINV sobre a data de vencimento que o usuário escolheu.   2. Consulta na quina para recuperar a quadra e enriquecer contrato da data de vencimento de fatura  3. Data de vencimento vai ser persistida em base para futura consulta e alteração na fatura     4. Orch recebe evento Kafka do limite calculado para criação do contrato de crédito    5. Será feito consulta na quina para recuperar a quadra  6. Consulta no atom-conta para ver status do cartão se está ativo  7. Consulta na lista-cartões para ver o tipo do cartão  8. Consulta no atom-convivencia recuperar o programID  9. Consulta dados do cliente no CADU  10. Orch faz requisição em atom-credit-event salvando payload de request   11. Atom credit persiste payload de request  12. Após solicitação na Bankly é publicado retorno em pub/sub   13. Atom atualiza base com status de solicitado    14. Evento de contrato criado chega por webhook e persiste em Kafka local    15. Orch escuta evento Kafka e publica no pub/sub para ser persistido em base e alterar status como concluído    16. Concluído o recebimento do contrato de crédito é publicado em tópico de eco, então será criado um subscribe filtrando credito com CDB    17. Orch escuta eco de contrato com CDB    18. Consulta na quina para recuperar a quadra para recuperar data de vencimento  19. Orch recupera data de vencimento escolhida pelo cliente   20. Orch atualiza a data de vencimento chamando orch-fatura-cartão   21. Orch cria tópico Kafka de crédito ativado para o INVG  22.Atualiza a quina com contrato de crédito criado na Bankly  23.Cria-se o registro de limite do cliente já que não exitia devido a antes ser puro débito.</label>
+						<style lineWidth="1">
+							<fillColor r="255" g="255" b="255" a="0"/>
+							<lineColor r="0" g="0" b="0" a="0"/>
+							<font name="arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<connection identifier="id-883149" xsi:type="Line" source="id-883228" target="id-883146">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="918" y="1420"/>
+					<targetAttachment x="1098" y="1420"/>
+				</connection>
+				<connection identifier="id-883157" xsi:type="Line" source="id-883217" target="id-883146">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1175" y="1360"/>
+					<targetAttachment x="1182" y="1427"/>
+				</connection>
+				<connection identifier="id-883150" xsi:type="Line" source="id-883146" target="id-883227">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1182" y="1420"/>
+					<bendpoint x="2260" y="1420"/>
+					<bendpoint x="2258" y="1187"/>
+					<targetAttachment x="2258" y="953"/>
+				</connection>
+				<connection identifier="id-883154" xsi:type="Line" source="id-883227" target="id-883168">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2392" y="960"/>
+					<targetAttachment x="2392" y="1060"/>
+				</connection>
+				<connection identifier="id-883161" xsi:type="Line" source="id-883168" target="id-883142">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2398" y="1067"/>
+					<targetAttachment x="2398" y="1207"/>
+				</connection>
+				<connection identifier="id-883243" xsi:type="Line" source="id-883142" target="id-883244">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2398" y="1220"/>
+					<targetAttachment x="2392" y="1507"/>
+				</connection>
+				<connection identifier="id-883180" xsi:type="Line" source="id-883182" target="id-883227">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2312" y="1553"/>
+					<targetAttachment x="2318" y="953"/>
+				</connection>
+				<connection identifier="id-883159" xsi:type="Line" source="id-883244" target="id-883211">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2238" y="1530"/>
+					<targetAttachment x="2085" y="1530"/>
+				</connection>
+				<connection identifier="id-883236" xsi:type="Line" source="id-883246" target="id-883227">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2338" y="780"/>
+					<bendpoint x="2545" y="780"/>
+					<bendpoint x="2545" y="920"/>
+					<targetAttachment x="2445" y="920"/>
+				</connection>
+				<connection identifier="id-883232" xsi:type="Line" source="id-883227" target="id-883148">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2245" y="913"/>
+					<bendpoint x="2245" y="760"/>
+					<targetAttachment x="2198" y="760"/>
+				</connection>
+				<connection identifier="id-883233" xsi:type="Line" source="id-883148" target="id-883193">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2172" y="760"/>
+					<targetAttachment x="2172" y="833"/>
+				</connection>
+				<connection identifier="id-883198" xsi:type="Line" source="id-883193" target="id-883227">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2172" y="843"/>
+					<bendpoint x="2172" y="907"/>
+					<targetAttachment x="2245" y="907"/>
+				</connection>
+				<connection identifier="id-883213" xsi:type="Line" source="id-883190" target="id-883215">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="919" y="1153"/>
+					<targetAttachment x="919" y="1207"/>
+				</connection>
+				<connection identifier="id-883185" xsi:type="Line" source="id-883211" target="id-883248">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2058" y="1533"/>
+					<targetAttachment x="1638" y="1533"/>
+				</connection>
+				<connection identifier="id-883175" xsi:type="Line" source="id-883234" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2378" y="947"/>
+					<targetAttachment x="1633" y="947"/>
+				</connection>
+				<connection identifier="id-883183" xsi:type="Line" source="id-883251" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1205" y="897"/>
+					<bendpoint x="1205" y="953"/>
+					<targetAttachment x="1400" y="953"/>
+				</connection>
+				<connection identifier="id-883178" xsi:type="Line" source="id-883220" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1108" y="840"/>
+					<bendpoint x="1240" y="840"/>
+					<bendpoint x="1240" y="933"/>
+					<targetAttachment x="1413" y="933"/>
+				</connection>
+				<connection identifier="id-883202" xsi:type="Line" source="id-883215" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="919" y="1207"/>
+					<bendpoint x="1480" y="1207"/>
+					<targetAttachment x="1480" y="960"/>
+				</connection>
+				<connection identifier="id-883169" xsi:type="Line" source="id-883147" target="id-883145">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</connection>
+				<connection identifier="id-883226" xsi:type="Line" source="id-883145" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2005" y="1120"/>
+					<bendpoint x="1652" y="1120"/>
+					<targetAttachment x="1652" y="967"/>
+				</connection>
+				<connection identifier="id-883247" xsi:type="Relationship" relationshipRef="id-435122" source="id-883173" target="id-883224">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2052" y="593"/>
+					<bendpoint x="1858" y="593"/>
+					<bendpoint x="1858" y="913"/>
+					<targetAttachment x="1647" y="913"/>
+				</connection>
+				<connection identifier="id-883191" xsi:type="Line" source="id-883166" target="id-883199">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="927" y="793"/>
+					<bendpoint x="827" y="793"/>
+					<targetAttachment x="693" y="793"/>
+				</connection>
+				<connection identifier="id-883187" xsi:type="Relationship" relationshipRef="id-883188" source="id-883224" target="id-883166">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1407" y="920"/>
+					<bendpoint x="1273" y="920"/>
+					<bendpoint x="1273" y="793"/>
+					<targetAttachment x="1207" y="793"/>
+				</connection>
+				<connection identifier="id-883152" xsi:type="Relationship" relationshipRef="id-883153" source="id-883207" target="id-883224">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1678" y="1193"/>
+					<bendpoint x="1558" y="1193"/>
+					<targetAttachment x="1558" y="960"/>
+				</connection>
+				<connection identifier="id-883230" xsi:type="Relationship" relationshipRef="id-435210" source="id-883174" target="id-883224">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2045" y="613"/>
+					<bendpoint x="1878" y="613"/>
+					<bendpoint x="1878" y="927"/>
+					<targetAttachment x="1640" y="927"/>
+				</connection>
+				<connection identifier="id-883238" xsi:type="Line" source="id-883237" target="id-883241">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</connection>
+				<connection identifier="id-883225" xsi:type="Line" source="id-883241" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="919" y="1067"/>
+					<bendpoint x="1453" y="1067"/>
+					<targetAttachment x="1453" y="960"/>
+				</connection>
+				<connection identifier="id-883177" xsi:type="Line" source="id-883137" target="id-883223">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1895" y="460"/>
+					<targetAttachment x="1895" y="517"/>
+				</connection>
+				<connection identifier="id-883155" xsi:type="Line" source="id-883242" target="id-883205">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</connection>
+				<connection identifier="id-883151" xsi:type="Line" source="id-883139" target="id-883231">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</connection>
+				<connection identifier="id-883140" xsi:type="Line" source="id-883223" target="id-883206">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1687" y="540"/>
+					<bendpoint x="1620" y="540"/>
+					<targetAttachment x="1620" y="653"/>
+				</connection>
+				<connection identifier="id-883250" xsi:type="Line" source="id-883205" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1027" y="533"/>
+					<bendpoint x="1453" y="533"/>
+					<targetAttachment x="1453" y="913"/>
+				</connection>
+				<connection identifier="id-883171" xsi:type="Line" source="id-883231" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1180" y="660"/>
+					<bendpoint x="1427" y="660"/>
+					<targetAttachment x="1427" y="900"/>
+				</connection>
+				<connection identifier="id-883201" xsi:type="Line" source="id-883206" target="id-883224">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1620" y="673"/>
+					<targetAttachment x="1620" y="907"/>
+				</connection>
+				<connection identifier="id-883218" xsi:type="Line" source="id-883237" target="id-883189">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="920" y="1000"/>
+					<targetAttachment x="1080" y="1000"/>
+				</connection>
+				<connection identifier="id-883195" xsi:type="Relationship" relationshipRef="id-435117" source="id-883189" target="id-883224">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1187" y="1000"/>
+					<bendpoint x="1420" y="1000"/>
+					<targetAttachment x="1420" y="967"/>
+				</connection>
+				<connection identifier="id-883164" xsi:type="Line" source="id-883135" target="id-883162">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="913" y="1280"/>
+					<targetAttachment x="1100" y="1280"/>
+				</connection>
+				<connection identifier="id-883133" xsi:type="Relationship" relationshipRef="id-883134" source="id-883162" target="id-883224">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1193" y="1280"/>
+					<bendpoint x="1527" y="1280"/>
+					<targetAttachment x="1520" y="960"/>
+				</connection>
+				<connection identifier="id-883245" xsi:type="Line" source="id-883181" target="id-883227">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2703" y="400"/>
+					<bendpoint x="2560" y="400"/>
+					<bendpoint x="2560" y="953"/>
+					<targetAttachment x="2452" y="947"/>
+				</connection>
+				<connection identifier="id-883229" xsi:type="Line" source="id-883244" target="id-883194">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2345" y="1527"/>
+					<targetAttachment x="2348" y="1703"/>
+				</connection>
+				<connection identifier="id-883209" xsi:type="Line" source="id-883204" target="id-883136">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</connection>
+				<connection identifier="id-883196" xsi:type="Line" source="id-883253" target="id-883176">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="825" y="1420"/>
+					<targetAttachment x="270" y="1427"/>
+				</connection>
+				<connection identifier="id-883240" xsi:type="Relationship" relationshipRef="id-435231" source="id-883197" target="id-883144">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="2125" y="570"/>
+					<targetAttachment x="2122" y="303"/>
+				</connection>
+				<connection identifier="id-883160" xsi:type="Line" source="id-883249" target="id-883235">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="213" y="1427"/>
+					<bendpoint x="60" y="1427"/>
+					<bendpoint x="60" y="873"/>
+					<targetAttachment x="113" y="873"/>
+				</connection>
+				<connection identifier="id-883212" xsi:type="Line" source="id-883237" target="id-883132">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<bendpoint x="413" y="1000"/>
+					<bendpoint x="407" y="1700"/>
+				</connection>
+				<connection identifier="id-883138" xsi:type="Line" source="id-883135" target="id-883222">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<bendpoint x="620" y="1280"/>
+					<bendpoint x="627" y="1700"/>
+				</connection>
+				<connection identifier="id-883143" xsi:type="Line" source="id-883190" target="id-883222">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="920" y="1147"/>
+					<bendpoint x="580" y="1147"/>
+					<bendpoint x="587" y="1713"/>
+					<targetAttachment x="700" y="1713"/>
+				</connection>
+			</view>
+			<view identifier="id-201710" viewpoint="Introductory">
+				<name xml:lang="pt-br">2- Alteração Vencimento</name>
+				<node identifier="id-1393196" xsi:type="Container" x="20" y="167" w="1133" h="720">
+					<label xml:lang="pt-br">Execution Logic</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1393193" xsi:type="Container" x="27" y="193" w="1120" h="687">
+						<label xml:lang="pt-br">Google Cloud Platform</label>
+						<style lineWidth="1">
+							<fillColor r="215" g="245" b="255" a="20"/>
+							<lineColor r="128" g="128" b="128" a="100"/>
+							<font name="arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1300296" xsi:type="Label" x="133" y="493" w="360" h="60">
+							<label xml:lang="pt-br">springboot-cart-base-quina</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300288" xsi:type="Label" x="133" y="513" w="347" h="27">
+							<label xml:lang="pt-br">GET/quina/processadora/{emissor}/{filial}/{produto}/{contaCartao}</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300302" xsi:type="Label" x="587" y="500" w="353" h="53">
+							<label xml:lang="pt-br">sboot-cart-base-orch-fatura-cartao</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300306" xsi:type="Label" x="613" y="747" w="227" h="53">
+							<label xml:lang="pt-br">sboot-gcoc-base-atom-eventos-cartao</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300310" xsi:type="Label" x="613" y="773" w="200" h="27">
+							<label xml:lang="pt-br">POST /v1/card-was-embossed</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300307" xsi:type="Label" x="700" y="643" w="193" h="53">
+							<label xml:lang="pt-br">sboot-iprc-base-identity-provider</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300303" xsi:type="Label" x="713" y="677" w="180" h="20">
+							<label xml:lang="pt-br">POST /v1/oauth2/token</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300304" elementRef="id-435126" xsi:type="Element" x="116" y="320" w="260" h="67">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1300290" xsi:type="Label" x="500" y="340" w="367" h="27">
+							<label xml:lang="pt-br">POST/v1/varejo/cartoes/fatura/altera/data/vencimento</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="12" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+				</node>
+				<node identifier="id-1393200" xsi:type="Label" x="0" y="53" w="620" h="80">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="24" style="bold">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1393207" xsi:type="Label" x="133" y="93" w="387" h="33">
+					<label xml:lang="pt-br">Alteração de Vencimentos</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="16" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1393203" xsi:type="Label" x="133" y="53" w="473" h="40">
+					<label xml:lang="pt-br">CDB</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="24" style="bold">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1393204" xsi:type="Container" x="1507" y="167" w="213" h="720">
+					<label xml:lang="pt-br">External Integration Layer</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1300293" xsi:type="Label" x="1550" y="374" w="133" h="53">
+						<label xml:lang="pt-br">DXC APIs</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1300289" xsi:type="Label" x="1550" y="657" w="133" h="53">
+						<label xml:lang="pt-br">Bankly</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1393195" xsi:type="Container" x="1160" y="167" w="340" h="720">
+					<label xml:lang="pt-br">Gateway Outbound</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1300294" xsi:type="Label" x="1207" y="633" w="253" h="87">
+						<label xml:lang="pt-br">apigee-iprc-base-fatura-cartao-out-v1</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1300298" xsi:type="Label" x="1220" y="673" w="233" h="47">
+						<label xml:lang="pt-br">POST /v1/invoice/due-date</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1300295" xsi:type="Label" x="1207" y="340" w="253" h="87">
+						<label xml:lang="pt-br">caapi-cart-base-altera-data-vencimento-fatura-dxc</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="12" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1300308" xsi:type="Label" x="1220" y="380" w="227" h="40">
+						<label xml:lang="pt-br">POST /v1/banco-digital/atend/pua/cartoes/fatura/altera/data/vencimento</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<connection identifier="id-1300291" xsi:type="Line" source="id-1300310" target="id-1300302">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="613" y="793"/>
+					<bendpoint x="560" y="793"/>
+					<bendpoint x="560" y="553"/>
+					<targetAttachment x="707" y="553"/>
+				</connection>
+				<connection identifier="id-1300305" xsi:type="Line" source="id-1300303" target="id-1300302">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="807" y="687"/>
+					<bendpoint x="920" y="687"/>
+					<targetAttachment x="920" y="547"/>
+				</connection>
+				<connection identifier="id-1300300" xsi:type="Line" source="id-1300290" target="id-1300304">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</connection>
+				<connection identifier="id-1300292" xsi:type="Line" source="id-1300302" target="id-1300290">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="600" y="527"/>
+					<targetAttachment x="600" y="360"/>
+				</connection>
+				<connection identifier="id-1300297" xsi:type="Line" source="id-1300288" target="id-1300302">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="307" y="527"/>
+					<targetAttachment x="607" y="527"/>
+				</connection>
+				<connection identifier="id-1300301" xsi:type="Line" source="id-1300308" target="id-1300302">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1333" y="400"/>
+					<bendpoint x="1073" y="400"/>
+					<bendpoint x="1073" y="513"/>
+					<targetAttachment x="940" y="513"/>
+				</connection>
+				<connection identifier="id-1300299" xsi:type="Line" source="id-1300293" target="id-1300295">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1620" y="400"/>
+					<targetAttachment x="1453" y="400"/>
+				</connection>
+				<connection identifier="id-1300309" xsi:type="Line" source="id-1300289" target="id-1300294">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1620" y="687"/>
+					<targetAttachment x="1460" y="687"/>
+				</connection>
+			</view>
+			<view identifier="id-182006" viewpoint="Introductory">
+				<name xml:lang="pt-br">Contexto - [Cartões] - CDB como garantia para limite de Cartão de Crédito</name>
+				<node identifier="id-1377582" xsi:type="Label" x="193" y="20" w="707" h="96">
+					<label xml:lang="pt-br">[JT-170011] - [Cartões] - CDB como garantia para limite de Cartão de Crédito  Visão de Contexto</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="16" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906384" xsi:type="Label" x="513" y="260" w="133" h="53">
+					<label xml:lang="pt-br">GCOC</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906389" xsi:type="Label" x="807" y="260" w="133" h="53">
+					<label xml:lang="pt-br">IPRC</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906378" xsi:type="Label" x="1073" y="260" w="133" h="53">
+					<label xml:lang="pt-br">BANKLY</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906387" xsi:type="Label" x="807" y="147" w="133" h="53">
+					<label xml:lang="pt-br">INVG</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906381" xsi:type="Label" x="13" y="260" w="133" h="53">
+					<label xml:lang="pt-br">PGAR</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906375" xsi:type="Label" x="267" y="147" w="133" h="53">
+					<label xml:lang="pt-br">CART</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906374" xsi:type="Label" x="267" y="260" w="133" h="53">
+					<label xml:lang="pt-br">ATLS-</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-906388" xsi:type="Label" x="267" y="407" w="133" h="53">
+					<label xml:lang="pt-br">PPRC</label>
+					<style lineWidth="1">
+						<fillColor r="184" g="231" b="252" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<connection identifier="id-906376" xsi:type="Line" source="id-906374" target="id-906384">
+					<label xml:lang="pt-br">Limite de  Cart. Crédito</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="393" y="287"/>
+					<targetAttachment x="520" y="287"/>
+				</connection>
+				<connection identifier="id-906383" xsi:type="Line" source="id-906381" target="id-906374">
+					<label xml:lang="pt-br">Gravame do CDB</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="80" y="287"/>
+					<targetAttachment x="273" y="287"/>
+				</connection>
+				<connection identifier="id-906385" xsi:type="Line" source="id-906389" target="id-906384">
+					<label xml:lang="pt-br">Integração com  Serviço  de Processamento</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="873" y="287"/>
+					<targetAttachment x="647" y="287"/>
+				</connection>
+				<connection identifier="id-906379" xsi:type="Line" source="id-906378" target="id-906389">
+					<label xml:lang="pt-br">Integração com  a Processadora</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1140" y="287"/>
+					<targetAttachment x="940" y="287"/>
+				</connection>
+				<connection identifier="id-906377" xsi:type="Line" source="id-906375" target="id-906384">
+					<label xml:lang="pt-br">Gestão do Vencimento de Fatura</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="333" y="173"/>
+					<bendpoint x="580" y="173"/>
+					<targetAttachment x="580" y="267"/>
+				</connection>
+				<connection identifier="id-906382" xsi:type="Line" source="id-906388" target="id-906384">
+					<label xml:lang="pt-br">parâmetros do  produto Cartão</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="333" y="433"/>
+					<bendpoint x="580" y="433"/>
+					<bendpoint x="580" y="407"/>
+					<targetAttachment x="580" y="313"/>
+				</connection>
+				<connection identifier="id-906386" xsi:type="Line" source="id-906389" target="id-906387">
+					<label xml:lang="pt-br">Info Desbloqueio Função Crédito</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="873" y="287"/>
+					<targetAttachment x="873" y="187"/>
+				</connection>
+			</view>
+			<view identifier="id-218486" viewpoint="Introductory">
+				<name xml:lang="pt-br">Container -[Cartões] - CDB como garantia para limite de Cartão de Crédito</name>
+				<node identifier="id-1368885" xsi:type="Container" x="180" y="720" w="573" h="120">
+					<label xml:lang="pt-br">DATA MANAGEMENT</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264024" xsi:type="Label" x="247" y="773" w="133" h="53">
+						<label xml:lang="pt-br">Dados de eventos de cartão</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368834" xsi:type="Label" x="207" y="40" w="720" h="141">
+					<label xml:lang="pt-br">[JT-170011] - [Cartões] - CDB como garantia para limite de Cartão de Crédito  Visão de Container</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="0"/>
+						<lineColor r="0" g="0" b="0" a="0"/>
+						<font name="arial" size="16" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1368880" xsi:type="Container" x="180" y="193" w="567" h="500">
+					<label xml:lang="pt-br">Execution Logic</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264041" xsi:type="Container" x="400" y="333" w="153" h="113">
+						<label xml:lang="pt-br">GCOC</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264083" elementRef="id-1125000" xsi:type="Element" x="413" y="367" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264075" xsi:type="Container" x="193" y="473" w="540" h="207">
+						<label xml:lang="pt-br">IPRC</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264090" elementRef="id-404256" xsi:type="Element" x="413" y="507" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264065" elementRef="id-1145862" xsi:type="Element" x="231" y="507" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264057" elementRef="id-404238" xsi:type="Element" x="414" y="613" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368898" xsi:type="Label" x="493" y="587" w="27" h="27">
+							<label xml:lang="pt-br">5</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368754" xsi:type="Label" x="364" y="533" w="27" h="27">
+							<label xml:lang="pt-br">6</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368789" xsi:type="Label" x="558" y="533" w="27" h="27">
+							<label xml:lang="pt-br">7</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264048" xsi:type="Container" x="197" y="220" w="167" h="227">
+						<label xml:lang="pt-br">ATLS-</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264079" elementRef="id-1145872" xsi:type="Element" x="213" y="367" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264070" elementRef="id-1145871" xsi:type="Element" x="213" y="267" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264059" xsi:type="Container" x="580" y="220" w="160" h="100">
+						<label xml:lang="pt-br">CART</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264072" elementRef="id-427231" xsi:type="Element" x="591" y="250" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264053" xsi:type="Container" x="401" y="220" w="160" h="100">
+						<label xml:lang="pt-br">PPRC</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264035" xsi:type="Label" x="414" y="250" w="133" h="53">
+							<label xml:lang="pt-br">Atom Parametrização</label>
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1368916" xsi:type="Label" x="364" y="400" w="27" h="27">
+						<label xml:lang="pt-br">1</label>
+						<style lineWidth="1">
+							<fillColor r="255" g="255" b="255" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1368619" xsi:type="Label" x="414" y="320" w="27" h="27">
+						<label xml:lang="pt-br">2</label>
+						<style lineWidth="1">
+							<fillColor r="255" g="255" b="255" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1368864" xsi:type="Label" x="665" y="333" w="27" h="27">
+						<label xml:lang="pt-br">3</label>
+						<style lineWidth="1">
+							<fillColor r="255" g="255" b="255" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1368734" xsi:type="Label" x="484" y="447" w="27" h="27">
+						<label xml:lang="pt-br">4</label>
+						<style lineWidth="1">
+							<fillColor r="255" g="255" b="255" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368843" xsi:type="Container" x="767" y="193" w="173" h="413">
+					<label xml:lang="pt-br">Gateway Outbound</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264089" xsi:type="Label" x="793" y="507" w="133" h="53">
+						<label xml:lang="pt-br">API Gateway avaliação contrato out</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368847" xsi:type="Container" x="953" y="193" w="180" h="413">
+					<label xml:lang="pt-br">External Integration Layer</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264028" xsi:type="Label" x="967" y="493" w="160" h="93">
+						<label xml:lang="pt-br">BANKLY</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1264084" elementRef="id-1145868" xsi:type="Element" x="981" y="513" w="133" h="53">
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368914" xsi:type="Label" x="2093" y="540" w="280" h="227">
+					<label xml:lang="pt-br">Precisa de dois orchs de IPRC? Separa com contexto de negócio (cartão, fatura, limite, etc) Precisa de dois gateway de IPRC? A gente não tem muito atom em IPRC não? Atomico do DBCart1 que atualiza dados de Limite e Vencimento? Fila/evento, echo e DLQ de comunicação com a Bankly, como na nova emissão. Como na bankly não temos uma API de habilitação de função e outra de alteração de limit, precisamos de eventos distinos para comunicar INVG? Ou colocamos atributos na comunicação?</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="200" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1368664" xsi:type="Container" x="413" y="987" w="787" h="440">
+					<label xml:lang="pt-br">EXECUTION LOGIC (2)</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264029" xsi:type="Container" x="682" y="1020" w="280" h="220">
+						<label xml:lang="pt-br">GCOC</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264082" elementRef="id-1125000" xsi:type="Element" x="764" y="1047" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264044" elementRef="id-1145890" xsi:type="Element" x="764" y="1153" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368802" xsi:type="Label" x="737" y="1047" w="27" h="27">
+							<label xml:lang="pt-br">11</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368799" xsi:type="Label" x="914" y="1047" w="27" h="27">
+							<label xml:lang="pt-br">12</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264049" xsi:type="Container" x="427" y="1020" w="233" h="400">
+						<label xml:lang="pt-br">IPRC</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264027" elementRef="id-404256" xsi:type="Element" x="464" y="1047" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264050" elementRef="id-1145862" xsi:type="Element" x="464" y="1200" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264074" elementRef="id-404238" xsi:type="Element" x="465" y="1360" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264076" elementRef="id-1145860" xsi:type="Element" x="520" y="1120" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264032" elementRef="id-1145894" xsi:type="Element" x="510" y="1280" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368909" xsi:type="Label" x="493" y="1133" w="27" h="27">
+							<label xml:lang="pt-br">9</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368892" xsi:type="Label" x="470" y="1293" w="27" h="27">
+							<label xml:lang="pt-br">10</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264026" xsi:type="Container" x="680" y="1253" w="300" h="160">
+						<label xml:lang="pt-br">CART</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264055" elementRef="id-1145865" xsi:type="Element" x="685" y="1300" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1264061" elementRef="id-1145897" xsi:type="Element" x="840" y="1333" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368766" xsi:type="Label" x="720" y="1273" w="27" h="27">
+							<label xml:lang="pt-br">13</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368596" xsi:type="Label" x="827" y="1293" w="27" h="27">
+							<label xml:lang="pt-br">14</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+						<node identifier="id-1368919" xsi:type="Label" x="813" y="1373" w="27" h="27">
+							<label xml:lang="pt-br">15</label>
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264069" xsi:type="Container" x="1011" y="1133" w="160" h="93">
+						<label xml:lang="pt-br">INVG</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264052" elementRef="id-1145857" xsi:type="Element" x="1022" y="1160" w="133" h="53">
+							<style lineWidth="1">
+								<fillColor r="255" g="255" b="255" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+					<node identifier="id-1264058" xsi:type="Container" x="1011" y="1020" w="160" h="100">
+						<label xml:lang="pt-br">BINV</label>
+						<style lineWidth="1">
+							<fillColor r="192" g="192" b="192" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+						<node identifier="id-1264088" elementRef="id-1145882" xsi:type="Element" x="1021" y="1047" w="140" h="53">
+							<style lineWidth="1">
+								<fillColor r="184" g="231" b="252" a="100"/>
+								<lineColor r="0" g="0" b="0" a="100"/>
+								<font name="Arial" size="10" style="plain">
+									<color r="0" g="0" b="0" a="100"/>
+								</font>
+							</style>
+						</node>
+					</node>
+				</node>
+				<node identifier="id-1368867" xsi:type="Container" x="40" y="987" w="167" h="567">
+					<label xml:lang="pt-br">CHANNELS (2)</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264039" xsi:type="Label" x="47" y="1027" w="153" h="93">
+						<label xml:lang="pt-br">BANKLY</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1264077" elementRef="id-1145868" xsi:type="Element" x="57" y="1050" w="133" h="53">
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368906" xsi:type="Container" x="227" y="987" w="173" h="567">
+					<label xml:lang="pt-br">GATEWAY INBOUND (2)</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264046" elementRef="id-404234" xsi:type="Element" x="247" y="1047" w="133" h="53">
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368568" xsi:type="Container" x="413" y="1440" w="787" h="113">
+					<label xml:lang="pt-br">DATA MANAGEMENT (2)</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264043" elementRef="id-1145926" xsi:type="Element" x="463" y="1473" w="133" h="53">
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1264030" elementRef="id-1145909" xsi:type="Element" x="840" y="1473" w="133" h="53">
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368882" xsi:type="Container" x="1420" y="1213" w="180" h="213">
+					<label xml:lang="pt-br">EXTERNAL (2)</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264085" xsi:type="Label" x="1433" y="1267" w="160" h="87">
+						<label xml:lang="pt-br">BANKLY</label>
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+					<node identifier="id-1264087" elementRef="id-1145868" xsi:type="Element" x="1447" y="1293" w="133" h="53">
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368731" xsi:type="Container" x="1220" y="1213" w="173" h="213">
+					<label xml:lang="pt-br">GATEWAY OUTBOUND (2)</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="128" g="128" b="128" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<node identifier="id-1264086" elementRef="id-1145864" xsi:type="Element" x="1240" y="1293" w="133" h="53">
+						<style lineWidth="1">
+							<fillColor r="184" g="231" b="252" a="100"/>
+							<lineColor r="0" g="0" b="0" a="100"/>
+							<font name="Arial" size="10" style="plain">
+								<color r="0" g="0" b="0" a="100"/>
+							</font>
+						</style>
+					</node>
+				</node>
+				<node identifier="id-1368761" xsi:type="Label" x="767" y="640" w="367" h="200">
+					<label xml:lang="pt-br">1 - Orch GCOC subscreve o tópico do GLIT que informa o novo limite garantido por CDB. 2 - Consulta os parâmetros do Cartão no atom PPRC. 3 - Recupera dados de Quina no CART. 4 - orch do GCOC requisita o orch do IPRC para realizar criação do contrato de crédito. 5 - Recupera token de identificação. 6 - O atom pessiste a requisição na base para atulização posterior após recebimento de evento de confirmação. 7- Envia a requisição de criaçãod e contrato de crédito para a Bankly. 8 - Por meio do webhook a Bankly envia os eventos de criação de contrato e liberação de limite.</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1368744" xsi:type="Label" x="399" y="1047" w="27" h="27">
+					<label xml:lang="pt-br">8</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<node identifier="id-1368893" xsi:type="Label" x="1220" y="967" w="380" h="233">
+					<label xml:lang="pt-br">8 - Por meio do webhook a Bankly envia os eventos de criação de contrato e liberação de limite. 9 - Usa Fila para atualizar o status do pedido de criação de contrato de crédito. 10 - Atom publica evento da "ocorrencia de liberação de crédito". 11 - Estimulado pela subscrição do evento de "ocorrencia de liberação de crédito" inicia a orquestração da alteração do vencimento (quando houver) e publica na fila echo para interessados, i.e. usado pelo INVG para informar o cliente sobre a liberação (client face). 12 - Subscreve da fila do BINV a data selecionada pelo cliente no onboard do produto de CDB como garantia para o limite de cartão. 13 - Orch CART serve a orquestração de alteração de fatura orch do GCOC. 14 - Realizar requisição para a Bankly solicitando alteração da data de vencimento da fatura (sync). 15 - Persiste o resultado da requisição de alteração de vencimento.</label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+				</node>
+				<connection identifier="id-1264025" xsi:type="Relationship" relationshipRef="id-1145921" source="id-1264065" target="id-1264090">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="301" y="537"/>
+					<targetAttachment x="412" y="537"/>
+				</connection>
+				<connection identifier="id-1264066" xsi:type="Relationship" relationshipRef="id-1145902" source="id-1264057" target="id-1264090">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="487" y="620"/>
+					<bendpoint x="487" y="600"/>
+					<targetAttachment x="487" y="560"/>
+				</connection>
+				<connection identifier="id-1264037" xsi:type="Relationship" relationshipRef="id-1145924" source="id-1264090" target="id-1264083">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="479" y="537"/>
+					<targetAttachment x="480" y="420"/>
+				</connection>
+				<connection identifier="id-1264080" xsi:type="Relationship" relationshipRef="id-1145870" source="id-1264070" target="id-1264079">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="280" y="293"/>
+					<targetAttachment x="280" y="373"/>
+				</connection>
+				<connection identifier="id-1264031" xsi:type="Relationship" relationshipRef="id-1145900" source="id-1264083" target="id-1264079">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="413" y="397"/>
+					<targetAttachment x="346" y="397"/>
+				</connection>
+				<connection identifier="id-1264073" xsi:type="Line" source="id-1264059" target="id-1264083">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="649" y="270"/>
+					<bendpoint x="660" y="333"/>
+					<bendpoint x="660" y="400"/>
+					<targetAttachment x="540" y="400"/>
+				</connection>
+				<connection identifier="id-1264056" xsi:type="Line" source="id-1264035" target="id-1264083">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="447" y="300"/>
+					<targetAttachment x="447" y="367"/>
+				</connection>
+				<connection identifier="id-1264054" xsi:type="Line" source="id-1264089" target="id-1264090">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="793" y="530"/>
+					<targetAttachment x="543" y="530"/>
+				</connection>
+				<connection identifier="id-1264045" xsi:type="Relationship" relationshipRef="id-1145905" source="id-1264082" target="id-1264044">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="831" y="1073"/>
+					<targetAttachment x="831" y="1160"/>
+				</connection>
+				<connection identifier="id-1264042" xsi:type="Relationship" relationshipRef="id-1145921" source="id-1264050" target="id-1264027">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="481" y="1200"/>
+					<targetAttachment x="480" y="1100"/>
+				</connection>
+				<connection identifier="id-1264047" xsi:type="Relationship" relationshipRef="id-1145859" source="id-1264027" target="id-1264076">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="533" y="1073"/>
+					<targetAttachment x="580" y="1127"/>
+				</connection>
+				<connection identifier="id-1264060" xsi:type="Relationship" relationshipRef="id-1145901" source="id-1264076" target="id-1264050">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="587" y="1147"/>
+					<targetAttachment x="547" y="1213"/>
+				</connection>
+				<connection identifier="id-1264071" xsi:type="Relationship" relationshipRef="id-1145893" source="id-1264050" target="id-1264032">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="533" y="1227"/>
+					<targetAttachment x="573" y="1320"/>
+				</connection>
+				<connection identifier="id-1264067" xsi:type="Relationship" relationshipRef="id-1145896" source="id-1264061" target="id-1264055">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="840" y="1373"/>
+					<bendpoint x="760" y="1373"/>
+					<targetAttachment x="754" y="1353"/>
+				</connection>
+				<connection identifier="id-1264078" xsi:type="Relationship" relationshipRef="id-1145889" source="id-1264052" target="id-1264044">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1089" y="1190"/>
+					<targetAttachment x="893" y="1190"/>
+				</connection>
+				<connection identifier="id-1264068" xsi:type="Relationship" relationshipRef="id-1145918" source="id-1264074" target="id-1264055">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="593" y="1393"/>
+					<bendpoint x="720" y="1393"/>
+					<targetAttachment x="720" y="1353"/>
+				</connection>
+				<connection identifier="id-1264062" xsi:type="Relationship" relationshipRef="id-1145904" source="id-1264055" target="id-1264082">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="713" y="1300"/>
+					<bendpoint x="713" y="1087"/>
+					<targetAttachment x="767" y="1087"/>
+				</connection>
+				<connection identifier="id-1264033" xsi:type="Relationship" relationshipRef="id-1145912" source="id-1264032" target="id-1264082">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="580" y="1307"/>
+					<bendpoint x="673" y="1307"/>
+					<bendpoint x="673" y="1073"/>
+					<targetAttachment x="767" y="1073"/>
+				</connection>
+				<connection identifier="id-1264034" xsi:type="Relationship" relationshipRef="id-1145929" source="id-1264046" target="id-1264077">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="313" y="1073"/>
+					<targetAttachment x="193" y="1073"/>
+				</connection>
+				<connection identifier="id-1264038" xsi:type="Relationship" relationshipRef="id-1145908" source="id-1264061" target="id-1264030">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="913" y="1387"/>
+					<targetAttachment x="913" y="1473"/>
+				</connection>
+				<connection identifier="id-1264051" xsi:type="Relationship" relationshipRef="id-1145925" source="id-1264050" target="id-1264043">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="473" y="1233"/>
+					<bendpoint x="440" y="1233"/>
+					<bendpoint x="440" y="1507"/>
+					<targetAttachment x="467" y="1507"/>
+				</connection>
+				<connection identifier="id-1264063" xsi:type="Relationship" relationshipRef="id-404206" source="id-1264046" target="id-1264027">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="380" y="1070"/>
+					<targetAttachment x="477" y="1070"/>
+				</connection>
+				<connection identifier="id-1264064" xsi:type="Relationship" relationshipRef="id-1145863" source="id-1264086" target="id-1264055">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1247" y="1320"/>
+					<targetAttachment x="820" y="1320"/>
+				</connection>
+				<connection identifier="id-1264036" xsi:type="Relationship" relationshipRef="id-1145878" source="id-1264086" target="id-1264087">
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1307" y="1323"/>
+					<targetAttachment x="1447" y="1323"/>
+				</connection>
+				<connection identifier="id-1264040" xsi:type="Line" source="id-1264089" target="id-1264084">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="255" g="255" b="255" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="859" y="533"/>
+					<targetAttachment x="980" y="533"/>
+				</connection>
+				<connection identifier="id-1264081" xsi:type="Relationship" relationshipRef="id-1145881" source="id-1264088" target="id-1264082">
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="1047" y="1073"/>
+					<targetAttachment x="830" y="1073"/>
+				</connection>
+				<connection identifier="id-1264023" xsi:type="Line" source="id-1264065" target="id-1264024">
+					<label xml:lang="pt-br"></label>
+					<style lineWidth="1">
+						<fillColor r="0" g="0" b="0" a="100"/>
+						<lineColor r="0" g="0" b="0" a="100"/>
+						<font name="Arial" size="10" style="plain">
+							<color r="0" g="0" b="0" a="100"/>
+						</font>
+					</style>
+					<sourceAttachment x="300" y="533"/>
+					<targetAttachment x="307" y="793"/>
+				</connection>
+			</view>
+		</diagrams>
+	</views>
+</model>

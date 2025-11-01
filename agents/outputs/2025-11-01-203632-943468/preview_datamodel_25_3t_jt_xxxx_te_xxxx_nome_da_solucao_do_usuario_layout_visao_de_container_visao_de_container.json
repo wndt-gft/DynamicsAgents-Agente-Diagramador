@@ -1,0 +1,253 @@
+{
+  "model_identifier": "plataforma-pix-varejo",
+  "model_name": "Plataforma PIX para Varejo",
+  "elements": [
+    {
+      "id": "id-154941",
+      "type": "BusinessActor",
+      "name": "Cliente do Banco",
+      "documentation": "Cliente pessoa física que utiliza os canais digitais para realizar transações PIX."
+    },
+    {
+      "id": "id-154929",
+      "type": "ApplicationService",
+      "name": "BACEN (SPI & DICT)",
+      "documentation": "Infraestrutura do Banco Central para liquidação (SPI) e resolução de chaves (DICT)."
+    },
+    {
+      "id": "id-154953",
+      "type": "ApplicationService",
+      "name": "Sistema de Prevenção à Fraude",
+      "documentation": "Motor de regras que analisa transações em tempo real."
+    },
+    {
+      "id": "id-154965",
+      "type": "ApplicationService",
+      "name": "Gateway de Notificações Push",
+      "documentation": "Serviço que envia notificações para os dispositivos móveis dos clientes."
+    },
+    {
+      "id": "id-sys-corebanking",
+      "type": "ApplicationService",
+      "name": "Core Banking System",
+      "documentation": "Sistema legado (mainframe COBOL) que gerencia contas e saldos."
+    },
+    {
+      "id": "id-sys-audit",
+      "type": "ApplicationService",
+      "name": "Sistema de Auditoria",
+      "documentation": "Sistema que registra logs de transações para compliance."
+    },
+    {
+      "id": "id-154977",
+      "type": "ApplicationComponent",
+      "name": "Frontend (App Mobile/Internet Banking)",
+      "documentation": "Interface do cliente para iniciar transações PIX. Tecnologia: App Nativo/Web App."
+    },
+    {
+      "id": "id-171183",
+      "type": "ApplicationComponent",
+      "name": "Microsserviço de Transações PIX",
+      "documentation": "Orquestra a lógica de negócio do PIX. Tecnologia: Java Spring Boot."
+    },
+    {
+      "id": "id-171207",
+      "type": "ApplicationComponent",
+      "name": "Mensageria (Apache Kafka)",
+      "documentation": "Plataforma de streaming de eventos para comunicação assíncrona."
+    },
+    {
+      "id": "id-171195",
+      "type": "ApplicationComponent",
+      "name": "Cache (Redis)",
+      "documentation": "Cache de dados em memória para acesso rápido a limites e sessões."
+    },
+    {
+      "id": "id-171219",
+      "type": "ApplicationComponent",
+      "name": "Banco de Dados (PostgreSQL)",
+      "documentation": "Banco de dados relacional para persistência das transações."
+    },
+    {
+      "id": "id-container-hsm",
+      "type": "ApplicationComponent",
+      "name": "HSM (Hardware Security Module)",
+      "documentation": "Armazena e gerencia chaves criptográficas de forma segura."
+    },
+    {
+      "id": "id-35719f23fe184d95ad5d2190c6f202be",
+      "type": "ApplicationComponent",
+      "name": "API Gateway",
+      "documentation": "Gateway de APIs que expõe e protege os microsserviços. Tecnologia: Spring Cloud Gateway."
+    },
+    {
+      "id": "id-da18b5f4b21a4bdab0c63fa99d95ba91",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-37401d37c1034a718ab785406022fc9c",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-5816f0efb1ad40b0b1f6e67dc1fa86bb",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-c2dc90e4f7d74f3c919e2ea0c71dc054",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-a4e5d61e2fad4c96b8775d3fba9061ba",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-a5185a2f58394a6891167652bb0b8021",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-3db4884e4ef2449292c1953d4bda30c7",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-1662934bb0ff40f5b4c10e88f49dd8c0",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-ea78a465f32843da94bd2f5e8fdb1099",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-054a6684fc7c404f8c9d3d8718379a6d",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-dafb5e39b03847c5beb7155f873d14de",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-ff4420a980a4408ca3f37e186600eba5",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-248825a7f0514d0883e8e72f271c6cdf",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    },
+    {
+      "id": "id-415459",
+      "type": "ApplicationComponent",
+      "name": "(Não Aplicável)"
+    }
+  ],
+  "relations": [
+    {
+      "id": "id-rel-1",
+      "source": "id-154941",
+      "target": "id-154977",
+      "type": "Triggering",
+      "label": "Utiliza"
+    },
+    {
+      "id": "id-rel-2",
+      "source": "id-154977",
+      "target": "id-35719f23fe184d95ad5d2190c6f202be",
+      "type": "Flow",
+      "label": "Realiza chamadas de API [HTTPS/JSON]"
+    },
+    {
+      "id": "id-rel-3",
+      "source": "id-35719f23fe184d95ad5d2190c6f202be",
+      "target": "id-171183",
+      "type": "Flow",
+      "label": "Encaminha requisições PIX"
+    },
+    {
+      "id": "id-rel-4",
+      "source": "id-171183",
+      "target": "id-171195",
+      "type": "Flow",
+      "label": "Consulta/atualiza limites"
+    },
+    {
+      "id": "id-rel-5",
+      "source": "id-171183",
+      "target": "id-171219",
+      "type": "Flow",
+      "label": "Grava transação [JDBC]"
+    },
+    {
+      "id": "id-rel-6",
+      "source": "id-171183",
+      "target": "id-171207",
+      "type": "Flow",
+      "label": "Publica evento 'Transação Concluída'"
+    },
+    {
+      "id": "id-rel-7",
+      "source": "id-171207",
+      "target": "id-154965",
+      "type": "Flow",
+      "label": "Consome evento para notificar"
+    },
+    {
+      "id": "id-rel-8",
+      "source": "id-171183",
+      "target": "id-154929",
+      "type": "Flow",
+      "label": "Consulta DICT e liquida no SPI"
+    },
+    {
+      "id": "id-rel-9",
+      "source": "id-171183",
+      "target": "id-154953",
+      "type": "Flow",
+      "label": "Solicita análise de risco"
+    },
+    {
+      "id": "id-rel-10",
+      "source": "id-171183",
+      "target": "id-sys-corebanking",
+      "type": "Flow",
+      "label": "Verifica saldo e efetua débito"
+    },
+    {
+      "id": "id-rel-11",
+      "source": "id-171207",
+      "target": "id-sys-audit",
+      "type": "Flow",
+      "label": "Consome evento para auditoria"
+    },
+    {
+      "id": "id-rel-12",
+      "source": "id-171183",
+      "target": "id-container-hsm",
+      "type": "Flow",
+      "label": "Utiliza chaves criptográficas"
+    }
+  ],
+  "organizations": [],
+  "views": {
+    "diagrams": [
+      {
+        "id": "id-171323",
+        "key": "Visão de Container",
+        "title": "Visão de Container - Plataforma PIX para Varejo",
+        "documentation": "Este diagrama mostra os principais containers (aplicações, bancos de dados, etc.) que compõem a Plataforma PIX para Varejo e como eles interagem entre si e com sistemas externos.",
+        "nodes": [],
+        "connections": []
+      }
+    ]
+  }
+}

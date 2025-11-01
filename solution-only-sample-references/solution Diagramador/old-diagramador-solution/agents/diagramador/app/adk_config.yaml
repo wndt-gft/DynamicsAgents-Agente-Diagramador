@@ -1,0 +1,50 @@
+# Path: architect_agent/adk_config.yaml
+
+# Configuração para Google ADK 1.6.1
+agent:
+  name: architect_agent
+  version: "1.0.0"
+
+  # Modelo Gemini
+  model:
+    name: gemini-2.5-flash
+    temperature: 0.3
+    max_tokens: 4096
+
+  # Configurações de runtime
+  runtime:
+    timeout: 300  # 5 minutos
+    max_retries: 3
+
+  # Features habilitadas
+  features:
+    - user_story_analysis
+    - archimate_generation
+    - plantuml_conversion
+    - compliance_validation
+
+  # Domínios suportados
+  domains:
+    - banking
+    - insurance
+    - fintech
+
+# Configuração de ferramentas
+tools:
+  analyze_user_story:
+    enabled: true
+    timeout: 60
+
+  generate_diagrams:
+    enabled: true
+    types:
+      - context
+      - container
+      - component
+
+  compliance:
+    enabled: true
+    frameworks:
+      - LGPD
+      - PCI-DSS
+      - BACEN

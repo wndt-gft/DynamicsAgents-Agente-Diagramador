@@ -1,0 +1,207 @@
+# Vocabulário para detecção genérica de componentes
+# Este arquivo define palavras-chave e padrões para identificar tipos de componentes
+
+# Channels - Pontos de entrada do usuário
+channels:
+  web_app:
+    keywords: ["web", "webapp", "site", "portal web", "aplicação web", "front-end", "frontend"]
+    patterns: [".*web.*", ".*portal.*", ".*site.*"]
+
+  mobile_app:
+    keywords: ["mobile", "app", "aplicativo", "móvel", "android", "ios", "smartphone"]
+    patterns: [".*mobile.*", ".*app.*", ".*aplicativo.*"]
+
+  internet_banking:
+    keywords: ["internet banking", "ib", "internetbanking"]
+    patterns: [".*internet.*banking.*"]
+    default_context: "Internet Banking BV"
+
+  portal:
+    keywords: ["portal", "dashboard", "painel", "console", "interface administrativa"]
+    patterns: [".*portal.*", ".*dashboard.*", ".*painel.*"]
+
+  interface:
+    keywords: ["interface", "ui", "tela", "página", "formulário"]
+    patterns: [".*interface.*", ".*ui.*", ".*tela.*"]
+
+  device_app:
+    keywords: ["tv", "smart tv", "televisão", "dispositivo", "iot", "console", "set-top box"]
+    patterns: [".*tv.*", ".*smart.*tv.*", ".*dispositivo.*", ".*iot.*"]
+
+# Gateway Inbound - Pontos de entrada técnicos
+gateway_inbound:
+  api_gateway:
+    keywords: ["api gateway", "gateway", "proxy", "roteador", "balanceador", "entrada"]
+    patterns: [".*gateway.*", ".*proxy.*", ".*router.*"]
+
+  load_balancer:
+    keywords: ["load balancer", "balanceador", "distribuidor", "nginx", "apache"]
+    patterns: [".*balancer.*", ".*nginx.*", ".*apache.*"]
+
+  authentication:
+    keywords: ["autenticação", "login", "auth", "oauth", "oauth 2.0", "jwt", "token", "segurança", "mfa", "multifator"]
+    patterns: [".*auth.*", ".*login.*", ".*token.*", ".*oauth.*", ".*jwt.*", ".*mfa.*"]
+    default_context: "OAuth2+JWT MFA"
+
+  security:
+    keywords: ["segurança", "firewall", "criptografia", "ssl", "https", "certificado"]
+    patterns: [".*security.*", ".*ssl.*", ".*crypto.*"]
+
+# Execution Logic - Serviços principais
+execution_logic:
+  service:
+    keywords: ["serviço", "service", "api", "endpoint", "microserviço", "microservice", "processar", "calcular", "validar", "verificar", "listar", "filtrar", "buscar", "assistir", "reproduzir"]
+    patterns: [".*service.*", ".*api.*", ".*endpoint.*", ".*process.*", ".*search.*", ".*filter.*", ".*play.*", ".*stream.*"]
+
+  microservice:
+    keywords: ["microserviço", "microservice", "ms", "componente", "módulo"]
+    patterns: [".*micro.*", ".*service.*", ".*component.*"]
+
+  pix_service:
+    keywords: ["pix", "chave pix", "transferência pix", "qrcode pix"]
+    patterns: [".*pix.*"]
+    default_context: "PIX"
+
+  token_mfa:
+    keywords: ["token", "biometria", "mfa", "multifator", "confirmacao", "confirmação"]
+    patterns: [".*mfa.*", ".*token.*", ".*biometr.*"]
+    default_context: "Autenticação Multifator"
+
+  limits_service:
+    keywords: ["limite", "diário", "diaria", "50.000", "50000"]
+    patterns: [".*limite.*"]
+    default_context: "Gestão de Limites"
+
+  receipt_service:
+    keywords: ["comprovante", "recibo", "comprovante digital"]
+    patterns: [".*comprovante.*", ".*recibo.*"]
+    default_context: "Comprovante Digital"
+
+  business_logic:
+    keywords: ["lógica", "regra", "processamento", "algoritmo", "cálculo", "validação"]
+    patterns: [".*logic.*", ".*rule.*", ".*process.*"]
+
+# Data Management - Gestão de dados
+data_management:
+  database:
+    keywords: ["banco", "database", "bd", "dados", "mysql", "postgres", "postgresql", "oracle", "sql"]
+    patterns: [".*database.*", ".*db.*", ".*sql.*", ".*dados.*", ".*postgres.*"]
+
+  cache:
+    keywords: ["cache", "redis", "memcached", "buffer", "armazenamento temporário"]
+    patterns: [".*cache.*", ".*redis.*", ".*buffer.*"]
+
+  queue:
+    keywords: ["fila", "queue", "mensagem", "kafka", "rabbitmq", "sqs"]
+    patterns: [".*queue.*", ".*fila.*", ".*kafka.*", ".*rabbit.*"]
+
+  stream:
+    keywords: ["stream", "fluxo", "streaming", "pipeline", "kafka", "kinesis"]
+    patterns: [".*stream.*", ".*pipeline.*", ".*kinesis.*"]
+
+  catalog:
+    keywords: ["catálogo", "catalogo", "categoria", "conteúdo", "conteudo", "filme", "filmes", "mídia", "midia"]
+    patterns: [".*catalog.*", ".*categoria.*", ".*conte[uú]do.*", ".*filme.*", ".*m[ií]dia.*"]
+
+# Gateway Outbound - Saídas
+gateway_outbound:
+  notification:
+    keywords: ["notificação", "notification", "alerta", "push", "sms", "aviso"]
+    patterns: [".*notification.*", ".*alert.*", ".*push.*"]
+    default_context: "Push Notifications"
+
+  email:
+    keywords: ["email", "e-mail", "correio", "smtp", "envio"]
+    patterns: [".*email.*", ".*mail.*", ".*smtp.*"]
+
+  event_publisher:
+    keywords: ["evento", "event", "publicação", "publisher", "broadcast", "kafka"]
+    patterns: [".*event.*", ".*publish.*", ".*broadcast.*", ".*kafka.*"]
+
+# External Integration - Integrações externas
+external_integration:
+  bacen_spi:
+    keywords: ["spi", "sistema de pagamentos instantâneos", "pagamentos instantaneos", "bacen", "banco central"]
+    patterns: [".*spi.*", ".*pagamentos.*instant.*", ".*bacen.*", ".*banco.*central.*"]
+    default_context: "Integração SPI - BACEN"
+
+  bacen_dict:
+    keywords: ["dict", "diretório de identificadores", "diretorio de identificadores", "chave pix", "cadastro de chaves"]
+    patterns: [".*dict.*", ".*diret[oó]rio.*identificadores.*", ".*chave.*pix.*"]
+    default_context: "Integração DICT - BACEN"
+
+  core_banking:
+    keywords: ["core banking", "mainframe", "cobol", "sistema legado", "saldo", "conta corrente"]
+    patterns: [".*core.*banking.*", ".*mainframe.*", ".*cobol.*"]
+    default_context: "Core Banking (Mainframe)"
+
+  antifraud_provider:
+    keywords: ["antifraude", "prevenção à fraude", "prevenção a fraude", "fraude", "score", "risco"]
+    patterns: [".*antifraude.*", ".*fraude.*"]
+    default_context: "Motor Antifraude Externo"
+
+  hsm:
+    keywords: ["hsm", "hardware security module", "chaves", "criptografia", "assinatura"]
+    patterns: [".*hsm.*", ".*hardware.*security.*module.*"]
+    default_context: "HSM - Gestão de Chaves PIX"
+
+  push_gateway:
+    keywords: ["push", "notificação", "firebase", "apns", "fcm"]
+    patterns: [".*push.*", ".*firebase.*", ".*apns.*", ".*fcm.*"]
+    default_context: "Gateway de Notificações Push"
+
+  audit_compliance:
+    keywords: ["auditoria", "compliance", "lgpd", "trilha"]
+    patterns: [".*auditoria.*", ".*compliance.*"]
+    default_context: "Sistema de Auditoria e Compliance"
+
+  credit_bureau:
+    keywords: ["serasa", "spc", "bureau", "consulta externa"]
+    patterns: [".*serasa.*", ".*spc.*", ".*bureau.*"]
+    default_context: "Bureau de Crédito (SPC/Serasa)"
+
+  external_system:
+    keywords: ["sistema externo", "external", "terceiro", "integração", "legacy"]
+    patterns: [".*external.*", ".*third.*party.*", ".*legacy.*"]
+
+  third_party:
+    keywords: ["terceiros", "third party", "fornecedor", "parceiro", "externo"]
+    patterns: [".*third.*", ".*party.*", ".*vendor.*"]
+
+# Verbos de ação para extrair capacidades
+action_verbs:
+  create: ["criar", "inserir", "adicionar", "registrar", "cadastrar", "incluir"]
+  read: ["ler", "consultar", "buscar", "visualizar", "listar", "obter", "filtrar"]
+  update: ["atualizar", "modificar", "alterar", "editar", "mudar"]
+  delete: ["deletar", "remover", "excluir", "apagar", "cancelar"]
+  process: ["processar", "executar", "calcular", "transformar", "analisar", "reproduzir", "assistir", "streaming"]
+  validate: ["validar", "verificar", "checar", "confirmar", "aprovar"]
+  send: ["enviar", "transmitir", "publicar", "notificar", "comunicar"]
+  receive: ["receber", "capturar", "coletar", "importar", "ingerir"]
+
+# Contextos de domínio genéricos
+domain_contexts:
+  user: ["usuário", "cliente", "pessoa", "account", "profile"]
+  order: ["pedido", "ordem", "compra", "venda", "transação"]
+  payment: ["pagamento", "cobrança", "fatura", "billing"]
+  product: ["produto", "item", "catalog", "inventory", "categoria", "catálogo"]
+  notification: ["notificação", "mensagem", "alerta", "comunicação"]
+  report: ["relatório", "dashboard", "analytics", "metrics"]
+  security: ["segurança", "permissão", "acesso", "autorização"]
+
+# Requisitos não funcionais
+non_functional:
+  monitoring:
+    keywords: ["monitoramento", "log", "auditoria", "trace", "observabilidade"]
+    component_type: "service"
+    naming_pattern: "{context}MonitoringService"
+
+  security:
+    keywords: ["criptografia", "hash", "encryption", "signature", "certificado"]
+    component_type: "security"
+    naming_pattern: "{context}SecurityService"
+
+  performance:
+    keywords: ["cache", "otimização", "performance", "speed", "latência"]
+    component_type: "cache"
+    naming_pattern: "{context}Cache"

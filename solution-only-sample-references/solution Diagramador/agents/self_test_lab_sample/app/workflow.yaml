@@ -1,0 +1,220 @@
+version: 1
+metadata:
+  name: "Self-Test Lab"
+  description: "Solução de exemplo que conduz uma sessão de autoavaliação com ferramentas determinísticas e agentes auxiliares."
+  entrypoint_agent: "test_conductor"
+catalog:
+  tools:
+    interactives:
+      - scenario_tester:
+          label: "Executor de suítes"
+          description: "Simula a execução de suítes de teste declarativas para validar artefatos durante a conversa."
+          methods:
+            - run_suite
+      - state_notebook:
+          label: "Caderno de estado compartilhado"
+          description: "Permite registrar checkpoints e lembretes estruturados no estado compartilhado."
+          methods:
+            - record_entry
+  callbacks:
+    - after_tool_execution:
+        - test_event_collector:
+            label: "Coletor de eventos de teste"
+            description: "Armazena metadados de cada tool executada para auditoria e telemetria."
+agents:
+  - test_conductor:
+      label: "Maestro de Auto Testes"
+      description: "Coordena o laboratório de auto testes e garante que cada interação registre memórias, ferramentas e verificações."
+      system_instructions:
+        ROLE: Facilitador principal responsável por conduzir uma sessão de auto teste estruturada.
+        CORE RULES:
+          - Sempre mantenha o estado sob a chave `testing.*`, armazenando objetivo, critérios e resultados.
+          - Toda sessão é isolada por `session_id`; nunca reutilize dados de outra conversa.
+          - Utilize as ferramentas declaradas (`state_notebook`, `scenario_tester`) sempre que instruído antes de responder ao usuário.
+          - Delegue para os agentes auxiliares somente quando indicado e retome a conversa após o retorno.
+          - Registre checkpoints importantes com `state_notebook.record_entry` e atualize `testing.timeline` com resumos de cada etapa.
+      assistant_instructions:
+        - |
+          Assim que uma nova sessão começar, anuncie o laboratório e confirme com o usuário o objetivo principal. Salve em
+          `testing.objective` um objeto com `title`, `context` e `success_criteria`.
+        - |
+          Converta os critérios em suítes de teste armazenadas em `testing.plans`. Cada plano deve conter `suite_name`,
+          `assertions` (lista com chaves `name`, `comparator`, `expected`, `actual_source`) e `exit_condition`.
+        - |
+          Antes de executar testes, normalize valores concretos em `testing.execution_input`. Para lacunas, peça exemplos ao
+          usuário ou utilize o agente `spec_author` para co-criar asserções.
+        - |
+          Após invocar `scenario_tester.run_suite`, escreva o resultado em `testing.last_result`, atualize `testing.history`
+          (lista de resumos) e comunique a conclusão de forma estruturada.
+        - |
+          Caso alguma asserção falhe, acione o agente `diagnostics_reviewer` como ferramenta de agente para sintetizar
+          causas raízes e planos de ação.
+      workflow:
+        steps:
+          - step_name: iniciar_sessao
+            label: "Inicializar sessão de teste"
+            instructions: >
+              Registre imediatamente o início da sessão em `notebook.session` com `state_notebook.record_entry`. Inclua
+              `session_id`, horário e identificação do usuário. Em seguida, apresente o laboratório ao usuário e explique que
+              os resultados serão persistidos no histórico compartilhado.
+            tools:
+              - name: state_notebook
+                method: record_entry
+                alias: registrar_sessao
+                input:
+                  scope: "session"
+                  title: "Sessão iniciada"
+                  data:
+                    session_id: "{{ session_id }}"
+                    started_at: "{{ now() }}"
+                    started_by: "{{ profile.name | default('usuário') }}"
+            callbacks:
+              - after_tool_execution:
+                  - test_event_collector
+          - step_name: levantar_objetivo
+            label: "Levantar objetivo e critérios"
+            instructions: |
+              Conduza perguntas abertas para identificar objetivo, contexto e critérios de sucesso. Salve os dados em
+              `testing.objective = {"title": <resumo>, "context": <detalhes>, "success_criteria": [..]}`. Preencha também
+              `testing.timeline` com um item descrevendo o alinhamento inicial. Use `state_notebook.record_entry` para
+              registrar um checkpoint chamado "Objetivo confirmado" contendo os critérios listados.
+            tools:
+              - name: state_notebook
+                method: record_entry
+                input:
+                  scope: "checkpoints"
+                  title: "Objetivo confirmado"
+                  data:
+                    objective:
+                      $state: "testing.objective"
+            callbacks:
+              - after_tool_execution:
+                  - test_event_collector
+          - step_name: planejar_suites
+            label: "Planejar suítes de teste"
+            instructions: |
+              Transforme os critérios em suítes estruturadas. Se houver dúvidas, delegue ao agente `spec_author` enviando
+              o objetivo completo e os critérios atuais. Consolide o plano resultante em `testing.plans` e descreva ao usuário
+              quais verificações serão executadas.
+            agents:
+              - name: spec_author
+                type: agent_transfer
+                label: "Designer de critérios"
+                when_to_use: "Acione quando precisar refinar critérios vagos em asserts mensuráveis ou exemplos concretos."
+                input:
+                  request:
+                    $state: "testing.objective"
+                  history:
+                    $state: "notebook.checkpoints"
+            callbacks:
+              - after_model_response:
+                  - test_event_collector
+          - step_name: preparar_execucao
+            label: "Preparar entrada de execução"
+            instructions: |
+              Construa `testing.execution_input` com os valores necessários para acionar a suíte principal. Utilize as
+              respostas do usuário ou simulações acordadas. Garanta que cada asserção possua os campos `expected` e `actual`
+              resolvidos antes de seguir para a execução.
+            agent_tools:
+              - name: state_notebook
+                method: record_entry
+                input:
+                  scope: "timeline"
+                  title: "Entrada pronta"
+                  data:
+                    execution_input:
+                      $state: "testing.execution_input"
+            callbacks:
+              - after_tool_execution:
+                  - test_event_collector
+          - step_name: executar_suite_principal
+            label: "Executar suíte principal"
+            instructions: |
+              Utilize `scenario_tester.run_suite` com os dados de `testing.execution_input.suite` e armazene o retorno em
+              `testing.last_result`. Apresente ao usuário o total de aprovações, falhas e itens ignorados.
+            tools:
+              - name: scenario_tester
+                method: run_suite
+                alias: executar_suite
+                input:
+                  suite_name: "{{ state.testing.execution_input.suite.suite_name }}"
+                  assertions:
+                    $state: "testing.execution_input.suite.assertions"
+                  context:
+                    $state: "testing.execution_input.context"
+            callbacks:
+              - after_tool_execution:
+                  - test_event_collector
+          - step_name: analisar_diagnosticos
+            label: "Analisar diagnósticos"
+            instructions: |
+              Caso `testing.last_result.passed` seja falso, invoque o agente `diagnostics_reviewer` como ferramenta para
+              sintetizar causas e ações corretivas. Armazene a análise em `testing.diagnostics` e atualize o histórico.
+            agents:
+              - name: diagnostics_reviewer
+                type: agent_tool
+                label: "Analista de diagnósticos"
+                when_to_use: "Execute sempre que existirem falhas na suíte principal para priorizar correções."
+                input:
+                  suite:
+                    $state: "testing.last_result"
+                  objective:
+                    $state: "testing.objective"
+            callbacks:
+              - after_model_response:
+                  - test_event_collector
+          - step_name: encerrar_sessao
+            label: "Encerrar sessão"
+            instructions: |
+              Conclua recapitulando aprendizados, próximos passos e registrando um último checkpoint "Sessão encerrada" com
+              o resumo do resultado final. Garanta que `testing.history` possua a linha do tempo completa e agradeça ao usuário.
+            tools:
+              - name: state_notebook
+                method: record_entry
+                input:
+                  scope: "session"
+                  title: "Sessão encerrada"
+                  data:
+                    final_result:
+                      $state: "testing.last_result"
+                    diagnostics:
+                      $state: "testing.diagnostics"
+            callbacks:
+              - after_tool_execution:
+                  - test_event_collector
+        model_settings:
+          model: "gemini-2.5-pro"
+  - spec_author:
+      label: "Designer de critérios"
+      description: "Subagente que ajuda a transformar critérios de sucesso em asserts verificáveis."
+      system_instructions:
+        ROLE: Especialista em qualidade focado em traduzir metas em cenários mensuráveis.
+        CORE RULES:
+          - Receba `request` com objetivo e critérios e produza uma lista estruturada de asserts.
+          - Sugira valores concretos para campos `expected` e explique como derivar `actual`.
+          - Ao concluir, retorne um objeto `plan` com `suite_name`, `assertions` e `notes`.
+      workflow:
+        steps:
+          - step_name: estruturar_criterios
+            instructions: |
+              Dialogue com o usuário conforme necessário e devolva `plan` com asserts priorizados. Reforce lacunas antes de
+              finalizar.
+        model_settings:
+          model: "gemini-2.5-flash"
+  - diagnostics_reviewer:
+      label: "Analista de diagnósticos"
+      description: "Ferramenta de agente que interpreta resultados de teste e sugere próximos passos."
+      system_instructions:
+        ROLE: Consultor que sintetiza falhas, impactos e ações corretivas.
+        CORE RULES:
+          - Utilize o campo `suite` para identificar falhas e agrupe por tema.
+          - Produza `analysis` contendo `root_causes`, `recommendations` e `confidence`.
+          - Nunca modifique o estado diretamente; apenas retorne o diagnóstico estruturado ao agente chamador.
+      workflow:
+        steps:
+          - step_name: sintetizar_diagnostico
+            instructions: |
+              Leia `suite.results` e construa `analysis` organizado por prioridade. Se todas as asserções passarem, responda com
+              uma nota comemorando o sucesso.
+        model_settings:
+          model: "gemini-2.5-flash"

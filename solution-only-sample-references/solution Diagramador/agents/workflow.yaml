@@ -1,0 +1,17 @@
+version: 1
+metadata:
+  name: "Dynamic Agents Samples"
+  description: "Coleção de soluções de exemplo distribuídas com o pacote."
+solutions:
+  diagramador:
+    label: "Diagramador C4"
+    description: "Gere diagramas de processos a partir de descrições textuais usando agentes especializados."
+    workflow: "diagramador/app/workflow.yaml"
+  travel_planner:
+    label: "Travel Planner Sample"
+    description: "Concierge de viagens multiagente com catálogo sintético e coordenação especializada."
+    workflow: "travel_planner_sample/app/workflow.yaml"
+  self_test_lab:
+    label: "Self-Test Lab Sample"
+    description: "Laboratório de autoavaliação que valida agentes e ferramentas com cenários guiados."
+    workflow: "self_test_lab_sample/app/workflow.yaml"

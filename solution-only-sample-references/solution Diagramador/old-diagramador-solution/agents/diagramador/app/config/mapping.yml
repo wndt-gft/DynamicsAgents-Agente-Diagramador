@@ -1,0 +1,301 @@
+# Mapeamento de componentes para tipos ArchiMate e camadas
+# Este arquivo define como mapear elementos extraídos da história para tipos corretos
+
+layers:
+  channels:
+    name: "Channels"
+    description: "Pontos de entrada do usuário (apps, portais, interfaces)"
+    position:
+      x: 50
+      y: 180
+      width: 150
+      height: 80
+    anchors:
+      - { x: 60, y: 200 }
+      - { x: 120, y: 200 }
+      - { x: 180, y: 200 }
+
+  gateway_inbound:
+    name: "Gateway Inbound"
+    description: "Pontos de entrada técnicos (API Gateway, autenticação, load balancer)"
+    position:
+      x: 250
+      y: 180
+      width: 150
+      height: 80
+    anchors:
+      - { x: 260, y: 200 }
+      - { x: 320, y: 200 }
+      - { x: 380, y: 200 }
+
+  execution_logic:
+    name: "Execution Logic"
+    description: "Serviços e capacidades principais"
+    position:
+      x: 450
+      y: 180
+      width: 150
+      height: 80
+    anchors:
+      - { x: 460, y: 200 }
+      - { x: 520, y: 200 }
+      - { x: 580, y: 200 }
+
+  data_management:
+    name: "Data Management"
+    description: "Bases de dados, caches, filas, streams"
+    position:
+      x: 650
+      y: 180
+      width: 150
+      height: 80
+    anchors:
+      - { x: 660, y: 200 }
+      - { x: 720, y: 200 }
+      - { x: 780, y: 200 }
+
+  gateway_outbound:
+    name: "Gateway Outbound"
+    description: "Serviços de saída (notificações, e-mail, eventos)"
+    position:
+      x: 450
+      y: 300
+      width: 150
+      height: 80
+    anchors:
+      - { x: 460, y: 320 }
+      - { x: 520, y: 320 }
+      - { x: 580, y: 320 }
+
+  external_integration:
+    name: "External Integration Layer"
+    description: "Sistemas externos, integrações de terceiros"
+    position:
+      x: 650
+      y: 300
+      width: 150
+      height: 80
+    anchors:
+      - { x: 660, y: 320 }
+      - { x: 720, y: 320 }
+      - { x: 780, y: 320 }
+
+component_types:
+  # Channels
+  web_app:
+    archimate_type: "ApplicationComponent"
+    layer: "channels"
+    naming_pattern: "{name}App"
+
+  mobile_app:
+    archimate_type: "ApplicationComponent"
+    layer: "channels"
+    naming_pattern: "{name}MobileApp"
+
+  internet_banking:
+    archimate_type: "ApplicationComponent"
+    layer: "channels"
+    naming_pattern: "{name}"
+
+  portal:
+    archimate_type: "ApplicationComponent"
+    layer: "channels"
+    naming_pattern: "{name}Portal"
+
+  interface:
+    archimate_type: "ApplicationInterface"
+    layer: "channels"
+    naming_pattern: "{name}Interface"
+
+  # Gateway Inbound
+  api_gateway:
+    archimate_type: "ApplicationService"
+    layer: "gateway_inbound"
+    naming_pattern: "{name}APIGateway"
+
+  load_balancer:
+    archimate_type: "TechnologyService"
+    layer: "gateway_inbound"
+    naming_pattern: "{name}LoadBalancer"
+
+  authentication:
+    archimate_type: "ApplicationService"
+    layer: "gateway_inbound"
+    naming_pattern: "{name}"
+
+  security:
+    archimate_type: "ApplicationService"
+    layer: "gateway_inbound"
+    naming_pattern: "{name}SecurityService"
+
+  # Execution Logic
+  service:
+    archimate_type: "ApplicationService"
+    layer: "execution_logic"
+    naming_pattern: "{capability}Service"
+
+  microservice:
+    archimate_type: "ApplicationComponent"
+    layer: "execution_logic"
+    naming_pattern: "{capability}Service"
+
+  pix_service:
+    archimate_type: "ApplicationService"
+    layer: "execution_logic"
+    naming_pattern: "{name} Service"
+
+  token_mfa:
+    archimate_type: "ApplicationService"
+    layer: "execution_logic"
+    naming_pattern: "{name}"
+
+  limits_service:
+    archimate_type: "ApplicationService"
+    layer: "execution_logic"
+    naming_pattern: "{name}"
+
+  receipt_service:
+    archimate_type: "ApplicationService"
+    layer: "execution_logic"
+    naming_pattern: "{name}"
+
+  business_logic:
+    archimate_type: "ApplicationFunction"
+    layer: "execution_logic"
+    naming_pattern: "{capability}Logic"
+
+  # Data Management
+  database:
+    archimate_type: "DataObject"
+    layer: "data_management"
+    naming_pattern: "{context}Database"
+
+  cache:
+    archimate_type: "DataObject"
+    layer: "data_management"
+    naming_pattern: "{context}Cache"
+
+  queue:
+    archimate_type: "DataObject"
+    layer: "data_management"
+    naming_pattern: "{context}Queue"
+
+  stream:
+    archimate_type: "DataObject"
+    layer: "data_management"
+    naming_pattern: "{context}Stream"
+
+  # Gateway Outbound
+  notification:
+    archimate_type: "ApplicationService"
+    layer: "gateway_outbound"
+    naming_pattern: "{name}"
+
+  email:
+    archimate_type: "ApplicationService"
+    layer: "gateway_outbound"
+    naming_pattern: "{name}EmailService"
+
+  event_publisher:
+    archimate_type: "ApplicationService"
+    layer: "gateway_outbound"
+    naming_pattern: "{name}EventPublisher"
+
+  # External Integration
+  bacen_spi:
+    archimate_type: "ApplicationComponent"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  bacen_dict:
+    archimate_type: "ApplicationComponent"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  core_banking:
+    archimate_type: "ApplicationComponent"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  antifraud_provider:
+    archimate_type: "ApplicationService"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  hsm:
+    archimate_type: "TechnologyService"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  push_gateway:
+    archimate_type: "ApplicationService"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  audit_compliance:
+    archimate_type: "ApplicationComponent"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  credit_bureau:
+    archimate_type: "ApplicationService"
+    layer: "external_integration"
+    naming_pattern: "{name}"
+    metadata:
+      stereotype: "External"
+
+  external_system:
+    archimate_type: "ApplicationComponent"
+    layer: "external_integration"
+    naming_pattern: "{name}System"
+    metadata:
+      stereotype: "External"
+
+  third_party:
+    archimate_type: "ApplicationService"
+    layer: "external_integration"
+    naming_pattern: "{name}Service"
+    metadata:
+      stereotype: "External"
+
+relationship_types:
+  serving: "ServingRelationship"
+  flow: "FlowRelationship"
+  access: "AccessRelationship"
+  composition: "CompositionRelationship"
+  realization: "RealizationRelationship"
+  assignment: "AssignmentRelationship"
+
+allowed_relationships:
+  - source: "channels"
+    target: "gateway_inbound"
+    type: "serving"
+  - source: "gateway_inbound"
+    target: "execution_logic"
+    type: "serving"
+  - source: "execution_logic"
+    target: "data_management"
+    type: "access"
+  - source: "execution_logic"
+    target: "gateway_outbound"
+    type: "serving"
+  - source: "execution_logic"
+    target: "external_integration"
+    type: "serving"
+  - source: "gateway_outbound"
+    target: "external_integration"
+    type: "serving"

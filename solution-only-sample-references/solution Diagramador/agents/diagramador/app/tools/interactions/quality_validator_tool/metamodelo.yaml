@@ -1,0 +1,20 @@
+camadas_obrigatorias:
+  - "CHANNELS"
+  - "GATEWAY INBOUND"
+  - "EXECUTION LOGIC"
+  - "DATA MANAGEMENT"
+  - "GATEWAY OUTBOUND"
+  - "EXTERNAL INTEGRATION LAYER"
+regras:
+  - id: "metamodel_consistency"
+    descricao: "Cada elemento deve obedecer aos tipos permitidos por camada."
+    peso: 0.35
+  - id: "relationship_integrity"
+    descricao: "Relacionamentos precisam referenciar elementos existentes."
+    peso: 0.25
+  - id: "naming_conventions"
+    descricao: "Nomes devem ser descritivos e livres de placeholders."
+    peso: 0.20
+  - id: "documentation_completeness"
+    descricao: "Todos os elementos devem ter documentação ou contexto."
+    peso: 0.20

@@ -1,0 +1,13 @@
+/.venv/
+#/outputs/
+/agents/diagramador/tests/logs/
+/agents/diagramador/tests/output/
+/agents/diagramador/tests/.results/
+/agents/diagramador/tests/coverage_html/
+/agents/diagramador/tests/outputs/
+/agents/diagramador/test_results/
+/agents/diagramador/outputs/
+/agents/diagramador/outputs/
+/agents/diagramador/outputs/
+/agents/diagramador/outputs/
+*.pyc

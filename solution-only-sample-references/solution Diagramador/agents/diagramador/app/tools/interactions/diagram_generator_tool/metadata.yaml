@@ -1,0 +1,6 @@
+name: diagram_generator_tool
+label: "Gerador de Diagramas"
+description: "Cria diagramas C4 em XML ArchiMate a partir do mapeamento explícito produzido pelo agente."
+methods:
+  - generate_diagram:
+      description: "Constrói o XML consolidando elementos, relacionamentos e etapas confirmados pelo usuário."

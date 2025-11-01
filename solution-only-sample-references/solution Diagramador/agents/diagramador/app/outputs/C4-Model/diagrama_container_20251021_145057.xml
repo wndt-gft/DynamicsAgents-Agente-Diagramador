@@ -1,0 +1,148 @@
+<?xml version="1.0" ?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:dc="http://purl.org/dc/elements/1.1/" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.0/archimate3_Diagram.xsd http://purl.org/dc/elements/1.1/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dc.xsd" identifier="id-84f30fe8">
+    <name xml:lang="pt-br">25.3T.JT-XXXX.TE-XXXX-Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+    <elements>
+        <element identifier="id-element-4ac5aad9" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">diagram_generator_tool</name>
+        </element>
+    </elements>
+    <views>
+        <diagrams>
+            <view identifier="id-645a6c81" viewpoint="Introductory">
+                <name xml:lang="pt-br">JT-XXXX.TE-XXXX-Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+            </view>
+            <view identifier="id-d7a25929" viewpoint="Introductory">
+                <name xml:lang="pt-br">1. Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+                <node identifier="id-header-bg-999caa" xsi:type="Label" x="0" y="47" w="620" h="80">
+                    <label xml:lang="pt-br"/>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="24" style="bold">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-title-b23739" xsi:type="Label" x="127" y="47" w="707" h="40">
+                    <label xml:lang="pt-br">diagram_generator_tool</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="24" style="bold">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-subtitle-98d354" xsi:type="Label" x="127" y="87" w="700" h="33">
+                    <label xml:lang="pt-br">Visão de container — Autenticação, Validações, Integrações e Dados</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="16" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-channels-037011" xsi:type="Container" x="67" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">CHANNELS</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-gateway_inbound-ed988f" xsi:type="Container" x="273" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">GATEWAY INBOUND</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-execution_logic-e56a8a" xsi:type="Container" x="480" y="193" w="533" h="500">
+                    <label xml:lang="pt-br">EXECUTION LOGIC</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-gateway_outbound-5ee942" xsi:type="Container" x="1020" y="193" w="173" h="627">
+                    <label xml:lang="pt-br">GATEWAY OUTBOUND</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-external_integration-551271" xsi:type="Container" x="1200" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">EXTERNAL INTEGRATION LAYER</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-data_management-7c219a" xsi:type="Container" x="480" y="700" w="533" h="120">
+                    <label xml:lang="pt-br">DATA MANAGEMENT</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-etapas-847b1a" xsi:type="Container" x="1407" y="193" w="320" h="627">
+                    <label xml:lang="pt-br">Etapas</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                    <node identifier="id-etapa-1-e3f2de" xsi:type="Label" x="1420" y="227" w="300" h="20">
+                        <label xml:lang="pt-br">system_name</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-2-67a2cd" xsi:type="Label" x="1420" y="249" w="300" h="20">
+                        <label xml:lang="pt-br">elements</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                </node>
+                <node identifier="id-visual-2a7f56" elementRef="id-element-4ac5aad9" xsi:type="Element" x="495" y="233" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+            </view>
+        </diagrams>
+    </views>
+</model>

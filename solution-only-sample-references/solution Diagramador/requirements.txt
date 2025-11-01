@@ -1,0 +1,5 @@
+# Dependências essenciais para executar soluções baseadas em dynamics-agents
+.vendor/dynamics-agents/dynamics_agents-0.1.1-py3-none-any.whl
+google-adk>=1.14.1
+google-genai>=1.38.0
+pyyaml>=6.0

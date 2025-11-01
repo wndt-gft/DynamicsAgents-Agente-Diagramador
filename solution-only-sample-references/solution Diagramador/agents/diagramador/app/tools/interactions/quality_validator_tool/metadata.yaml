@@ -1,0 +1,6 @@
+name: quality_validator_tool
+label: "Validador de Qualidade"
+description: "Avalia o diagrama gerado verificando conformidade com o metamodelo e regras estruturais."
+methods:
+  - evaluate_quality:
+      description: "Calcula métricas de qualidade a partir do XML, elementos e relacionamentos confirmados."

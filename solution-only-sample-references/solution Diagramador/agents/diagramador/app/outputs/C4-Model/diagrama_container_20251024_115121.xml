@@ -1,0 +1,515 @@
+<?xml version="1.0" ?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:dc="http://purl.org/dc/elements/1.1/" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.0/archimate3_Diagram.xsd http://purl.org/dc/elements/1.1/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dc.xsd" identifier="id-716fdb62">
+    <name xml:lang="pt-br">25.3T.JT-XXXX.TE-XXXX-Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+    <elements>
+        <element identifier="id-element-84600f2c" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Internet Banking</name>
+        </element>
+        <element identifier="id-element-13f7e483" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Mobile App</name>
+        </element>
+        <element identifier="id-element-971f97f1" xsi:type="TechnologyService">
+            <name xml:lang="pt-br">Gateway de APIs</name>
+        </element>
+        <element identifier="id-element-251d2270" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Microsserviço de Transferências PIX</name>
+        </element>
+        <element identifier="id-element-55437cd2" xsi:type="DataObject">
+            <name xml:lang="pt-br">HSM (Hardware Security Module)</name>
+        </element>
+        <element identifier="id-element-3316648a" xsi:type="DataObject">
+            <name xml:lang="pt-br">Repositório de Auditoria</name>
+        </element>
+        <element identifier="id-element-e62fbb30" xsi:type="DataObject">
+            <name xml:lang="pt-br">Cache de Sessão (Redis)</name>
+        </element>
+        <element identifier="id-element-a78e2a08" xsi:type="DataObject">
+            <name xml:lang="pt-br">Banco de Dados Transacional (PostgreSQL)</name>
+        </element>
+        <element identifier="id-element-e196a9f0" xsi:type="TechnologyService">
+            <name xml:lang="pt-br">Gateway de Notificações Push</name>
+        </element>
+        <element identifier="id-element-6201c43a" xsi:type="TechnologyService">
+            <name xml:lang="pt-br">Gateway de Integração BACEN</name>
+        </element>
+        <element identifier="id-element-1558ddcb" xsi:type="TechnologyService">
+            <name xml:lang="pt-br">Barramento de Eventos (Kafka)</name>
+        </element>
+        <element identifier="id-element-793e0f5d" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Bureau de Crédito (SPC/Serasa)</name>
+        </element>
+        <element identifier="id-element-47162087" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Sistema de Prevenção à Fraude</name>
+        </element>
+        <element identifier="id-element-7cda4b21" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Core Banking System</name>
+        </element>
+        <element identifier="id-element-8a61ea93" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Sistema PIX/DICT (BACEN)</name>
+        </element>
+    </elements>
+    <relationships>
+        <relationship identifier="id-rel-da898456" source="id-element-e196a9f0" target="id-element-13f7e483" xsi:type="Flow">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-cbb2411f" source="id-element-1558ddcb" target="id-element-3316648a" xsi:type="Flow">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-1c9adade" source="id-element-1558ddcb" target="id-element-e196a9f0" xsi:type="Flow">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-c41c0dc1" source="id-element-251d2270" target="id-element-1558ddcb" xsi:type="Flow">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-828b1df5" source="id-element-251d2270" target="id-element-47162087" xsi:type="Triggering">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-d9e32730" source="id-element-251d2270" target="id-element-7cda4b21" xsi:type="Access">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-f9a1ebba" source="id-element-251d2270" target="id-element-6201c43a" xsi:type="Flow">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-54436389" source="id-element-251d2270" target="id-element-55437cd2" xsi:type="Access">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-42563a1d" source="id-element-251d2270" target="id-element-e62fbb30" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-6342caef" source="id-element-251d2270" target="id-element-a78e2a08" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-fd9671d3" source="id-element-971f97f1" target="id-element-251d2270" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-f562c3d6" source="id-element-84600f2c" target="id-element-971f97f1" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-6ad2be24" source="id-element-13f7e483" target="id-element-971f97f1" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+    </relationships>
+    <views>
+        <diagrams>
+            <view identifier="id-59c96d8d" viewpoint="Introductory">
+                <name xml:lang="pt-br">JT-XXXX.TE-XXXX-Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+            </view>
+            <view identifier="id-6fad0bd7" viewpoint="Introductory">
+                <name xml:lang="pt-br">1. Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+                <node identifier="id-header-bg-1bee4f" xsi:type="Label" x="0" y="47" w="620" h="80">
+                    <label xml:lang="pt-br"/>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="24" style="bold">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-title-a2e786" xsi:type="Label" x="127" y="47" w="707" h="40">
+                    <label xml:lang="pt-br">Transferências Instantâneas via PIX</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="24" style="bold">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-subtitle-e88f38" xsi:type="Label" x="127" y="87" w="700" h="33">
+                    <label xml:lang="pt-br">Visão de container — Autenticação, Validações, Integrações e Dados</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="16" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-channels-ee2a4b" xsi:type="Container" x="67" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">CHANNELS</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-gateway_inbound-16bc51" xsi:type="Container" x="273" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">GATEWAY INBOUND</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-execution_logic-773947" xsi:type="Container" x="480" y="193" w="533" h="500">
+                    <label xml:lang="pt-br">EXECUTION LOGIC</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-gateway_outbound-5fcc63" xsi:type="Container" x="1020" y="193" w="173" h="627">
+                    <label xml:lang="pt-br">GATEWAY OUTBOUND</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-external_integration-39156d" xsi:type="Container" x="1200" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">EXTERNAL INTEGRATION LAYER</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-data_management-46481d" xsi:type="Container" x="480" y="700" w="533" h="120">
+                    <label xml:lang="pt-br">DATA MANAGEMENT</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-etapas-22c567" xsi:type="Container" x="1407" y="193" w="320" h="627">
+                    <label xml:lang="pt-br">Etapas</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                    <node identifier="id-etapa-1-9c7879" xsi:type="Label" x="1420" y="227" w="300" h="20">
+                        <label xml:lang="pt-br">O cliente inicia uma transferência PIX pelo Mobile App ou Internet Banking.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-2-6b890b" xsi:type="Label" x="1420" y="249" w="300" h="20">
+                        <label xml:lang="pt-br">O Gateway de APIs recebe a requisição e a encaminha ao Microsserviço de Transferências PIX.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-3-3b9a31" xsi:type="Label" x="1420" y="271" w="300" h="20">
+                        <label xml:lang="pt-br">O microsserviço valida a sessão do usuário, o risco da transação no Sistema de Prevenção à Fraude e o saldo no Core Banking System.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-4-941f3d" xsi:type="Label" x="1420" y="293" w="300" h="20">
+                        <label xml:lang="pt-br">O serviço consulta os dados da chave PIX no DICT através do Gateway de Integração BACEN.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-5-d34d24" xsi:type="Label" x="1420" y="315" w="300" h="20">
+                        <label xml:lang="pt-br">A transação é submetida ao SPI (via Gateway BACEN) para processamento e liquidação.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-6-9f8d37" xsi:type="Label" x="1420" y="337" w="300" h="20">
+                        <label xml:lang="pt-br">Após a confirmação, o débito é efetuado no Core Banking System e a transação é registrada no Banco de Dados Transacional.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-7-f354d8" xsi:type="Label" x="1420" y="359" w="300" h="20">
+                        <label xml:lang="pt-br">Um evento de "transferência concluída" é publicado no Barramento de Eventos (Kafka).</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-8-4e6d61" xsi:type="Label" x="1420" y="381" w="300" h="20">
+                        <label xml:lang="pt-br">O Gateway de Notificações Push consome o evento e envia uma confirmação ao dispositivo do cliente.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-9-6308ea" xsi:type="Label" x="1420" y="403" w="300" h="20">
+                        <label xml:lang="pt-br">Um registro da transação é enviado ao Repositório de Auditoria a partir do barramento.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-10-b87f31" xsi:type="Label" x="1420" y="425" w="300" h="20">
+                        <label xml:lang="pt-br">O comprovante digital é gerado e disponibilizado ao cliente.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                </node>
+                <node identifier="id-visual-ecf147" elementRef="id-element-84600f2c" xsi:type="Element" x="77" y="233" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="250" g="240" b="135" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-5535d0" elementRef="id-element-13f7e483" xsi:type="Element" x="77" y="298" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="250" g="240" b="135" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-dfb39c" elementRef="id-element-971f97f1" xsi:type="Element" x="283" y="233" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-9bd424" elementRef="id-element-251d2270" xsi:type="Element" x="495" y="233" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-73c845" elementRef="id-element-55437cd2" xsi:type="Element" x="495" y="735" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-6d2f57" elementRef="id-element-3316648a" xsi:type="Element" x="755" y="735" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-16dce3" elementRef="id-element-e62fbb30" xsi:type="Element" x="495" y="780" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-0aaa60" elementRef="id-element-a78e2a08" xsi:type="Element" x="755" y="780" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-5483e8" elementRef="id-element-e196a9f0" xsi:type="Element" x="1030" y="233" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-bf272e" elementRef="id-element-6201c43a" xsi:type="Element" x="1030" y="298" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-222b75" elementRef="id-element-1558ddcb" xsi:type="Element" x="1030" y="363" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-561adf" elementRef="id-element-793e0f5d" xsi:type="Element" x="1210" y="233" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-03d476" elementRef="id-element-47162087" xsi:type="Element" x="1210" y="298" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-ab187d" elementRef="id-element-7cda4b21" xsi:type="Element" x="1210" y="363" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-9861fb" elementRef="id-element-8a61ea93" xsi:type="Element" x="1210" y="428" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <connection identifier="id-conn-f75bc0" xsi:type="Relationship" relationshipRef="id-rel-da898456" source="id-visual-5483e8" target="id-visual-5535d0">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-3ee9a0" xsi:type="Relationship" relationshipRef="id-rel-cbb2411f" source="id-visual-222b75" target="id-visual-6d2f57">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-b35f62" xsi:type="Relationship" relationshipRef="id-rel-1c9adade" source="id-visual-222b75" target="id-visual-5483e8">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-e2f725" xsi:type="Relationship" relationshipRef="id-rel-c41c0dc1" source="id-visual-9bd424" target="id-visual-222b75">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-6fc34d" xsi:type="Relationship" relationshipRef="id-rel-828b1df5" source="id-visual-9bd424" target="id-visual-03d476">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-840999" xsi:type="Relationship" relationshipRef="id-rel-d9e32730" source="id-visual-9bd424" target="id-visual-ab187d">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-eaf2b5" xsi:type="Relationship" relationshipRef="id-rel-f9a1ebba" source="id-visual-9bd424" target="id-visual-bf272e">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-6ed90c" xsi:type="Relationship" relationshipRef="id-rel-54436389" source="id-visual-9bd424" target="id-visual-73c845">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-ac4eb5" xsi:type="Relationship" relationshipRef="id-rel-42563a1d" source="id-visual-9bd424" target="id-visual-16dce3">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-119308" xsi:type="Relationship" relationshipRef="id-rel-6342caef" source="id-visual-9bd424" target="id-visual-0aaa60">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-b0852d" xsi:type="Relationship" relationshipRef="id-rel-fd9671d3" source="id-visual-dfb39c" target="id-visual-9bd424">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-a0d6a4" xsi:type="Relationship" relationshipRef="id-rel-f562c3d6" source="id-visual-ecf147" target="id-visual-dfb39c">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-aa0e07" xsi:type="Relationship" relationshipRef="id-rel-6ad2be24" source="id-visual-5535d0" target="id-visual-dfb39c">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+            </view>
+        </diagrams>
+    </views>
+</model>

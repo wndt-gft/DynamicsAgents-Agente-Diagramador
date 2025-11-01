@@ -1,0 +1,467 @@
+<?xml version="1.0" ?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:dc="http://purl.org/dc/elements/1.1/" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.0/archimate3_Diagram.xsd http://purl.org/dc/elements/1.1/ http://dublincore.org/schemas/xmls/qdc/2008/02/11/dc.xsd" identifier="id-c6878b3d">
+    <name xml:lang="pt-br">25.3T.JT-XXXX.TE-XXXX-Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+    <elements>
+        <element identifier="id-element-56775280" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Internet Banking</name>
+        </element>
+        <element identifier="id-element-3a6eadec" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Aplicativo Mobile</name>
+        </element>
+        <element identifier="id-element-cb79ac37" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Cliente Pessoa Física</name>
+        </element>
+        <element identifier="id-element-c8fb0e4e" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">API Gateway</name>
+        </element>
+        <element identifier="id-element-3fd16854" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Serviço de Auditoria</name>
+        </element>
+        <element identifier="id-element-8ebf2e91" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Motor Antifraude</name>
+        </element>
+        <element identifier="id-element-b9847c6f" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Serviço de Notificações</name>
+        </element>
+        <element identifier="id-element-325f2b2d" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Serviço de Contas</name>
+        </element>
+        <element identifier="id-element-1095f83f" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Serviço de Autenticação</name>
+        </element>
+        <element identifier="id-element-3a543535" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Serviço de Transferências PIX</name>
+        </element>
+        <element identifier="id-element-f7faf196" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">HSM (Hardware Security Module)</name>
+        </element>
+        <element identifier="id-element-96369e7b" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Redis Cache</name>
+        </element>
+        <element identifier="id-element-797a9885" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">PostgreSQL Database</name>
+        </element>
+        <element identifier="id-element-b3f6afa9" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Apache Kafka</name>
+        </element>
+        <element identifier="id-element-cc10455b" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Bureau de Consulta</name>
+        </element>
+        <element identifier="id-element-2a4daea4" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Sistema de Auditoria e Compliance</name>
+        </element>
+        <element identifier="id-element-d3930937" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Gateway de Notificações Push</name>
+        </element>
+        <element identifier="id-element-7c78c0cc" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Core Banking System</name>
+        </element>
+        <element identifier="id-element-2a421cd3" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">DICT (Diretório de Identificadores)</name>
+        </element>
+        <element identifier="id-element-807c80bf" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">SPI (Sistema de Pagamentos Instantâneos)</name>
+        </element>
+    </elements>
+    <relationships/>
+    <views>
+        <diagrams>
+            <view identifier="id-4e8b7a7f" viewpoint="Introductory">
+                <name xml:lang="pt-br">JT-XXXX.TE-XXXX-Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+            </view>
+            <view identifier="id-d9cfd7b2" viewpoint="Introductory">
+                <name xml:lang="pt-br">1. Ingestões, Transformações, Experimentações, Análises e Visualização de Dados do SDLC</name>
+                <node identifier="id-header-bg-0ebfc4" xsi:type="Label" x="0" y="47" w="620" h="80">
+                    <label xml:lang="pt-br"/>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="24" style="bold">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-title-7b2be5" xsi:type="Label" x="127" y="47" w="707" h="40">
+                    <label xml:lang="pt-br">Transferências Instantâneas via PIX</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="24" style="bold">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-subtitle-d4ec91" xsi:type="Label" x="127" y="87" w="700" h="33">
+                    <label xml:lang="pt-br">Visão de container — Autenticação, Validações, Integrações e Dados</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="0"/>
+                        <lineColor r="0" g="0" b="0" a="0"/>
+                        <font name="arial" size="16" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-channels-78841c" xsi:type="Container" x="67" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">CHANNELS</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-gateway_inbound-fa8f35" xsi:type="Container" x="273" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">GATEWAY INBOUND</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-execution_logic-8b1baa" xsi:type="Container" x="480" y="193" w="533" h="500">
+                    <label xml:lang="pt-br">EXECUTION LOGIC</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-gateway_outbound-6adc22" xsi:type="Container" x="1020" y="193" w="173" h="627">
+                    <label xml:lang="pt-br">GATEWAY OUTBOUND</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-external_integration-9c308b" xsi:type="Container" x="1200" y="193" w="200" h="627">
+                    <label xml:lang="pt-br">EXTERNAL INTEGRATION LAYER</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-data_management-79a0d7" xsi:type="Container" x="480" y="700" w="533" h="120">
+                    <label xml:lang="pt-br">DATA MANAGEMENT</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-layer-etapas-20560a" xsi:type="Container" x="1407" y="193" w="320" h="627">
+                    <label xml:lang="pt-br">Etapas</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                    <node identifier="id-etapa-1-c356e3" xsi:type="Label" x="1420" y="227" w="300" h="20">
+                        <label xml:lang="pt-br">O cliente autenticado no App Mobile ou Internet Banking inicia uma transferência PIX.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-2-8a0eef" xsi:type="Label" x="1420" y="249" w="300" h="20">
+                        <label xml:lang="pt-br">A requisição é enviada ao API Gateway, que valida o token de acesso com o Serviço de Autenticação.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-3-8da960" xsi:type="Label" x="1420" y="271" w="300" h="20">
+                        <label xml:lang="pt-br">O Serviço de Transferências PIX recebe a solicitação e consulta os dados da chave no DICT.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-4-a4d336" xsi:type="Label" x="1420" y="293" w="300" h="20">
+                        <label xml:lang="pt-br">O Serviço de Contas é chamado para validar se há saldo suficiente no Core Banking System.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-5-ab4247" xsi:type="Label" x="1420" y="315" w="300" h="20">
+                        <label xml:lang="pt-br">O Motor Antifraude analisa a transação, consultando o Bureau de Consulta se necessário.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-6-401899" xsi:type="Label" x="1420" y="337" w="300" h="20">
+                        <label xml:lang="pt-br">O sistema solicita confirmação via token ou biometria para valores acima do limite.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-7-b4d802" xsi:type="Label" x="1420" y="359" w="300" h="20">
+                        <label xml:lang="pt-br">Com a aprovação, o Serviço de Transferências PIX acessa o HSM, assina a transação e a envia ao SPI para liquidação.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-8-613dbc" xsi:type="Label" x="1420" y="381" w="300" h="20">
+                        <label xml:lang="pt-br">A transação é gravada no banco de dados PostgreSQL.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-9-e09ef7" xsi:type="Label" x="1420" y="403" w="300" h="20">
+                        <label xml:lang="pt-br">Um evento de sucesso é publicado no Apache Kafka, consumido pelo Serviço de Notificações e pelo Serviço de Auditoria.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-10-04c42c" xsi:type="Label" x="1420" y="425" w="300" h="20">
+                        <label xml:lang="pt-br">O Serviço de Notificações envia um aviso via Gateway de Notificações Push.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                    <node identifier="id-etapa-11-955e31" xsi:type="Label" x="1420" y="447" w="300" h="20">
+                        <label xml:lang="pt-br">O comprovante é gerado e disponibilizado ao cliente.</label>
+                        <style lineWidth="1">
+                            <fillColor r="255" g="255" b="255" a="0"/>
+                            <lineColor r="0" g="0" b="0" a="0"/>
+                            <font name="arial" size="10" style="plain">
+                                <color r="0" g="0" b="0" a="100"/>
+                            </font>
+                        </style>
+                    </node>
+                </node>
+                <node identifier="id-visual-767b4b" elementRef="id-element-56775280" xsi:type="Element" x="77" y="233" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="250" g="240" b="135" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-4b4245" elementRef="id-element-3a6eadec" xsi:type="Element" x="77" y="298" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="250" g="240" b="135" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-9eb522" elementRef="id-element-cb79ac37" xsi:type="Element" x="77" y="363" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="250" g="240" b="135" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-32e68d" elementRef="id-element-c8fb0e4e" xsi:type="Element" x="283" y="233" w="180" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-776078" elementRef="id-element-3fd16854" xsi:type="Element" x="495" y="233" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-83aa2d" elementRef="id-element-8ebf2e91" xsi:type="Element" x="755" y="233" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-7496c6" elementRef="id-element-b9847c6f" xsi:type="Element" x="495" y="298" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-7dd7a1" elementRef="id-element-325f2b2d" xsi:type="Element" x="755" y="298" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-17f7b1" elementRef="id-element-1095f83f" xsi:type="Element" x="495" y="363" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-a5f1d1" elementRef="id-element-3a543535" xsi:type="Element" x="755" y="363" w="250" h="60">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-7d1e2e" elementRef="id-element-f7faf196" xsi:type="Element" x="495" y="735" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-f1a2ef" elementRef="id-element-96369e7b" xsi:type="Element" x="755" y="735" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-b58ea5" elementRef="id-element-797a9885" xsi:type="Element" x="495" y="780" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-cfd1d7" elementRef="id-element-b3f6afa9" xsi:type="Element" x="755" y="780" w="250" h="40">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-2b3267" elementRef="id-element-cc10455b" xsi:type="Element" x="1030" y="233" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-ea9037" elementRef="id-element-2a4daea4" xsi:type="Element" x="1030" y="298" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-5ca242" elementRef="id-element-d3930937" xsi:type="Element" x="1030" y="363" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-0fcd8c" elementRef="id-element-7c78c0cc" xsi:type="Element" x="1030" y="428" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-63ea1c" elementRef="id-element-2a421cd3" xsi:type="Element" x="1030" y="493" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-67cf17" elementRef="id-element-807c80bf" xsi:type="Element" x="1030" y="558" w="153" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="184" g="231" b="252" a="100"/>
+                        <lineColor r="128" g="128" b="128" a="100"/>
+                        <font name="Arial" size="10" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+            </view>
+        </diagrams>
+    </views>
+</model>

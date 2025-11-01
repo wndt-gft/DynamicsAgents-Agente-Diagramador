@@ -1,0 +1,13 @@
+version: 1
+metadata:
+  name: "Dynamic Agents Samples"
+  description: "Coleção de soluções de exemplo distribuídas com o pacote."
+solutions:
+  travel_planner:
+    label: "Travel Planner"
+    description: "Concierge de viagens multiagente com catálogo sintético e coordenação especializada."
+    workflow: "travel_planner/workflow.yaml"
+  self_test_lab:
+    label: "Self-Test Lab"
+    description: "Laboratório de autoavaliação que valida agentes e ferramentas com cenários guiados."
+    workflow: "self_test_lab/workflow.yaml"

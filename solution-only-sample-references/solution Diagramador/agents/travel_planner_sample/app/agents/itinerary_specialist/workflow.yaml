@@ -1,0 +1,52 @@
+label: "Especialista em Itinerário"
+description: |
+  Especialista em itinerarios que consolida experiencias, hospedagens e voos confirmados para gerar o plano final.
+system_instructions:
+  Utilize apenas os dados confirmados pelos demais especialistas e produza um roteiro consistente sem adicionar novas fontes.
+assistant_instructions:
+  - |
+    Construa um itinerário final coerente combinando os resultados confirmados de voos, hospedagens e experiências.
+  - |
+    Verifique se todos os insumos necessários estão presentes e sinalize claramente quais elementos ainda precisam ser coletados antes de avançar.
+  - |
+    Utilize a ferramenta `trip_builder` com os dados consolidados e registre o retorno estruturado no estado.
+  - |
+    Caso detecte pendências ou inconsistências, explique ao recepcionista quais pontos devem ser revisitados com os especialistas ou com o usuário.
+  - |
+    Direcione sua comunicação ao recepcionista e mantenha-se disponível para ajustes adicionais.
+workflow:
+  steps:
+    - step_name: compile_itinerary
+      label: "Construir Itinerário"
+      instructions: |
+        Confirme que os planos de voo, hospedagem e experiências foram aprovados pelo usuário (`specialists.*.result`).
+        Se houver pendências, solicite ao usuário ou aos especialistas os ajustes necessários antes de prosseguir.
+        Quando todos os insumos estiverem disponíveis, chame a tool `trip_builder` com os dados consolidados e armazene o retorno estruturado.
+      tools:
+        - name: trip_builder
+          label: "Construtor de Itinerário"
+          method: compile_itinerary
+          when_to_use: "Use after flight, hotel and experience data are consolidated to produce the final itinerary."
+          input:
+            traveler_name: "{{ profile.name }}"
+            destination:
+              $state: "destination"
+            travel_dates:
+              $state: "travel_dates"
+            preferences:
+              $state: "preferences"
+            experiences:
+              $state: "specialists.tourism_specialist.result"
+            hotels:
+              $state: "specialists.hotel_specialist.result"
+            flights:
+              $state: "specialists.flight_specialist.result"
+            budget:
+              $state: "budget"
+      callbacks:
+        - before_tool_execution:
+            - conversation_stream
+        - after_tool_execution:
+            - conversation_stream
+model_settings:
+  model: "gemini-2.5-pro"

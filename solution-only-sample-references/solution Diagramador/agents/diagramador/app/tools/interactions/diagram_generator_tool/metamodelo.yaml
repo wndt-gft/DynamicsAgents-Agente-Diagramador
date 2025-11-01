@@ -1,0 +1,38 @@
+camadas:
+  - id: 1
+    nome: "CHANNELS"
+    descricao: "Pontos de acesso utilizados pelos usuários finais."
+    tipos_permitidos:
+      - ApplicationCollaboration
+  - id: 2
+    nome: "GATEWAY INBOUND"
+    descricao: "Serviços de fronteira responsáveis por entrada e proteção."
+    tipos_permitidos:
+      - TechnologyService
+  - id: 3
+    nome: "EXECUTION LOGIC"
+    descricao: "Componentes responsáveis pelo processamento do negócio."
+    tipos_permitidos:
+      - ApplicationComponent
+  - id: 4
+    nome: "DATA MANAGEMENT"
+    descricao: "Repositórios, caches e estruturas de dados persistentes."
+    tipos_permitidos:
+      - DataObject
+  - id: 5
+    nome: "GATEWAY OUTBOUND"
+    descricao: "Serviços que expõem integrações para fora do domínio."
+    tipos_permitidos:
+      - TechnologyService
+  - id: 6
+    nome: "EXTERNAL INTEGRATION LAYER"
+    descricao: "Sistemas terceiros integrados ao fluxo principal."
+    tipos_permitidos:
+      - ApplicationCollaboration
+etapas:
+  obrigatorio: true
+  descricao: "Lista numerada descrevendo o fluxo operacional em português."
+restricoes:
+  - "Não utilizar BusinessActor."
+  - "Não gerar elementos sem referência explícita na história."
+  - "Não expor JSON ou XML na análise da Fase 1."

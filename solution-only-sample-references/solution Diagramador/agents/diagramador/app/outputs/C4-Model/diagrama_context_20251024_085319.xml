@@ -1,0 +1,64 @@
+<?xml version="1.0" ?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:dc="http://purl.org/dc/elements/1.1/" identifier="model_1">
+    <name xml:lang="pt-br">Sistema de Transferências PIX</name>
+    <elements>
+        <element identifier="id_16" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Bureau de Crédito (SPC/Serasa)</name>
+            <documentation>Serviço de consulta externo para validações cadastrais adicionais, se necessário.</documentation>
+        </element>
+        <element identifier="id_17" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Sistema de Auditoria e Compliance</name>
+            <documentation>Sistema que armazena um registro completo de todas as transações para fins de conformidade e auditoria.</documentation>
+        </element>
+        <element identifier="id_18" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Gateway de Notificações Push</name>
+            <documentation>Serviço responsável pelo envio de notificações instantâneas para o dispositivo móvel do cliente.</documentation>
+        </element>
+        <element identifier="id_19" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Sistema de Prevenção à Fraude</name>
+            <documentation>Motor externo que analisa as transações em tempo real para identificar e bloquear atividades suspeitas.</documentation>
+        </element>
+        <element identifier="id_20" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Core Banking System</name>
+            <documentation>O sistema central do banco (mainframe) onde os saldos das contas são gerenciados e as operações de débito são efetivadas.</documentation>
+        </element>
+        <element identifier="id_21" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">BACEN (SPI &amp; DICT)</name>
+            <documentation>Representa o sistema do Banco Central do Brasil, acessado para consultar chaves no Diretório de Identificadores de Contas Transacionais (DICT) e para liquidar os pagamentos no Sistema de Pagamentos Instantâneos (SPI).</documentation>
+        </element>
+        <element identifier="id_22" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Sistema de Transferências PIX</name>
+            <documentation>O sistema central responsável por orquestrar a lógica da transferência PIX, validar regras e integrar com os demais sistemas.</documentation>
+        </element>
+        <element identifier="id_23" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Canais Digitais (Mobile &amp; Web)</name>
+            <documentation>Agrupa o Internet Banking e o Aplicativo Mobile, por onde o cliente inicia e acompanha a transferência.</documentation>
+        </element>
+    </elements>
+    <relationships>
+        <relationship identifier="rel_13" source="id_22" target="id_23" xsi:type="Serving">
+            <name xml:lang="pt-br">Disponibiliza comprovante digital e confirmação da transferência.</name>
+        </relationship>
+        <relationship identifier="rel_14" source="id_21" target="id_22" xsi:type="Serving">
+            <name xml:lang="pt-br">Retorna dados da conta de destino e confirmação da liquidação.</name>
+        </relationship>
+        <relationship identifier="rel_15" source="id_22" target="id_17" xsi:type="Serving">
+            <name xml:lang="pt-br">Registra todas as etapas da transação para fins de auditoria.</name>
+        </relationship>
+        <relationship identifier="rel_16" source="id_22" target="id_18" xsi:type="Flow">
+            <name xml:lang="pt-br">Solicita envio de notificação de status da transação.</name>
+        </relationship>
+        <relationship identifier="rel_17" source="id_22" target="id_21" xsi:type="Access">
+            <name xml:lang="pt-br">Consulta chave no DICT e ordena liquidação do pagamento no SPI.</name>
+        </relationship>
+        <relationship identifier="rel_18" source="id_22" target="id_19" xsi:type="Flow">
+            <name xml:lang="pt-br">Envia dados da transação para validação de segurança em tempo real.</name>
+        </relationship>
+        <relationship identifier="rel_19" source="id_22" target="id_20" xsi:type="Serving">
+            <name xml:lang="pt-br">Valida saldo e debita valor da conta.</name>
+        </relationship>
+        <relationship identifier="rel_20" source="id_23" target="id_22" xsi:type="Serving">
+            <name xml:lang="pt-br">Realiza transferência PIX informando chave e valor.</name>
+        </relationship>
+    </relationships>
+</model>

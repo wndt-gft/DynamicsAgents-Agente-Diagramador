@@ -1,0 +1,4 @@
+- A pasta old-diagramador-solution é apenas para referencia (analisar, tirar dúvidas, copiar, tirar ideias) não pode ser alterada.
+- As pastas dentro de agents com final _samples são apenas para referencia (analisar, tirar dúvidas, copiar, tirar ideias) não pode ser alterada.
+- A solução a ser construída é o Diagramador na pasta: agents\diagramador\app (deve seguir a organização de pastas e workflows dos exemplos (agents/*_sample) e a lógica, modelos de interação, modelos de respostas, prompts e resultados da solução antiga na pasta old-diagramador-solution)
+- A pastas .vendor/dynamics_agents/source só deve ser alterada caso seja necessário a pedido do usuário

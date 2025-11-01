@@ -1,0 +1,12 @@
+version: 1
+metadata:
+  name: "confirmation_state"
+  label: "Controle de Confirmação"
+  description: "Atualiza o estado de confirmação após cada resposta do usuário."
+events:
+  - after_user_message:
+      description: "Dispara sempre que o usuário envia uma nova mensagem."
+callbacks:
+  - handle_event:
+      when: "after_user_message"
+      description: "Avalia a mensagem do usuário e ajusta confirmation.status/should_generate."

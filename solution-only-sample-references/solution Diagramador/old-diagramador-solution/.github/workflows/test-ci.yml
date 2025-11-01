@@ -1,0 +1,88 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agents/diagramador
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            agents/diagramador/pyproject.toml
+            agents/diagramador/tests/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -r tests/requirements.txt
+
+      - name: Run test pipeline
+        env:
+          TESTING: 'true'
+        run: python tests/run_tests.py --suite all --no-benchmarks
+
+      - name: Upload coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: test_results/coverage_html
+          if-no-files-found: warn
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: tests/logs
+          if-no-files-found: warn
+
+      - name: Upload coverage XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: test_results/coverage.xml
+          if-no-files-found: warn
+
+  auto-revert:
+    needs: tests
+    if: >-
+      ${{ always() && github.event_name == 'push' &&
+          needs.tests.result == 'failure' &&
+          !startsWith(github.event.head_commit.message, 'Revert ') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Revert latest commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git revert --no-edit HEAD
+          git push origin HEAD:${{ github.ref_name }}

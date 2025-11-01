@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dynamics-agents"
+version = "0.1.1"
+description = "Dynamic runtime that discovers multi-agent workflows and adapts them to Google ADK."
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.10"
+authors = [
+    {name = "GFT"},
+]
+keywords = ["agents", "workflow", "google-adk", "multi-agent"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = []
+
+[project.optional-dependencies]
+yaml = [
+    "pyyaml>=6.0",
+]
+develop = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/wndt-gft/multi-agents-flow"
+Source = "https://github.com/wndt-gft/multi-agents-flow"
+Issues = "https://github.com/wndt-gft/multi-agents-flow/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dynamic_agents*", "template_samples*"]
+exclude = ["tests*", "app*", "xml_tools*"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"dynamic_agents" = [
+    "template_samples/**/*.yaml",
+    "template_samples/**/*.py",
+    "template_samples/**/*.json",
+    "template_samples/**/*.txt",
+]
+
+[project.scripts]
+dynamics-agents = "dynamic_agents.__main__:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--maxfail=1 --disable-warnings"

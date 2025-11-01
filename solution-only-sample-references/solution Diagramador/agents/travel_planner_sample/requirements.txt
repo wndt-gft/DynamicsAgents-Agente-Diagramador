@@ -1,0 +1,64 @@
+# DynamicsAgents Runtime
+../../.vendor/dynamics-agents/dynamics_agents-0.1.1-py3-none-any.whl
+dynamics-agents
+
+# Google ADK e Vertex AI
+google-adk>=1.14.0
+google-cloud-aiplatform>=1.38.0
+google-auth>=2.23.0
+google-cloud-discoveryengine>=0.13.12
+
+# Utilitários gerais
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+pathlib>=1.0.1
+
+# Logging e monitoramento
+structlog>=23.2.0
+
+# Processamento de dados
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Validação e schemas
+pydantic>=2.4.0
+jsonschema>=4.19.0
+
+# Desenvolvimento e testes (opcional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+pytest-timeout>=2.3.1
+black>=23.9.0
+flake8>=6.1.0
+mypy>=1.5.0
+
+# Documentação (opcional)
+mkdocs>=1.5.0
+mkdocs-material>=9.4.0
+mkdocstrings[python]>=0.23.0
+graphviz==0.20.2
+
+# Core load testing framework
+locust>=2.31.1
+
+# System monitoring
+psutil>=5.9.8
+
+# HTTP client - Updated to match google-adk requirements
+requests>=2.32.4
+
+# Additional utilities for enhanced reporting
+Jinja2>=3.1.4
+MarkupSafe>=2.1.5
+
+# Performance metrics - Allow newer version
+numpy>=1.24.0
+
+# Optional: For distributed testing
+pyzmq>=25.1.2
+
+# Optional: For better async support
+gevent>=24.2.1
+greenlet>=3.0.3
+

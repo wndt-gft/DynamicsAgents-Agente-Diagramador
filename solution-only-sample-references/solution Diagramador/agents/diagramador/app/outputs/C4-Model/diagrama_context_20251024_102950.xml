@@ -1,0 +1,211 @@
+<?xml version="1.0" ?>
+<model xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:dc="http://purl.org/dc/elements/1.1/" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.0/archimate3_Diagram.xsd" identifier="id-d3d60e7f">
+    <name xml:lang="pt-br">Visao de Contexto - Sistema de Transferências PIX</name>
+    <elements>
+        <element identifier="id-element-73cbc80d" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Canais do Cliente</name>
+        </element>
+        <element identifier="id-element-b330e8b3" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Bureau de Consulta (SPC/Serasa)</name>
+        </element>
+        <element identifier="id-element-d613ce78" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Sistema de Auditoria e Compliance</name>
+        </element>
+        <element identifier="id-element-7b55bb26" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Gateway de Notificações Push</name>
+        </element>
+        <element identifier="id-element-3403dcbf" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Sistema de Prevenção à Fraude</name>
+        </element>
+        <element identifier="id-element-9842125e" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Core Banking System</name>
+        </element>
+        <element identifier="id-element-f34bc668" xsi:type="ApplicationCollaboration">
+            <name xml:lang="pt-br">Sistema PIX/DICT do Banco Central</name>
+        </element>
+        <element identifier="id-element-41f3c781" xsi:type="ApplicationComponent">
+            <name xml:lang="pt-br">Sistema de Transferências PIX</name>
+        </element>
+    </elements>
+    <relationships>
+        <relationship identifier="id-rel-15530975" source="id-element-41f3c781" target="id-element-d613ce78" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-5bffdfc3" source="id-element-41f3c781" target="id-element-7b55bb26" xsi:type="Flow">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-4596ef59" source="id-element-41f3c781" target="id-element-3403dcbf" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-3aceafb1" source="id-element-41f3c781" target="id-element-9842125e" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+        <relationship identifier="id-rel-187fa7cd" source="id-element-73cbc80d" target="id-element-41f3c781" xsi:type="Serving">
+            <name xml:lang="pt-br"/>
+        </relationship>
+    </relationships>
+    <views>
+        <diagrams>
+            <view identifier="id-ctx-env-c1c858" xsi:type="Container" x="60" y="160" w="360" h="520">
+                <label xml:lang="pt-br">Ambiente externo</label>
+                <style lineWidth="1">
+                    <fillColor r="251" g="251" b="251" a="100"/>
+                    <lineColor r="0" g="0" b="0" a="100"/>
+                    <font name="arial" size="10" style="bold">
+                        <color r="0" g="0" b="0" a="100"/>
+                    </font>
+                </style>
+                <node identifier="id-ctx-actors-d9b3d2" xsi:type="Label" x="80" y="180" w="320" h="500">
+                    <label xml:lang="pt-br">Contexto atores</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="arial" size="8" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+            </view>
+            <view identifier="id-ctx-app-6bb859" xsi:type="Container" x="430" y="160" w="780" h="600">
+                <label xml:lang="pt-br">Contexto aplicacional interno</label>
+                <style lineWidth="1">
+                    <fillColor r="251" g="251" b="251" a="100"/>
+                    <lineColor r="0" g="0" b="0" a="100"/>
+                    <font name="arial" size="10" style="bold">
+                        <color r="0" g="0" b="0" a="100"/>
+                    </font>
+                </style>
+                <node identifier="id-ctx-channels-049329" xsi:type="Label" x="450" y="180" w="230" h="560">
+                    <label xml:lang="pt-br">Canais</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="arial" size="8" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-ctx-products-6575e2" xsi:type="Label" x="690" y="180" w="510" h="560">
+                    <label xml:lang="pt-br">Produtos e servicos</label>
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="255" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="arial" size="8" style="plain">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+            </view>
+            <view identifier="id-ctx-journey-39aaa8" xsi:type="Label" x="60" y="670" w="360" h="120">
+                <label xml:lang="pt-br">Jornada Tech / Issue Forum Arquitetura</label>
+                <style lineWidth="1">
+                    <fillColor r="255" g="255" b="255" a="100"/>
+                    <lineColor r="0" g="0" b="0" a="100"/>
+                    <font name="arial" size="10" style="bold">
+                        <color r="0" g="0" b="0" a="100"/>
+                    </font>
+                </style>
+            </view>
+            <view identifier="id-20492de5" viewpoint="Introductory">
+                <name xml:lang="pt-br">Visao de contexto - Sistema de Transferências PIX</name>
+                <node identifier="id-visual-62ca1e" elementRef="id-element-73cbc80d" xsi:type="Element" x="100" y="200" w="280" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="255" g="255" b="191" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-79b577" elementRef="id-element-b330e8b3" xsi:type="Element" x="710" y="200" w="470" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-53bd81" elementRef="id-element-d613ce78" xsi:type="Element" x="710" y="270" w="470" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-ff740c" elementRef="id-element-7b55bb26" xsi:type="Element" x="710" y="340" w="470" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-506b95" elementRef="id-element-3403dcbf" xsi:type="Element" x="710" y="410" w="470" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-81d670" elementRef="id-element-9842125e" xsi:type="Element" x="710" y="480" w="470" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-c2ebbd" elementRef="id-element-f34bc668" xsi:type="Element" x="710" y="550" w="470" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <node identifier="id-visual-3594f2" elementRef="id-element-41f3c781" xsi:type="Element" x="710" y="620" w="470" h="50">
+                    <style lineWidth="1">
+                        <fillColor r="214" g="248" b="184" a="100"/>
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                        <font name="Arial" size="10">
+                            <color r="0" g="0" b="0" a="100"/>
+                        </font>
+                    </style>
+                </node>
+                <connection identifier="id-conn-71d93f" xsi:type="Relationship" relationshipRef="id-rel-15530975" source="id-visual-3594f2" target="id-visual-53bd81">
+                    <style lineWidth="1">
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-bd6b92" xsi:type="Relationship" relationshipRef="id-rel-5bffdfc3" source="id-visual-3594f2" target="id-visual-ff740c">
+                    <style lineWidth="1">
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-c1c634" xsi:type="Relationship" relationshipRef="id-rel-4596ef59" source="id-visual-3594f2" target="id-visual-506b95">
+                    <style lineWidth="1">
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-8ad5f9" xsi:type="Relationship" relationshipRef="id-rel-3aceafb1" source="id-visual-3594f2" target="id-visual-81d670">
+                    <style lineWidth="1">
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+                <connection identifier="id-conn-cc28e3" xsi:type="Relationship" relationshipRef="id-rel-187fa7cd" source="id-visual-62ca1e" target="id-visual-3594f2">
+                    <style lineWidth="1">
+                        <lineColor r="0" g="0" b="0" a="100"/>
+                    </style>
+                </connection>
+            </view>
+        </diagrams>
+    </views>
+</model>

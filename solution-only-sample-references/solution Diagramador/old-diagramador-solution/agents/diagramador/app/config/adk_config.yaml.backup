@@ -1,0 +1,180 @@
+# Path: architect_agent/config/adk_config.yaml
+
+# Configuração do Architect Agent ADK 2.0
+# Compatível com Google ADK 1.7
+
+agent:
+  name: architect_agent
+  version: "2.0.0"
+  description: "Agente especializado em transformar user stories em diagramas C4"
+
+  # Modelo Gemini
+  model:
+    name: gemini-2.5-flash
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 60
+
+  # Configurações de runtime
+  runtime:
+    max_retries: 3
+    retry_delay: 2
+    concurrent_requests: 5
+    cache_ttl: 3600  # 1 hora
+
+  # Features habilitadas
+  features:
+    - user_story_analysis
+    - archimate_generation
+    - plantuml_conversion
+    - auto_diagram_selection
+    - metamodel_validation
+    - compliance_checking
+
+# Domínios suportados
+domains:
+  Banking:
+    patterns:
+      - "conta"
+      - "saldo"
+      - "transferência"
+      - "pix"
+      - "pagamento"
+      - "cartão"
+      - "empréstimo"
+      - "investimento"
+    compliance:
+      - LGPD
+      - PCI-DSS
+      - BACEN
+      - FEBRABAN
+
+  Insurance:
+    patterns:
+      - "apólice"
+      - "sinistro"
+      - "prêmio"
+      - "cobertura"
+      - "segurado"
+      - "indenização"
+    compliance:
+      - SUSEP
+      - LGPD
+      - ANS
+
+  Retail:
+    patterns:
+      - "produto"
+      - "venda"
+      - "estoque"
+      - "cliente"
+      - "pedido"
+      - "entrega"
+    compliance:
+      - LGPD
+      - CDC
+
+# Tipos de diagramas
+diagrams:
+  context:
+    name: "Context Diagram"
+    description: "Visão geral do sistema e integrações externas"
+    elements:
+      - BusinessActor
+      - BusinessRole
+      - ApplicationComponent
+      - SystemSoftware
+    max_elements: 20
+
+  container:
+    name: "Container Diagram"
+    description: "Arquitetura de containers e componentes principais"
+    elements:
+      - ApplicationComponent
+      - ApplicationService
+      - DataObject
+      - SystemSoftware
+    max_elements: 30
+
+  component:
+    name: "Component Diagram"
+    description: "Detalhes internos dos componentes"
+    elements:
+      - ApplicationComponent
+      - ApplicationInterface
+      - ApplicationFunction
+      - DataObject
+    max_elements: 50
+
+# Configurações de saída
+output:
+  base_dir: "outputs"
+  create_subdirs: true
+  formats:
+    - xml     # ArchiMate XML
+    - puml    # PlantUML
+    - json    # Análise
+
+  file_naming:
+    pattern: "{story_id}_{timestamp}"
+    timestamp_format: "%Y%m%d_%H%M%S"
+
+# Logging
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "architect_agent.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# Metamodelo
+metamodel:
+  path: "metamodel/metamodelo.xml"
+  validation: true
+  strict_mode: false
+  cache_enabled: true
+
+# Integrações (futuras)
+integrations:
+  bizzdesign:
+    enabled: false
+    api_url: "https://api.bizzdesign.com"
+
+  enterprise_architect:
+    enabled: false
+    export_format: "xmi"
+
+  confluence:
+    enabled: false
+    space_key: "ARCH"
+
+# Performance
+performance:
+  enable_caching: true
+  cache_size: 100
+  parallel_processing: true
+  max_workers: 4
+
+# Validações
+validation:
+  check_metamodel: true
+  validate_relationships: true
+  check_completeness: true
+  min_elements_warning: 3
+  max_elements_error: 100
+
+# Mensagens customizadas
+messages:
+  welcome: |
+    👋 Olá! Sou o Architect Agent, especializado em transformar 
+    user stories em diagramas C4 profissionais!
+
+  help: |
+    📝 Como me usar:
+    - Envie uma user story no formato: "Como [ator], eu quero [ação] para [benefício]"
+    - Especifique o tipo de diagrama: context, container ou component
+    - Ou deixe-me analisar e perguntar qual você prefere!
+
+  success: |
+    ✅ Diagramas gerados com sucesso!
+    📁 Verifique a pasta outputs/ para ver os arquivos
