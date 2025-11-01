@@ -34,7 +34,29 @@ from .templates import (
 )
 from ...utils.logging_config import get_logger
 
-__all__ = ["generate_layout_preview"]
+__all__ = ["generate_layout_preview", "LayoutValidationError"]
+
+
+class LayoutValidationError(ValueError):
+    """Erro de validação de layout com metadados estruturados."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        reason: str,
+        issues: Iterable[str] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.issues = tuple(issues or ())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "reason": self.reason,
+            "message": str(self),
+            "issues": list(self.issues),
+        }
 
 logger = get_logger(__name__)
 
@@ -1573,16 +1595,20 @@ def _validate_view_payloads(
 
     if missing_references:
         details = "; ".join(missing_references)
-        raise ValueError(
+        raise LayoutValidationError(
             "Existem referências de layout para elementos ou relações ausentes no datamodel final. "
-            f"Revise o datamodel antes de gerar o preview: {details}."
+            f"Revise o datamodel antes de gerar o preview: {details}.",
+            reason="missing_layout_references",
+            issues=missing_references,
         )
 
     if unchanged_references:
         details = "; ".join(unchanged_references)
-        raise ValueError(
+        raise LayoutValidationError(
             "Preencha os componentes herdados do template com os dados do usuário antes de gerar o preview. "
-            f"Itens não personalizados: {details}."
+            f"Itens não personalizados: {details}.",
+            reason="template_content_not_customized",
+            issues=unchanged_references,
         )
 
 
