@@ -314,17 +314,11 @@ def _apply_layout_customization(
             if lookup and _metadata_is_customized(lookup, blueprint_lookup):
                 element_name = lookup.get("name")
                 if element_name:
-                    label = node.get("label")
-                    if not isinstance(label, str) or _PLACEHOLDER_TOKEN_RE.search(label):
-                        node["label"] = str(element_name)
-                    title = node.get("title")
-                    if not isinstance(title, str) or _PLACEHOLDER_TOKEN_RE.search(title):
-                        node["title"] = str(element_name)
+                    node["label"] = str(element_name)
+                    node["title"] = str(element_name)
                 element_doc = lookup.get("documentation")
                 if element_doc:
-                    doc = node.get("documentation")
-                    if not isinstance(doc, str) or _PLACEHOLDER_TOKEN_RE.search(doc):
-                        node["documentation"] = str(element_doc)
+                    node["documentation"] = str(element_doc)
             update_text_fields(node, ("label", "title", "documentation"))
 
             # Recurse for nested nodes (groups / containers)
@@ -360,14 +354,10 @@ def _apply_layout_customization(
             if relation_info and _metadata_is_customized(relation_info, blueprint_relation):
                 relation_name = relation_info.get("name")
                 if relation_name:
-                    label = connection.get("label")
-                    if not isinstance(label, str) or _PLACEHOLDER_TOKEN_RE.search(label):
-                        connection["label"] = str(relation_name)
+                    connection["label"] = str(relation_name)
                 relation_doc = relation_info.get("documentation")
                 if relation_doc:
-                    doc = connection.get("documentation")
-                    if not isinstance(doc, str) or _PLACEHOLDER_TOKEN_RE.search(doc):
-                        connection["documentation"] = str(relation_doc)
+                    connection["documentation"] = str(relation_doc)
             update_text_fields(connection, ("label", "documentation"))
 
 
